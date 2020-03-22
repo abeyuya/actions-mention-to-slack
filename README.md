@@ -19,3 +19,11 @@ The time we greeted you.
 uses: actions/hello-world-javascript-action@v1
 with:
   who-to-greet: 'Mona the Octocat'
+
+## Development
+
+### build index.js
+
+```
+$ ./node_modules/.bin/tsc index.ts
+```
