@@ -149,36 +149,34 @@ var fetchContent = function (client, repoPath) { return __awaiter(void 0, void 0
     var response;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0:
-                console.log("call fetchContent");
-                return [4 /*yield*/, client.repos.getContents({
-                        owner: github.context.repo.owner,
-                        repo: github.context.repo.repo,
-                        path: repoPath,
-                        ref: github.context.sha
-                    })];
+            case 0: return [4 /*yield*/, client.repos.getContents({
+                    owner: github.context.repo.owner,
+                    repo: github.context.repo.repo,
+                    path: repoPath,
+                    ref: github.context.sha
+                })];
             case 1:
                 response = _a.sent();
-                core.debug("response: " + JSON.stringify(response));
                 return [2 /*return*/, Buffer.from(response.data.content, response.data.encoding).toString()];
         }
     });
 }); };
 var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 0, void 0, void 0, function () {
-    var token, configPath, githubClient, mapping;
+    var token, configPath, githubClient, mapping, slackUsernames;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                console.log("call convertToSlackUsername");
                 token = core.getInput("repo-token", { required: true });
                 configPath = core.getInput("configuration-path", { required: true });
                 githubClient = new github.GitHub(token);
                 return [4 /*yield*/, loadNameMappingConfig(githubClient, configPath)];
             case 1:
                 mapping = _a.sent();
-                console.log("mapping: " + JSON.stringify(mapping));
-                core.debug("mapping: " + JSON.stringify(mapping));
-                return [2 /*return*/, githubUsernames];
+                slackUsernames = githubUsernames.map(function (githubUsername) {
+                    // return github username if mapping does not exist.
+                    return mapping[githubUsername] || githubUsername;
+                });
+                return [2 /*return*/, slackUsernames];
         }
     });
 }); };

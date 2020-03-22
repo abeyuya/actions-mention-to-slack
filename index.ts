@@ -121,7 +121,9 @@ const loadNameMappingConfig = async (
 ) => {
   const configurationContent = await fetchContent(client, configurationPath);
 
-  const configObject: any = yaml.safeLoad(configurationContent);
+  const configObject: { [githugUsername: string]: string } = yaml.safeLoad(
+    configurationContent
+  );
   return configObject;
 };
 
@@ -129,7 +131,6 @@ const fetchContent = async (
   client: github.GitHub,
   repoPath: string
 ): Promise<string> => {
-  console.log("call fetchContent");
   const response: any = await client.repos.getContents({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
@@ -137,22 +138,21 @@ const fetchContent = async (
     ref: github.context.sha
   });
 
-  core.debug(`response: ${JSON.stringify(response)}`);
-
   return Buffer.from(response.data.content, response.data.encoding).toString();
 };
 
 const convertToSlackUsername = async (githubUsernames: string[]) => {
-  console.log("call convertToSlackUsername");
   const token = core.getInput("repo-token", { required: true });
   const configPath = core.getInput("configuration-path", { required: true });
   const githubClient = new github.GitHub(token);
 
   const mapping = await loadNameMappingConfig(githubClient, configPath);
+  const slackUsernames = githubUsernames.map(githubUsername => {
+    // return github username if mapping does not exist.
+    return mapping[githubUsername] || githubUsername;
+  });
 
-  console.log(`mapping: ${JSON.stringify(mapping)}`);
-  core.debug(`mapping: ${JSON.stringify(mapping)}`);
-  return githubUsernames;
+  return slackUsernames;
 };
 
 const main = async () => {
