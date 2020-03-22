@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 exports.__esModule = true;
 var core = require("@actions/core");
 var github = require("@actions/github");
+var yaml = require("js-yaml");
 var axios_1 = require("axios");
 var pickupUsername = function (text) {
     var pattern = /\B@[a-z0-9_-]+/gi;
@@ -93,7 +94,10 @@ var pickupInfoFromGithubPayload = function (payload) {
 };
 var buildSlackPostMessage = function (slackUsernamesForMention, issueTitle, commentLink, githubBody) {
     var mentionBlock = slackUsernamesForMention.map(function (n) { return "@" + n; }).join(" ");
-    return "\n" + mentionBlock + " mentioned at <" + commentLink + "|" + issueTitle + ">\n> " + githubBody + "\n";
+    return [
+        mentionBlock + " mentioned at <" + commentLink + "|" + issueTitle + ">",
+        "> " + githubBody
+    ].join("\n");
 };
 var postToSlack = function (webhookUrl, message) { return __awaiter(void 0, void 0, void 0, function () {
     var slackOption;
@@ -129,26 +133,77 @@ var postToSlack = function (webhookUrl, message) { return __awaiter(void 0, void
 //   }
 // };
 // testPostToSlack();
-var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var info, usernames, message, payload, error_1;
+var loadNameMappingConfig = function (client, configurationPath) { return __awaiter(void 0, void 0, void 0, function () {
+    var configurationContent, configObject;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, fetchContent(client, configurationPath)];
+            case 1:
+                configurationContent = _a.sent();
+                configObject = yaml.safeLoad(configurationContent);
+                return [2 /*return*/, configObject];
+        }
+    });
+}); };
+var fetchContent = function (client, repoPath) { return __awaiter(void 0, void 0, void 0, function () {
+    var response;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, client.repos.getContents({
+                    owner: github.context.repo.owner,
+                    repo: github.context.repo.repo,
+                    path: repoPath,
+                    ref: github.context.sha
+                })];
+            case 1:
+                response = _a.sent();
+                core.debug("response: " + JSON.stringify(response));
+                return [2 /*return*/, Buffer.from(response.data.content, response.data.encoding).toString()];
+        }
+    });
+}); };
+var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 0, void 0, void 0, function () {
+    var token, configPath, githubClient, mapping;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                _a.trys.push([0, 2, , 3]);
-                info = pickupInfoFromGithubPayload(github.context.payload);
-                usernames = pickupUsername(info.body);
-                message = buildSlackPostMessage(usernames, info.title, info.url, info.body);
-                return [4 /*yield*/, postToSlack(process.env.SLACK_WEBHOOK_URL, message)];
+                token = core.getInput("repo-token", { required: true });
+                configPath = core.getInput("configuration-path", { required: true });
+                githubClient = new github.GitHub(token);
+                return [4 /*yield*/, loadNameMappingConfig(githubClient, configPath)];
             case 1:
+                mapping = _a.sent();
+                core.debug("mapping: " + JSON.stringify(mapping));
+                return [2 /*return*/, githubUsernames];
+        }
+    });
+}); };
+var main = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var info, githubUsernames, slackUsernames, message, slackWebhookUrl, payload, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 3, , 4]);
+                info = pickupInfoFromGithubPayload(github.context.payload);
+                githubUsernames = pickupUsername(info.body);
+                return [4 /*yield*/, convertToSlackUsername(githubUsernames)];
+            case 1:
+                slackUsernames = _a.sent();
+                message = buildSlackPostMessage(slackUsernames, info.title, info.url, info.body);
+                slackWebhookUrl = core.getInput("slack-webhook-url", {
+                    required: true
+                });
+                return [4 /*yield*/, postToSlack(slackWebhookUrl, message)];
+            case 2:
                 _a.sent();
                 payload = JSON.stringify(github.context.payload, undefined, 2);
                 console.log("The event payload: " + payload);
-                return [3 /*break*/, 3];
-            case 2:
+                return [3 /*break*/, 4];
+            case 3:
                 error_1 = _a.sent();
                 core.setFailed(error_1.message);
-                return [3 /*break*/, 3];
-            case 3: return [2 /*return*/];
+                return [3 /*break*/, 4];
+            case 4: return [2 /*return*/];
         }
     });
 }); };

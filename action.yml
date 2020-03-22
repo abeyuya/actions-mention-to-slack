@@ -6,10 +6,10 @@ inputs:
     required: true
     default: ".github/mention-to-slack.yml"
   slack-webhook-url:
-    description: "Slack Incomming Webhook URL"
+    description: "Slack Incomming Webhook URL."
     required: true
-  github-to-slack-username:
-    description: "key: Github username, value: Slack username."
+  repo-token:
+    description: "Github access token to fetch .github/mention-to-slack.yml file."
     required: true
 runs:
   using: "node12"
