@@ -191,7 +191,6 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 return [4 /*yield*/, convertToSlackUsername(githubUsernames)];
             case 1:
                 slackUsernames = _a.sent();
-                console.log("slackUsernames: " + slackUsernames);
                 message = buildSlackPostMessage(slackUsernames, info.title, info.url, info.body);
                 slackWebhookUrl = core.getInput("slack-webhook-url", {
                     required: true

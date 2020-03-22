@@ -161,7 +161,6 @@ const main = async () => {
 
     const githubUsernames = pickupUsername(info.body);
     const slackUsernames = await convertToSlackUsername(githubUsernames);
-    console.log(`slackUsernames: ${slackUsernames}`);
 
     const message = buildSlackPostMessage(
       slackUsernames,
