@@ -5,6 +5,9 @@ inputs:
     description: "Mapping config for Github username to Slack username."
     required: true
     default: ".github/mention-to-slack.yml"
+  repo-token:
+    description: "Github token for fetch config mention-to-slack.yml"
+    required: true
 runs:
   using: "node12"
   main: "index.js"

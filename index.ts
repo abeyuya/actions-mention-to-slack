@@ -80,10 +80,10 @@ const buildSlackPostMessage = (
 ) => {
   const mentionBlock = slackUsernamesForMention.map(n => `@${n}`).join(" ");
 
-  return `
-${mentionBlock} mentioned at <${commentLink}|${issueTitle}>
-> ${githubBody}
-`;
+  return [
+    `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
+    `> ${githubBody}`
+  ].join("\n");
 };
 
 const postToSlack = async (webhookUrl: string, message: string) => {
@@ -115,10 +115,6 @@ const postToSlack = async (webhookUrl: string, message: string) => {
 // };
 // testPostToSlack();
 
-const token = core.getInput("repo-token", { required: true });
-const configPath = core.getInput("configuration-path", { required: true });
-const githubClient = new github.GitHub(token);
-
 const loadNameMappingConfig = async (
   client: github.GitHub,
   configurationPath: string
@@ -140,12 +136,19 @@ const fetchContent = async (
     ref: github.context.sha
   });
 
+  core.debug(`response: ${JSON.stringify(response)}`);
+
   return Buffer.from(response.data.content, response.data.encoding).toString();
 };
 
 const convertToSlackUsername = async (githubUsernames: string[]) => {
+  const token = core.getInput("repo-token", { required: true });
+  const configPath = core.getInput("configuration-path", { required: true });
+  const githubClient = new github.GitHub(token);
+
   const mapping = await loadNameMappingConfig(githubClient, configPath);
-  console.log("mapping", mapping, JSON.stringify(mapping));
+
+  core.debug(`mapping: ${JSON.stringify(mapping)}`);
   return githubUsernames;
 };
 
