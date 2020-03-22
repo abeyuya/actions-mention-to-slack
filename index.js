@@ -215,6 +215,10 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 slackWebhookUrl = core.getInput("slack-webhook-url", {
                     required: true
                 });
+                if (!slackWebhookUrl) {
+                    core.setFailed("Error! Need to set `slack-webhook-url` .");
+                    return [2 /*return*/];
+                }
                 return [4 /*yield*/, postToSlack(slackWebhookUrl, message)];
             case 2:
                 _a.sent();

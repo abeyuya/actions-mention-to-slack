@@ -197,6 +197,11 @@ const main = async () => {
       required: true
     });
 
+    if (!slackWebhookUrl) {
+      core.setFailed("Error! Need to set `slack-webhook-url` .");
+      return;
+    }
+
     await postToSlack(slackWebhookUrl, message);
   } catch (error) {
     core.setFailed(error.message);
