@@ -115,40 +115,13 @@ const postToSlack = async (webhookUrl: string, message: string) => {
 // };
 // testPostToSlack();
 
-const loadNameMappingConfig = async (
-  client: github.GitHub,
-  configurationPath: string
-) => {
-  const configurationContent = await fetchContent(client, configurationPath);
-
-  const configObject: any = yaml.safeLoad(configurationContent);
-  return configObject;
-};
-
-const fetchContent = async (
-  client: github.GitHub,
-  repoPath: string
-): Promise<string> => {
-  const response: any = await client.repos.getContents({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    path: repoPath,
-    ref: github.context.sha
+const convertToSlackUsername = (githubUsernames: string[]) => {
+  const mapping = core.getInput("github-to-slack-username", {
+    required: true
   });
 
-  core.debug(`response: ${JSON.stringify(response)}`);
+  console.log(`mapping: ${JSON.stringify(mapping)}`);
 
-  return Buffer.from(response.data.content, response.data.encoding).toString();
-};
-
-const convertToSlackUsername = async (githubUsernames: string[]) => {
-  const token = core.getInput("repo-token", { required: true });
-  const configPath = core.getInput("configuration-path", { required: true });
-  const githubClient = new github.GitHub(token);
-
-  const mapping = await loadNameMappingConfig(githubClient, configPath);
-
-  core.debug(`mapping: ${JSON.stringify(mapping)}`);
   return githubUsernames;
 };
 
@@ -157,7 +130,7 @@ const main = async () => {
     const info = pickupInfoFromGithubPayload(github.context.payload);
 
     const githubUsernames = pickupUsername(info.body);
-    const slackUsernames = await convertToSlackUsername(githubUsernames);
+    const slackUsernames = convertToSlackUsername(githubUsernames);
 
     const message = buildSlackPostMessage(
       slackUsernames,
@@ -166,7 +139,10 @@ const main = async () => {
       info.body
     );
 
-    await postToSlack(process.env.SLACK_WEBHOOK_URL, message);
+    const slackWebhookUrl = core.getInput("slack-webhook-url", {
+      required: true
+    });
+    await postToSlack(slackWebhookUrl, message);
 
     // Get the JSON webhook payload for the event that triggered the workflow
     const payload = JSON.stringify(github.context.payload, undefined, 2);
