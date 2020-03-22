@@ -188,6 +188,9 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 _a.trys.push([0, 3, , 4]);
                 info = pickupInfoFromGithubPayload(github.context.payload);
                 githubUsernames = pickupUsername(info.body);
+                if (githubUsernames.length === 0) {
+                    return [2 /*return*/];
+                }
                 return [4 /*yield*/, convertToSlackUsername(githubUsernames)];
             case 1:
                 slackUsernames = _a.sent();

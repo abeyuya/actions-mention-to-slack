@@ -160,6 +160,10 @@ const main = async () => {
     const info = pickupInfoFromGithubPayload(github.context.payload);
 
     const githubUsernames = pickupUsername(info.body);
+    if (githubUsernames.length === 0) {
+      return;
+    }
+
     const slackUsernames = await convertToSlackUsername(githubUsernames);
 
     const message = buildSlackPostMessage(
