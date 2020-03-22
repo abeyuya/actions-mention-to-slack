@@ -42,21 +42,38 @@ var yaml = require("js-yaml");
 var axios_1 = require("axios");
 var pickupUsername = function (text) {
     var pattern = /\B@[a-z0-9_-]+/gi;
-    return text.match(pattern).map(function (username) { return username.replace("@", ""); });
+    var hits = text.match(pattern);
+    if (hits === null) {
+        return [];
+    }
+    return hits.map(function (username) { return username.replace("@", ""); });
 };
 // const testPickupUsername = () => {
-//   const text = "@jpotts18 what is up man? Are you hanging out with @kyle_clegg";
-//   const usernames = pickupUsername(text);
-//   console.log(usernames);
-//   if (
-//     usernames.length === 2 &&
-//     usernames[0] === "jpotts18" &&
-//     usernames[1] === "kyle_clegg"
-//   ) {
-//     console.log("pass! testPickupUsername");
-//   } else {
-//     throw new Error(`fail! testPickupUsername: ${usernames}`);
-//   }
+//   const test1 = () => {
+//     const text =
+//       "@jpotts18 what is up man? Are you hanging out with @kyle_clegg";
+//     const usernames = pickupUsername(text);
+//     if (
+//       usernames.length === 2 &&
+//       usernames[0] === "jpotts18" &&
+//       usernames[1] === "kyle_clegg"
+//     ) {
+//       console.log("pass! testPickupUsername.test1");
+//     } else {
+//       throw new Error(`fail! testPickupUsername.test1: ${usernames}`);
+//     }
+//   };
+//   test1();
+//   const test2 = () => {
+//     const text = "no mention comment";
+//     const usernames = pickupUsername(text);
+//     if (usernames.length === 0) {
+//       console.log("pass! testPickupUsername.test2");
+//     } else {
+//       throw new Error(`fail! testPickupUsername.test2: ${usernames}`);
+//     }
+//   };
+//   test2();
 // };
 // testPickupUsername();
 var pickupInfoFromGithubPayload = function (payload) {
