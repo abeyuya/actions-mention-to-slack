@@ -181,7 +181,7 @@ var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 
     });
 }); };
 var main = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var info, githubUsernames, slackUsernames, message, slackWebhookUrl, payload, error_1;
+    var info, githubUsernames, slackUsernames, message, slackWebhookUrl, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -198,8 +198,6 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 return [4 /*yield*/, postToSlack(slackWebhookUrl, message)];
             case 2:
                 _a.sent();
-                payload = JSON.stringify(github.context.payload, undefined, 2);
-                console.log("The event payload: " + payload);
                 return [3 /*break*/, 4];
             case 3:
                 error_1 = _a.sent();
