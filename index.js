@@ -149,12 +149,14 @@ var fetchContent = function (client, repoPath) { return __awaiter(void 0, void 0
     var response;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, client.repos.getContents({
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
-                    path: repoPath,
-                    ref: github.context.sha
-                })];
+            case 0:
+                console.log("call fetchContent");
+                return [4 /*yield*/, client.repos.getContents({
+                        owner: github.context.repo.owner,
+                        repo: github.context.repo.repo,
+                        path: repoPath,
+                        ref: github.context.sha
+                    })];
             case 1:
                 response = _a.sent();
                 core.debug("response: " + JSON.stringify(response));
@@ -167,12 +169,14 @@ var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                console.log("call convertToSlackUsername");
                 token = core.getInput("repo-token", { required: true });
                 configPath = core.getInput("configuration-path", { required: true });
                 githubClient = new github.GitHub(token);
                 return [4 /*yield*/, loadNameMappingConfig(githubClient, configPath)];
             case 1:
                 mapping = _a.sent();
+                console.log("mapping: " + JSON.stringify(mapping));
                 core.debug("mapping: " + JSON.stringify(mapping));
                 return [2 /*return*/, githubUsernames];
         }
@@ -189,6 +193,7 @@ var main = function () { return __awaiter(void 0, void 0, void 0, function () {
                 return [4 /*yield*/, convertToSlackUsername(githubUsernames)];
             case 1:
                 slackUsernames = _a.sent();
+                console.log("slackUsernames: " + slackUsernames);
                 message = buildSlackPostMessage(slackUsernames, info.title, info.url, info.body);
                 slackWebhookUrl = core.getInput("slack-webhook-url", {
                     required: true

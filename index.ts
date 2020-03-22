@@ -129,6 +129,7 @@ const fetchContent = async (
   client: github.GitHub,
   repoPath: string
 ): Promise<string> => {
+  console.log("call fetchContent");
   const response: any = await client.repos.getContents({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
@@ -142,12 +143,14 @@ const fetchContent = async (
 };
 
 const convertToSlackUsername = async (githubUsernames: string[]) => {
+  console.log("call convertToSlackUsername");
   const token = core.getInput("repo-token", { required: true });
   const configPath = core.getInput("configuration-path", { required: true });
   const githubClient = new github.GitHub(token);
 
   const mapping = await loadNameMappingConfig(githubClient, configPath);
 
+  console.log(`mapping: ${JSON.stringify(mapping)}`);
   core.debug(`mapping: ${JSON.stringify(mapping)}`);
   return githubUsernames;
 };
@@ -158,6 +161,7 @@ const main = async () => {
 
     const githubUsernames = pickupUsername(info.body);
     const slackUsernames = await convertToSlackUsername(githubUsernames);
+    console.log(`slackUsernames: ${slackUsernames}`);
 
     const message = buildSlackPostMessage(
       slackUsernames,
