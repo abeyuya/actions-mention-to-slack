@@ -111,7 +111,7 @@ var pickupInfoFromGithubPayload = function (payload) {
         return {
             body: payload.review.body,
             title: payload.pull_request.title,
-            url: payload.comment.html_url
+            url: payload.review.html_url
         };
     }
     throw new Error("unknown event hook: " + JSON.stringify(payload, undefined, 2));

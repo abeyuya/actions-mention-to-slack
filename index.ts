@@ -91,7 +91,7 @@ const pickupInfoFromGithubPayload = (
     return {
       body: payload.review.body,
       title: payload.pull_request.title,
-      url: payload.comment.html_url
+      url: payload.review.html_url
     };
   }
 
