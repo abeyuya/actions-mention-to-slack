@@ -87,6 +87,14 @@ const pickupInfoFromGithubPayload = (
     }
   }
 
+  if (payload.action === "submitted" && payload.review) {
+    return {
+      body: payload.review.body,
+      title: payload.pull_request.title,
+      url: payload.comment.html_url
+    };
+  }
+
   throw new Error(
     `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
   );
