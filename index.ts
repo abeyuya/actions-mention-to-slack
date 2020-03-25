@@ -106,11 +106,12 @@ const buildSlackPostMessage = (
   commentLink: string,
   githubBody: string
 ) => {
-  const mentionBlock = slackIdsForMention.map(n => `<@${n}>`).join(" ");
+  const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
+  const body = githubBody.split("\n").map(line => `> ${line}`);
 
   return [
     `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
-    `> ${githubBody}`
+    body
   ].join("\n");
 };
 
