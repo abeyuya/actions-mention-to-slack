@@ -208,12 +208,12 @@ var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 
     });
 }); };
 var execPrReviewRequestedMention = function (payload) { return __awaiter(void 0, void 0, void 0, function () {
-    var requestedGithubUsernames, slackIds, title, url, requestUsername, mentionBlock, message, slackWebhookUrl;
+    var requestedGithubUsername, slackIds, title, url, requestedSlackUserId, requestUsername, message, slackWebhookUrl;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                requestedGithubUsernames = payload.pull_request.requested_reviewers.map(function (r) { return r.login; });
-                return [4 /*yield*/, convertToSlackUsername(requestedGithubUsernames)];
+                requestedGithubUsername = payload.requested_reviewer.login;
+                return [4 /*yield*/, convertToSlackUsername([requestedGithubUsername])];
             case 1:
                 slackIds = _a.sent();
                 if (slackIds.length === 0) {
@@ -221,9 +221,9 @@ var execPrReviewRequestedMention = function (payload) { return __awaiter(void 0,
                 }
                 title = payload.pull_request.title;
                 url = payload.pull_request.html_url;
-                requestUsername = payload.pull_request.user.login;
-                mentionBlock = slackIds.map(function (id) { return "<@" + id + ">"; }).join(", ");
-                message = mentionBlock + " has been requested to review <" + url + "|" + title + "> by " + requestUsername + ".";
+                requestedSlackUserId = slackIds[0];
+                requestUsername = payload.sender.login;
+                message = "<@" + requestedSlackUserId + "> has been requested to review <" + url + "|" + title + "> by " + requestUsername + ".";
                 slackWebhookUrl = core.getInput("slack-webhook-url", {
                     required: true
                 });
