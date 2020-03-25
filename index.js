@@ -221,7 +221,7 @@ var execPrReviewRequestedMention = function (payload) { return __awaiter(void 0,
                 }
                 title = payload.pull_request.title;
                 url = payload.pull_request.html_url;
-                requestUsername = payload.user.login;
+                requestUsername = payload.pull_request.user.login;
                 mentionBlock = slackIds.map(function (id) { return "<@" + id + ">"; }).join(", ");
                 message = mentionBlock + " has been requested to review <" + url + "|" + title + "> by " + requestUsername + ".";
                 slackWebhookUrl = core.getInput("slack-webhook-url", {

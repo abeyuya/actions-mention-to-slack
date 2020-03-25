@@ -198,7 +198,7 @@ const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
 
   const title = payload.pull_request.title;
   const url = payload.pull_request.html_url;
-  const requestUsername = payload.user.login;
+  const requestUsername = payload.pull_request.user.login;
 
   const mentionBlock = slackIds.map(id => `<@${id}>`).join(", ");
   const message = `${mentionBlock} has been requested to review <${url}|${title}> by ${requestUsername}.`;
