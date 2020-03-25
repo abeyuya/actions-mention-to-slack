@@ -116,11 +116,12 @@ var pickupInfoFromGithubPayload = function (payload) {
     }
     throw new Error("unknown event hook: " + JSON.stringify(payload, undefined, 2));
 };
-var buildSlackPostMessage = function (slackUsernamesForMention, issueTitle, commentLink, githubBody) {
-    var mentionBlock = slackUsernamesForMention.map(function (n) { return "@" + n; }).join(" ");
+var buildSlackPostMessage = function (slackIdsForMention, issueTitle, commentLink, githubBody) {
+    var mentionBlock = slackIdsForMention.map(function (id) { return "<@" + id + ">"; }).join(" ");
+    var body = githubBody.split("\n").map(function (line) { return "> " + line; });
     return [
         mentionBlock + " mentioned at <" + commentLink + "|" + issueTitle + ">",
-        "> " + githubBody
+        body
     ].join("\n");
 };
 var postToSlack = function (webhookUrl, message) { return __awaiter(void 0, void 0, void 0, function () {
@@ -186,7 +187,7 @@ var fetchContent = function (client, repoPath) { return __awaiter(void 0, void 0
     });
 }); };
 var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 0, void 0, void 0, function () {
-    var token, configPath, githubClient, mapping, slackUsernames;
+    var token, configPath, githubClient, mapping, slackIds;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -196,11 +197,10 @@ var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 
                 return [4 /*yield*/, loadNameMappingConfig(githubClient, configPath)];
             case 1:
                 mapping = _a.sent();
-                slackUsernames = githubUsernames.map(function (githubUsername) {
-                    // return github username if mapping does not exist.
-                    return mapping[githubUsername] || githubUsername;
-                });
-                return [2 /*return*/, slackUsernames];
+                slackIds = githubUsernames
+                    .filter(function (githubUsername) { return mapping[githubUsername] !== undefined; })
+                    .map(function (githubUsername) { return mapping[githubUsername]; });
+                return [2 /*return*/, slackIds];
         }
     });
 }); };
