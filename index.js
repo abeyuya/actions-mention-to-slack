@@ -118,7 +118,10 @@ var pickupInfoFromGithubPayload = function (payload) {
 };
 var buildSlackPostMessage = function (slackIdsForMention, issueTitle, commentLink, githubBody) {
     var mentionBlock = slackIdsForMention.map(function (id) { return "<@" + id + ">"; }).join(" ");
-    var body = githubBody.split("\n").map(function (line) { return "> " + line; });
+    var body = githubBody
+        .split("\n")
+        .map(function (line) { return "> " + line; })
+        .join("\n");
     return [
         mentionBlock + " mentioned at <" + commentLink + "|" + issueTitle + ">",
         body
