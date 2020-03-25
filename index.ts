@@ -55,17 +55,17 @@ const pickupInfoFromGithubPayload = (
 } => {
   if (payload.action === "opened" && payload.issue) {
     return {
-      body: payload.issue.body,
+      body: payload.issue.body || "",
       title: payload.issue.title,
-      url: payload.issue.html_url
+      url: payload.issue.html_url || ""
     };
   }
 
   if (payload.action === "opened" && payload.pull_request) {
     return {
-      body: payload.pull_request.body,
+      body: payload.pull_request.body || "",
       title: payload.pull_request.title,
-      url: payload.pull_request.html_url
+      url: payload.pull_request.html_url || ""
     };
   }
 
@@ -90,7 +90,7 @@ const pickupInfoFromGithubPayload = (
   if (payload.action === "submitted" && payload.review) {
     return {
       body: payload.review.body,
-      title: payload.pull_request.title,
+      title: payload.pull_request?.title || "",
       url: payload.review.html_url
     };
   }
@@ -194,10 +194,10 @@ const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
     return;
   }
 
-  const title = payload.pull_request.title;
-  const url = payload.pull_request.html_url;
+  const title = payload.pull_request?.title;
+  const url = payload.pull_request?.html_url;
   const requestedSlackUserId = slackIds[0];
-  const requestUsername = payload.sender.login;
+  const requestUsername = payload.sender?.login;
 
   const message = `<@${requestedSlackUserId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
 
