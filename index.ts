@@ -187,19 +187,19 @@ const convertToSlackUsername = async (githubUsernames: string[]) => {
 };
 
 const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
-  const githubUsername = payload.requested_reviewer.login;
-  const slackIds = await convertToSlackUsername([githubUsername]);
+  const githubUsernames = payload.requested_reviewers.map(r => r.login);
+  const slackIds = await convertToSlackUsername(githubUsernames);
 
   if (slackIds.length === 0) {
     return;
   }
 
-  const slackId = slackIds[0];
   const title = payload.pull_request.title;
   const url = payload.pull_request.html_url;
   const requestUsername = payload.user.login;
 
-  const message = `<@${slackId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
+  const mentionBlock = slackIds.map(id => `<@${id}>`).join(", ");
+  const message = `${mentionBlock} has been requested to review <${url}|${title}> by ${requestUsername}.`;
 
   const slackWebhookUrl = core.getInput("slack-webhook-url", {
     required: true
