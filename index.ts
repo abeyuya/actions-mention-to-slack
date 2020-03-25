@@ -101,12 +101,12 @@ const pickupInfoFromGithubPayload = (
 };
 
 const buildSlackPostMessage = (
-  slackUsernamesForMention: string[],
+  slackIdsForMention: string[],
   issueTitle: string,
   commentLink: string,
   githubBody: string
 ) => {
-  const mentionBlock = slackUsernamesForMention.map(n => `@${n}`).join(" ");
+  const mentionBlock = slackIdsForMention.map(n => `<@${n}>`).join(" ");
 
   return [
     `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
@@ -175,12 +175,11 @@ const convertToSlackUsername = async (githubUsernames: string[]) => {
   const githubClient = new github.GitHub(token);
 
   const mapping = await loadNameMappingConfig(githubClient, configPath);
-  const slackUsernames = githubUsernames.map(githubUsername => {
-    // return github username if mapping does not exist.
-    return mapping[githubUsername] || githubUsername;
-  });
+  const slackIds = githubUsernames
+    .filter(githubUsername => mapping[githubUsername] !== undefined)
+    .map(githubUsername => mapping[githubUsername]);
 
-  return slackUsernames;
+  return slackIds;
 };
 
 const main = async () => {
