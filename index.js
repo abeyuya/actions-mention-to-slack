@@ -208,12 +208,12 @@ var convertToSlackUsername = function (githubUsernames) { return __awaiter(void 
     });
 }); };
 var execPrReviewRequestedMention = function (payload) { return __awaiter(void 0, void 0, void 0, function () {
-    var githubUsernames, slackIds, title, url, requestUsername, mentionBlock, message, slackWebhookUrl;
+    var requestedGithubUsernames, slackIds, title, url, requestUsername, mentionBlock, message, slackWebhookUrl;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                githubUsernames = payload.requested_reviewers.map(function (r) { return r.login; });
-                return [4 /*yield*/, convertToSlackUsername(githubUsernames)];
+                requestedGithubUsernames = payload.pull_request.requested_reviewers.map(function (r) { return r.login; });
+                return [4 /*yield*/, convertToSlackUsername(requestedGithubUsernames)];
             case 1:
                 slackIds = _a.sent();
                 if (slackIds.length === 0) {

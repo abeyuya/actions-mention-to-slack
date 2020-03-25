@@ -187,8 +187,10 @@ const convertToSlackUsername = async (githubUsernames: string[]) => {
 };
 
 const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
-  const githubUsernames = payload.requested_reviewers.map(r => r.login);
-  const slackIds = await convertToSlackUsername(githubUsernames);
+  const requestedGithubUsernames = payload.pull_request.requested_reviewers.map(
+    r => r.login
+  );
+  const slackIds = await convertToSlackUsername(requestedGithubUsernames);
 
   if (slackIds.length === 0) {
     return;
