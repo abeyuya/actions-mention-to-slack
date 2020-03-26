@@ -12,10 +12,10 @@ inputs:
     description: "Github access token to fetch .github/mention-to-slack.yml file."
     required: true
   bot-name:
-    description: "Display name for this bot."
+    description: "Display name for this bot on Slack."
     required: false
   icon-url:
-    description: "Display icon url for this bot."
+    description: "Display icon url for this bot on Slack."
     required: false
 runs:
   using: "node12"
