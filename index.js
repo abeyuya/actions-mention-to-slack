@@ -129,16 +129,29 @@ var buildSlackPostMessage = function (slackIdsForMention, issueTitle, commentLin
     ].join("\n");
 };
 var postToSlack = function (webhookUrl, message) { return __awaiter(void 0, void 0, void 0, function () {
-    var slackOption;
+    var botName, slackOption, iconUrl;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                botName = (function () {
+                    var n = core.getInput("bot-name", { required: false });
+                    if (n && n !== "") {
+                        return n;
+                    }
+                    return "Github Mention To Slack";
+                })();
                 slackOption = {
                     text: message,
-                    link_names: 1,
-                    username: "Github Mention To Slack",
-                    icon_emoji: ":bell:"
+                    link_names: 0,
+                    username: botName
                 };
+                iconUrl = core.getInput("icon-url", { required: false });
+                if (iconUrl && iconUrl !== "") {
+                    slackOption.icon_url = iconUrl;
+                }
+                else {
+                    slackOption.icon_emoji = ":bell:";
+                }
                 return [4 /*yield*/, axios_1["default"].post(webhookUrl, JSON.stringify(slackOption), {
                         headers: { "Content-Type": "application/json" }
                     })];

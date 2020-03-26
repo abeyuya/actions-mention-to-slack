@@ -118,13 +118,35 @@ const buildSlackPostMessage = (
   ].join("\n");
 };
 
+type SlackOption = {
+  text: string;
+  link_names: 0 | 1;
+  username: string;
+  icon_url?: string;
+  icon_emoji?: string;
+};
+
 const postToSlack = async (webhookUrl: string, message: string) => {
-  const slackOption = {
+  const botName = (() => {
+    const n = core.getInput("bot-name", { required: false });
+    if (n && n !== "") {
+      return n;
+    }
+    return "Github Mention To Slack";
+  })();
+
+  const slackOption: SlackOption = {
     text: message,
-    link_names: 1,
-    username: "Github Mention To Slack",
-    icon_emoji: ":bell:"
+    link_names: 0,
+    username: botName
   };
+
+  const iconUrl = core.getInput("icon-url", { required: false });
+  if (iconUrl && iconUrl !== "") {
+    slackOption.icon_url = iconUrl;
+  } else {
+    slackOption.icon_emoji = ":bell:";
+  }
 
   await axios.post(webhookUrl, JSON.stringify(slackOption), {
     headers: { "Content-Type": "application/json" }
