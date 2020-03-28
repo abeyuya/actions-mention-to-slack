@@ -36,30 +36,30 @@ describe("src/index", () => {
       botName: ""
     };
 
-    const dummyPayload = {
-      requested_reviewer: {
-        login: "github_user_1"
-      },
-      pull_request: {
-        title: "pr_title",
-        html_url: "pr_url"
-      },
-      sender: {
-        login: "sender_github_username"
-      }
-    };
-
     const dummyMapping = {
       github_user_1: "slack_user_1"
     };
 
-    it("should call postToSlack", async () => {
+    it("should call postToSlack if requested_user is listed in mapping", async () => {
       const githubMock = {
         loadNameMappingConfig: jest.fn(async () => dummyMapping)
       };
 
       const slackMock = {
         postToSlack: jest.fn()
+      };
+
+      const dummyPayload = {
+        requested_reviewer: {
+          login: "github_user_1"
+        },
+        pull_request: {
+          title: "pr_title",
+          html_url: "pr_url"
+        },
+        sender: {
+          login: "sender_github_username"
+        }
       };
 
       await execPrReviewRequestedMention(
@@ -76,6 +76,39 @@ describe("src/index", () => {
       expect(call[1].includes("<@slack_user_1>")).toEqual(true);
       expect(call[1].includes("<pr_url|pr_title>")).toEqual(true);
       expect(call[1].includes("by sender_github_username")).toEqual(true);
+    });
+
+    it("should not call postToSlack if requested_user is not listed in mapping", async () => {
+      const githubMock = {
+        loadNameMappingConfig: jest.fn(async () => dummyMapping)
+      };
+
+      const slackMock = {
+        postToSlack: jest.fn()
+      };
+
+      const dummyPayload = {
+        requested_reviewer: {
+          login: "github_user_not_linsted"
+        },
+        pull_request: {
+          title: "pr_title",
+          html_url: "pr_url"
+        },
+        sender: {
+          login: "sender_github_username"
+        }
+      };
+
+      await execPrReviewRequestedMention(
+        dummyPayload as any,
+        dummyInputs,
+        githubMock,
+        slackMock
+      );
+
+      expect(githubMock.loadNameMappingConfig.mock.calls.length).toEqual(1);
+      expect(slackMock.postToSlack.mock.calls.length).toEqual(0);
     });
   });
 });
