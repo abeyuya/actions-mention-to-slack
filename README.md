@@ -68,8 +68,8 @@ other_github_username: "slack_member_id_here"
 
 ## Development
 
-### build index.js
+### build dist/index.js
 
 ```
-$ ./node_modules/.bin/tsc index.ts
+$ npm run build
 ```

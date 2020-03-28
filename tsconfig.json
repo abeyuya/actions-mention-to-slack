@@ -14,14 +14,15 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "noEmit": true,
+    "noEmit": false,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "strictFunctionTypes": true,
     "strictPropertyInitialization": true,
     "alwaysStrict": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "outDir": "dist"
   },
-  "files": ["index.ts"]
+  "files": ["src/index.ts"]
 }
