@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "src/**"
+      - "__tests__/**"
+      - "*.js"
+      - "*.json"
+      - ".github/workflows/test.yml"
+
+jobs:
+  jest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "12.13.1"
+      - name: Cache npm
+        uses: actions/cache@v1
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+      - run: npm install
+      - run: npm run test -- --coverage
