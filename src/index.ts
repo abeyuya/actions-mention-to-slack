@@ -128,10 +128,11 @@ const getAllInputs = (): AllInputs => {
 };
 
 const main = async () => {
-  const allInputs = getAllInputs();
   const { payload } = github.context;
 
   try {
+    const allInputs = getAllInputs();
+
     if (payload.action === "review_requested") {
       await execPrReviewRequestedMention(
         payload,
