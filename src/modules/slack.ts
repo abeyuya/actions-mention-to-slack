@@ -18,7 +18,12 @@ export const buildSlackPostMessage = (
   ].join("\n");
 };
 
-type SlackOption = {
+export type SlackOption = {
+  iconUrl?: string;
+  botName?: string;
+};
+
+type SlackPostParam = {
   text: string;
   link_names: 0 | 1;
   username: string;
@@ -31,10 +36,7 @@ const defaultBotName = "Github Mention To Slack";
 export const postToSlack = async (
   webhookUrl: string,
   message: string,
-  options?: {
-    iconUrl?: string;
-    botName?: string;
-  }
+  options?: SlackOption
 ) => {
   const botName = (() => {
     const n = options?.botName;
@@ -44,7 +46,7 @@ export const postToSlack = async (
     return defaultBotName;
   })();
 
-  const slackOption: SlackOption = {
+  const slackPostParam: SlackPostParam = {
     text: message,
     link_names: 0,
     username: botName
@@ -52,12 +54,12 @@ export const postToSlack = async (
 
   const u = options?.iconUrl;
   if (u && u !== "") {
-    slackOption.icon_url = u;
+    slackPostParam.icon_url = u;
   } else {
-    slackOption.icon_emoji = ":bell:";
+    slackPostParam.icon_emoji = ":bell:";
   }
 
-  await axios.post(webhookUrl, JSON.stringify(slackOption), {
+  await axios.post(webhookUrl, JSON.stringify(slackPostParam), {
     headers: { "Content-Type": "application/json" }
   });
 };

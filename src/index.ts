@@ -7,7 +7,11 @@ import {
   pickupInfoFromGithubPayload,
   loadNameMappingConfig
 } from "./modules/github";
-import { postToSlack, buildSlackPostMessage } from "./modules/slack";
+import {
+  postToSlack,
+  buildSlackPostMessage,
+  SlackOption
+} from "./modules/slack";
 
 const convertToSlackUsername = async (githubUsernames: string[]) => {
   const token = core.getInput("repo-token", { required: true });
@@ -22,7 +26,11 @@ const convertToSlackUsername = async (githubUsernames: string[]) => {
   return slackIds;
 };
 
-const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
+const execPrReviewRequestedMention = async (
+  payload: WebhookPayload,
+  slackWebhookUrl: string,
+  options: SlackOption
+) => {
   const requestedGithubUsername = payload.requested_reviewer.login;
   const slackIds = await convertToSlackUsername([requestedGithubUsername]);
 
@@ -37,21 +45,13 @@ const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
 
   const message = `<@${requestedSlackUserId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
 
-  const slackWebhookUrl = core.getInput("slack-webhook-url", {
-    required: true
-  });
-
-  if (!slackWebhookUrl) {
-    core.setFailed("Error! Need to set `slack-webhook-url` .");
-    return;
-  }
-
-  const iconUrl = core.getInput("icon-url", { required: false });
-  const botName = core.getInput("bot-name", { required: false });
-  await postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  await postToSlack(slackWebhookUrl, message, options);
 };
 
-const execNormalMention = async () => {
+const execNormalMention = async (
+  slackWebhookUrl: string,
+  options: SlackOption
+) => {
   const info = pickupInfoFromGithubPayload(github.context.payload);
 
   const githubUsernames = pickupUsername(info.body);
@@ -68,6 +68,10 @@ const execNormalMention = async () => {
     info.body
   );
 
+  await postToSlack(slackWebhookUrl, message, options);
+};
+
+const main = async () => {
   const slackWebhookUrl = core.getInput("slack-webhook-url", {
     required: true
   });
@@ -77,17 +81,21 @@ const execNormalMention = async () => {
     return;
   }
 
-  await postToSlack(slackWebhookUrl, message);
-};
+  const iconUrl = core.getInput("icon-url", { required: false });
+  const botName = core.getInput("bot-name", { required: false });
+  const slackOptions: SlackOption = { iconUrl, botName };
 
-const main = async () => {
   try {
     if (github.context.payload.action === "review_requested") {
-      await execPrReviewRequestedMention(github.context.payload);
+      await execPrReviewRequestedMention(
+        github.context.payload,
+        slackWebhookUrl,
+        slackOptions
+      );
       return;
     }
 
-    await execNormalMention();
+    await execNormalMention(slackWebhookUrl, slackOptions);
   } catch (error) {
     core.setFailed(error.message);
   }
