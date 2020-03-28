@@ -27,7 +27,11 @@ type SlackOption = {
   icon_emoji?: string;
 };
 
-export const postToSlack = async (webhookUrl: string, message: string) => {
+export const postToSlack = async (
+  webhookUrl: string,
+  message: string,
+  iconUrl?: string
+) => {
   const botName = (() => {
     const n = core.getInput("bot-name", { required: false });
     if (n && n !== "") {
@@ -42,7 +46,6 @@ export const postToSlack = async (webhookUrl: string, message: string) => {
     username: botName
   };
 
-  const iconUrl = core.getInput("icon-url", { required: false });
   if (iconUrl && iconUrl !== "") {
     slackOption.icon_url = iconUrl;
   } else {

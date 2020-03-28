@@ -1524,7 +1524,7 @@ exports.useColors = useColors;
 exports.colors = [ 6, 2, 3, 4, 5, 1 ];
 
 try {
-  var supportsColor = __webpack_require__(858);
+  var supportsColor = __webpack_require__(247);
   if (supportsColor && supportsColor.level >= 2) {
     exports.colors = [
       20, 21, 26, 27, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 56, 57, 62, 63, 68,
@@ -3878,6 +3878,153 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
 
 /***/ }),
 
+/***/ 247:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const os = __webpack_require__(87);
+const tty = __webpack_require__(867);
+const hasFlag = __webpack_require__(364);
+
+const {env} = process;
+
+let forceColor;
+if (hasFlag('no-color') ||
+	hasFlag('no-colors') ||
+	hasFlag('color=false') ||
+	hasFlag('color=never')) {
+	forceColor = 0;
+} else if (hasFlag('color') ||
+	hasFlag('colors') ||
+	hasFlag('color=true') ||
+	hasFlag('color=always')) {
+	forceColor = 1;
+}
+
+if ('FORCE_COLOR' in env) {
+	if (env.FORCE_COLOR === 'true') {
+		forceColor = 1;
+	} else if (env.FORCE_COLOR === 'false') {
+		forceColor = 0;
+	} else {
+		forceColor = env.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env.FORCE_COLOR, 10), 3);
+	}
+}
+
+function translateLevel(level) {
+	if (level === 0) {
+		return false;
+	}
+
+	return {
+		level,
+		hasBasic: true,
+		has256: level >= 2,
+		has16m: level >= 3
+	};
+}
+
+function supportsColor(haveStream, streamIsTTY) {
+	if (forceColor === 0) {
+		return 0;
+	}
+
+	if (hasFlag('color=16m') ||
+		hasFlag('color=full') ||
+		hasFlag('color=truecolor')) {
+		return 3;
+	}
+
+	if (hasFlag('color=256')) {
+		return 2;
+	}
+
+	if (haveStream && !streamIsTTY && forceColor === undefined) {
+		return 0;
+	}
+
+	const min = forceColor || 0;
+
+	if (env.TERM === 'dumb') {
+		return min;
+	}
+
+	if (process.platform === 'win32') {
+		// Windows 10 build 10586 is the first Windows release that supports 256 colors.
+		// Windows 10 build 14931 is the first release that supports 16m/TrueColor.
+		const osRelease = os.release().split('.');
+		if (
+			Number(osRelease[0]) >= 10 &&
+			Number(osRelease[2]) >= 10586
+		) {
+			return Number(osRelease[2]) >= 14931 ? 3 : 2;
+		}
+
+		return 1;
+	}
+
+	if ('CI' in env) {
+		if (['TRAVIS', 'CIRCLECI', 'APPVEYOR', 'GITLAB_CI'].some(sign => sign in env) || env.CI_NAME === 'codeship') {
+			return 1;
+		}
+
+		return min;
+	}
+
+	if ('TEAMCITY_VERSION' in env) {
+		return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+	}
+
+	if ('GITHUB_ACTIONS' in env) {
+		return 1;
+	}
+
+	if (env.COLORTERM === 'truecolor') {
+		return 3;
+	}
+
+	if ('TERM_PROGRAM' in env) {
+		const version = parseInt((env.TERM_PROGRAM_VERSION || '').split('.')[0], 10);
+
+		switch (env.TERM_PROGRAM) {
+			case 'iTerm.app':
+				return version >= 3 ? 3 : 2;
+			case 'Apple_Terminal':
+				return 2;
+			// No default
+		}
+	}
+
+	if (/-256(color)?$/i.test(env.TERM)) {
+		return 2;
+	}
+
+	if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+		return 1;
+	}
+
+	if ('COLORTERM' in env) {
+		return 1;
+	}
+
+	return min;
+}
+
+function getSupportLevel(stream) {
+	const level = supportsColor(stream, stream && stream.isTTY);
+	return translateLevel(level);
+}
+
+module.exports = {
+	supportsColor: getSupportLevel,
+	stdout: translateLevel(supportsColor(true, tty.isatty(1))),
+	stderr: translateLevel(supportsColor(true, tty.isatty(2)))
+};
+
+
+/***/ }),
+
 /***/ 260:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -6226,159 +6373,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const yaml = __importStar(__webpack_require__(414));
-const axios_1 = __importDefault(__webpack_require__(53));
-const pickupUsername = (text) => {
-    const pattern = /\B@[a-z0-9_-]+/gi;
-    const hits = text.match(pattern);
-    if (hits === null) {
-        return [];
-    }
-    return hits.map(username => username.replace("@", ""));
-};
-// const testPickupUsername = () => {
-//   const test1 = () => {
-//     const text =
-//       "@jpotts18 what is up man? Are you hanging out with @kyle_clegg";
-//     const usernames = pickupUsername(text);
-//     if (
-//       usernames.length === 2 &&
-//       usernames[0] === "jpotts18" &&
-//       usernames[1] === "kyle_clegg"
-//     ) {
-//       console.log("pass! testPickupUsername.test1");
-//     } else {
-//       throw new Error(`fail! testPickupUsername.test1: ${usernames}`);
-//     }
-//   };
-//   test1();
-//   const test2 = () => {
-//     const text = "no mention comment";
-//     const usernames = pickupUsername(text);
-//     if (usernames.length === 0) {
-//       console.log("pass! testPickupUsername.test2");
-//     } else {
-//       throw new Error(`fail! testPickupUsername.test2: ${usernames}`);
-//     }
-//   };
-//   test2();
-// };
-// testPickupUsername();
-const pickupInfoFromGithubPayload = (payload) => {
-    var _a;
-    if (payload.action === "opened" && payload.issue) {
-        return {
-            body: payload.issue.body || "",
-            title: payload.issue.title,
-            url: payload.issue.html_url || ""
-        };
-    }
-    if (payload.action === "opened" && payload.pull_request) {
-        return {
-            body: payload.pull_request.body || "",
-            title: payload.pull_request.title,
-            url: payload.pull_request.html_url || ""
-        };
-    }
-    if (payload.action === "created" && payload.comment) {
-        if (payload.issue) {
-            return {
-                body: payload.comment.body,
-                title: payload.issue.title,
-                url: payload.comment.html_url
-            };
-        }
-        if (payload.pull_request) {
-            return {
-                body: payload.comment.body,
-                title: payload.pull_request.title,
-                url: payload.comment.html_url
-            };
-        }
-    }
-    if (payload.action === "submitted" && payload.review) {
-        return {
-            body: payload.review.body,
-            title: ((_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.title) || "",
-            url: payload.review.html_url
-        };
-    }
-    throw new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
-};
-const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody) => {
-    const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
-    const body = githubBody
-        .split("\n")
-        .map(line => `> ${line}`)
-        .join("\n");
-    return [
-        `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
-        body
-    ].join("\n");
-};
-const postToSlack = async (webhookUrl, message) => {
-    const botName = (() => {
-        const n = core.getInput("bot-name", { required: false });
-        if (n && n !== "") {
-            return n;
-        }
-        return "Github Mention To Slack";
-    })();
-    const slackOption = {
-        text: message,
-        link_names: 0,
-        username: botName
-    };
-    const iconUrl = core.getInput("icon-url", { required: false });
-    if (iconUrl && iconUrl !== "") {
-        slackOption.icon_url = iconUrl;
-    }
-    else {
-        slackOption.icon_emoji = ":bell:";
-    }
-    await axios_1.default.post(webhookUrl, JSON.stringify(slackOption), {
-        headers: { "Content-Type": "application/json" }
-    });
-};
-// const testPostToSlack = async () => {
-//   const message = buildSlackPostMessage(
-//     ["abeyuya"],
-//     "title of issue here",
-//     "https://google.com",
-//     "pr comment dummy @abeyuya"
-//   );
-//   try {
-//     await postToSlack(process.env.SLACK_WEBHOOK_URL, message);
-//   } catch (e) {
-//     console.error(e);
-//   }
-// };
-// testPostToSlack();
-const loadNameMappingConfig = async (client, configurationPath) => {
-    const configurationContent = await fetchContent(client, configurationPath);
-    const configObject = yaml.safeLoad(configurationContent);
-    return configObject;
-};
-const fetchContent = async (client, repoPath) => {
-    const response = await client.repos.getContents({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        path: repoPath,
-        ref: github.context.sha
-    });
-    return Buffer.from(response.data.content, response.data.encoding).toString();
-};
+const github_1 = __webpack_require__(559);
+const slack_1 = __webpack_require__(970);
 const convertToSlackUsername = async (githubUsernames) => {
     const token = core.getInput("repo-token", { required: true });
     const configPath = core.getInput("configuration-path", { required: true });
     const githubClient = new github.GitHub(token);
-    const mapping = await loadNameMappingConfig(githubClient, configPath);
+    const mapping = await github_1.loadNameMappingConfig(githubClient, configPath);
     const slackIds = githubUsernames
         .filter(githubUsername => mapping[githubUsername] !== undefined)
         .map(githubUsername => mapping[githubUsername]);
@@ -6403,7 +6407,8 @@ const execPrReviewRequestedMention = async (payload) => {
         core.setFailed("Error! Need to set `slack-webhook-url` .");
         return;
     }
-    await postToSlack(slackWebhookUrl, message);
+    const iconUrl = core.getInput("icon-url", { required: false });
+    await slack_1.postToSlack(slackWebhookUrl, message, iconUrl);
 };
 const main = async () => {
     try {
@@ -6411,13 +6416,13 @@ const main = async () => {
             await execPrReviewRequestedMention(github.context.payload);
             return;
         }
-        const info = pickupInfoFromGithubPayload(github.context.payload);
-        const githubUsernames = pickupUsername(info.body);
+        const info = github_1.pickupInfoFromGithubPayload(github.context.payload);
+        const githubUsernames = github_1.pickupUsername(info.body);
         if (githubUsernames.length === 0) {
             return;
         }
         const slackIds = await convertToSlackUsername(githubUsernames);
-        const message = buildSlackPostMessage(slackIds, info.title, info.url, info.body);
+        const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body);
         const slackWebhookUrl = core.getInput("slack-webhook-url", {
             required: true
         });
@@ -6425,7 +6430,7 @@ const main = async () => {
             core.setFailed("Error! Need to set `slack-webhook-url` .");
             return;
         }
-        await postToSlack(slackWebhookUrl, message);
+        await slack_1.postToSlack(slackWebhookUrl, message);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -6879,6 +6884,22 @@ function register (state, name, method, options) {
       }, method)()
     })
 }
+
+
+/***/ }),
+
+/***/ 364:
+/***/ (function(module) {
+
+"use strict";
+
+
+module.exports = (flag, argv = process.argv) => {
+	const prefix = flag.startsWith('-') ? '' : (flag.length === 1 ? '-' : '--');
+	const position = argv.indexOf(prefix + flag);
+	const terminatorPosition = argv.indexOf('--');
+	return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+};
 
 
 /***/ }),
@@ -12737,6 +12758,88 @@ function hasPreviousPage (link) {
   deprecate(`octokit.hasPreviousPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
   return getPageLinks(link).prev
 }
+
+
+/***/ }),
+
+/***/ 559:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const github = __importStar(__webpack_require__(469));
+const yaml = __importStar(__webpack_require__(414));
+exports.pickupUsername = (text) => {
+    const pattern = /\B@[a-z0-9_-]+/gi;
+    const hits = text.match(pattern);
+    if (hits === null) {
+        return [];
+    }
+    return hits.map(username => username.replace("@", ""));
+};
+exports.pickupInfoFromGithubPayload = (payload) => {
+    var _a;
+    if (payload.action === "opened" && payload.issue) {
+        return {
+            body: payload.issue.body || "",
+            title: payload.issue.title,
+            url: payload.issue.html_url || ""
+        };
+    }
+    if (payload.action === "opened" && payload.pull_request) {
+        return {
+            body: payload.pull_request.body || "",
+            title: payload.pull_request.title,
+            url: payload.pull_request.html_url || ""
+        };
+    }
+    if (payload.action === "created" && payload.comment) {
+        if (payload.issue) {
+            return {
+                body: payload.comment.body,
+                title: payload.issue.title,
+                url: payload.comment.html_url
+            };
+        }
+        if (payload.pull_request) {
+            return {
+                body: payload.comment.body,
+                title: payload.pull_request.title,
+                url: payload.comment.html_url
+            };
+        }
+    }
+    if (payload.action === "submitted" && payload.review) {
+        return {
+            body: payload.review.body,
+            title: ((_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.title) || "",
+            url: payload.review.html_url
+        };
+    }
+    throw new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
+};
+exports.loadNameMappingConfig = async (client, configurationPath) => {
+    const configurationContent = await fetchContent(client, configurationPath);
+    const configObject = yaml.safeLoad(configurationContent);
+    return configObject;
+};
+const fetchContent = async (client, repoPath) => {
+    const response = await client.repos.getContents({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        path: repoPath,
+        ref: github.context.sha
+    });
+    return Buffer.from(response.data.content, response.data.encoding).toString();
+};
 
 
 /***/ }),
@@ -30241,14 +30344,6 @@ module.exports = __webpack_require__(141);
 
 /***/ }),
 
-/***/ 858:
-/***/ (function(module) {
-
-module.exports = eval("require")("supports-color");
-
-
-/***/ }),
-
 /***/ 863:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -32697,6 +32792,62 @@ function onceStrict (fn) {
   f.called = false
   return f
 }
+
+
+/***/ }),
+
+/***/ 970:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const axios_1 = __importDefault(__webpack_require__(53));
+exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody) => {
+    const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
+    const body = githubBody
+        .split("\n")
+        .map(line => `> ${line}`)
+        .join("\n");
+    return [
+        `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
+        body
+    ].join("\n");
+};
+exports.postToSlack = async (webhookUrl, message, iconUrl) => {
+    const botName = (() => {
+        const n = core.getInput("bot-name", { required: false });
+        if (n && n !== "") {
+            return n;
+        }
+        return "Github Mention To Slack";
+    })();
+    const slackOption = {
+        text: message,
+        link_names: 0,
+        username: botName
+    };
+    if (iconUrl && iconUrl !== "") {
+        slackOption.icon_url = iconUrl;
+    }
+    else {
+        slackOption.icon_emoji = ":bell:";
+    }
+    await axios_1.default.post(webhookUrl, JSON.stringify(slackOption), {
+        headers: { "Content-Type": "application/json" }
+    });
+};
 
 
 /***/ }),

@@ -46,7 +46,8 @@ const execPrReviewRequestedMention = async (payload: WebhookPayload) => {
     return;
   }
 
-  await postToSlack(slackWebhookUrl, message);
+  const iconUrl = core.getInput("icon-url", { required: false });
+  await postToSlack(slackWebhookUrl, message, iconUrl);
 };
 
 const main = async () => {
