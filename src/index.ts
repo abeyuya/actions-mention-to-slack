@@ -90,7 +90,8 @@ export const execNormalMention = async (
     slackIds,
     info.title,
     info.url,
-    info.body
+    info.body,
+    info.senderName
   );
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;

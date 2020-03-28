@@ -4,7 +4,8 @@ export const buildSlackPostMessage = (
   slackIdsForMention: string[],
   issueTitle: string,
   commentLink: string,
-  githubBody: string
+  githubBody: string,
+  senderName: string
 ) => {
   const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
   const body = githubBody
@@ -13,7 +14,7 @@ export const buildSlackPostMessage = (
     .join("\n");
 
   return [
-    `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
+    `${mentionBlock} mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
     body
   ].join("\n");
 };

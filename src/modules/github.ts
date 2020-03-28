@@ -19,12 +19,14 @@ export const pickupInfoFromGithubPayload = (
   body: string;
   title: string;
   url: string;
+  senderName: string;
 } => {
   if (payload.action === "opened" && payload.issue) {
     return {
       body: payload.issue.body || "",
       title: payload.issue.title,
-      url: payload.issue.html_url || ""
+      url: payload.issue.html_url || "",
+      senderName: payload.sender?.login || ""
     };
   }
 
@@ -32,7 +34,8 @@ export const pickupInfoFromGithubPayload = (
     return {
       body: payload.pull_request.body || "",
       title: payload.pull_request.title,
-      url: payload.pull_request.html_url || ""
+      url: payload.pull_request.html_url || "",
+      senderName: payload.sender?.login || ""
     };
   }
 
@@ -41,7 +44,8 @@ export const pickupInfoFromGithubPayload = (
       return {
         body: payload.comment.body,
         title: payload.issue.title,
-        url: payload.comment.html_url
+        url: payload.comment.html_url,
+        senderName: payload.sender?.login || ""
       };
     }
 
@@ -49,7 +53,8 @@ export const pickupInfoFromGithubPayload = (
       return {
         body: payload.comment.body,
         title: payload.pull_request.title,
-        url: payload.comment.html_url
+        url: payload.comment.html_url,
+        senderName: payload.sender?.login || ""
       };
     }
   }
@@ -58,7 +63,8 @@ export const pickupInfoFromGithubPayload = (
     return {
       body: payload.review.body,
       title: payload.pull_request?.title || "",
-      url: payload.review.html_url
+      url: payload.review.html_url,
+      senderName: payload.sender?.login || ""
     };
   }
 

@@ -158,10 +158,10 @@ describe("src/index", () => {
         },
         pull_request: {
           title: "pr_title"
+        },
+        sender: {
+          login: "sender_github_username"
         }
-        // sender: {
-        //   login: "sender_github_username"
-        // }
       };
 
       await execNormalMention(
@@ -178,7 +178,7 @@ describe("src/index", () => {
       expect(call[1].includes("<@slack_user_1>")).toEqual(true);
       expect(call[1].includes("<review_comment_url|pr_title>")).toEqual(true);
       expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(true);
-      // expect(call[1].includes("by sender_github_username")).toEqual(true);
+      expect(call[1].includes("by sender_github_username")).toEqual(true);
     });
   });
 });

@@ -29,6 +29,9 @@ describe("modules/github", () => {
           body: "body",
           title: "title",
           html_url: "url"
+        },
+        sender: {
+          login: "sender_github_username"
         }
       };
 
@@ -37,7 +40,8 @@ describe("modules/github", () => {
       expect(result).toEqual({
         body: "body",
         title: "title",
-        url: "url"
+        url: "url",
+        senderName: "sender_github_username"
       });
     });
   });
