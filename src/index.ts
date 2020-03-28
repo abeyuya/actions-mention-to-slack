@@ -5,10 +5,9 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  GithubClientRepository,
   GithubRepositoryImpl
 } from "./modules/github";
-import { postToSlack, buildSlackPostMessage } from "./modules/slack";
+import { buildSlackPostMessage, SlackRepositoryImpl } from "./modules/slack";
 
 type AllInputs = {
   repoToken: string;
@@ -20,7 +19,7 @@ type AllInputs = {
 
 const convertToSlackUsername = async (
   githubUsernames: string[],
-  githubClient: GithubClientRepository,
+  githubClient: typeof GithubRepositoryImpl,
   repoToken: string,
   configurationPath: string
 ) => {
@@ -39,7 +38,8 @@ const convertToSlackUsername = async (
 const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  githubClient: GithubClientRepository
+  githubClient: typeof GithubRepositoryImpl,
+  slackClient: typeof SlackRepositoryImpl
 ) => {
   const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername = payload.requested_reviewer.login;
@@ -62,13 +62,14 @@ const execPrReviewRequestedMention = async (
   const message = `<@${requestedSlackUserId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
 const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  githubClient: GithubClientRepository
+  githubClient: typeof GithubRepositoryImpl,
+  slackClient: typeof SlackRepositoryImpl
 ) => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -94,7 +95,7 @@ const execNormalMention = async (
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
 const getAllInputs = (): AllInputs => {
@@ -135,12 +136,18 @@ const main = async () => {
       await execPrReviewRequestedMention(
         payload,
         allInputs,
-        GithubRepositoryImpl
+        GithubRepositoryImpl,
+        SlackRepositoryImpl
       );
       return;
     }
 
-    await execNormalMention(payload, allInputs, GithubRepositoryImpl);
+    await execNormalMention(
+      payload,
+      allInputs,
+      GithubRepositoryImpl,
+      SlackRepositoryImpl
+    );
   } catch (error) {
     core.setFailed(error.message);
   }

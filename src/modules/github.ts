@@ -85,14 +85,7 @@ type MappingFile = {
   [githugUsername: string]: string | undefined;
 };
 
-export type GithubClientRepository = {
-  loadNameMappingConfig: (
-    repoToken: string,
-    configurationPath: string
-  ) => Promise<MappingFile>;
-};
-
-export const GithubRepositoryImpl: GithubClientRepository = {
+export const GithubRepositoryImpl = {
   loadNameMappingConfig: async (
     repoToken: string,
     configurationPath: string
