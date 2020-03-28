@@ -1,4 +1,3 @@
-import * as core from "@actions/core";
 import axios from "axios";
 
 export const buildSlackPostMessage = (
@@ -27,17 +26,22 @@ type SlackOption = {
   icon_emoji?: string;
 };
 
+const defaultBotName = "Github Mention To Slack";
+
 export const postToSlack = async (
   webhookUrl: string,
   message: string,
-  iconUrl?: string
+  options?: {
+    iconUrl?: string;
+    botName?: string;
+  }
 ) => {
   const botName = (() => {
-    const n = core.getInput("bot-name", { required: false });
+    const n = options?.botName;
     if (n && n !== "") {
       return n;
     }
-    return "Github Mention To Slack";
+    return defaultBotName;
   })();
 
   const slackOption: SlackOption = {
@@ -46,8 +50,9 @@ export const postToSlack = async (
     username: botName
   };
 
-  if (iconUrl && iconUrl !== "") {
-    slackOption.icon_url = iconUrl;
+  const u = options?.iconUrl;
+  if (u && u !== "") {
+    slackOption.icon_url = u;
   } else {
     slackOption.icon_emoji = ":bell:";
   }
