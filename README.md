@@ -1,4 +1,4 @@
-# Send github mention to slack
+# Convert Github mention to Slack mention
 
 This action sends mention to your slack account when you have been mentioned at github.
 
