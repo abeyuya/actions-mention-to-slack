@@ -6378,18 +6378,18 @@ const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const github_1 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
-const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath) => {
+exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath) => {
     const mapping = await githubClient.loadNameMappingConfig(repoToken, configurationPath);
     const slackIds = githubUsernames
         .map(githubUsername => mapping[githubUsername])
         .filter(slackId => slackId !== undefined);
     return slackIds;
 };
-const execPrReviewRequestedMention = async (payload, allInputs, githubClient) => {
+exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient) => {
     var _a, _b, _c;
     const { repoToken, configurationPath } = allInputs;
     const requestedGithubUsername = payload.requested_reviewer.login;
-    const slackIds = await convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath);
+    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath);
     if (slackIds.length === 0) {
         return;
     }
@@ -6399,19 +6399,19 @@ const execPrReviewRequestedMention = async (payload, allInputs, githubClient) =>
     const requestUsername = (_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login;
     const message = `<@${requestedSlackUserId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slack_1.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
-const execNormalMention = async (payload, allInputs, githubClient) => {
+exports.execNormalMention = async (payload, allInputs, githubClient, slackClient) => {
     const info = github_1.pickupInfoFromGithubPayload(payload);
     const githubUsernames = github_1.pickupUsername(info.body);
     if (githubUsernames.length === 0) {
         return;
     }
     const { repoToken, configurationPath } = allInputs;
-    const slackIds = await convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath);
-    const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body);
+    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath);
+    const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slack_1.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 const getAllInputs = () => {
     const slackWebhookUrl = core.getInput("slack-webhook-url", {
@@ -6438,14 +6438,14 @@ const getAllInputs = () => {
     };
 };
 const main = async () => {
-    const allInputs = getAllInputs();
     const { payload } = github.context;
     try {
+        const allInputs = getAllInputs();
         if (payload.action === "review_requested") {
-            await execPrReviewRequestedMention(payload, allInputs, github_1.GithubRepositoryImpl);
+            await exports.execPrReviewRequestedMention(payload, allInputs, github_1.GithubRepositoryImpl, slack_1.SlackRepositoryImpl);
             return;
         }
-        await execNormalMention(payload, allInputs, github_1.GithubRepositoryImpl);
+        await exports.execNormalMention(payload, allInputs, github_1.GithubRepositoryImpl, slack_1.SlackRepositoryImpl);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -12801,19 +12801,21 @@ exports.pickupUsername = (text) => {
     return hits.map(username => username.replace("@", ""));
 };
 exports.pickupInfoFromGithubPayload = (payload) => {
-    var _a;
+    var _a, _b, _c, _d, _e, _f;
     if (payload.action === "opened" && payload.issue) {
         return {
             body: payload.issue.body || "",
             title: payload.issue.title,
-            url: payload.issue.html_url || ""
+            url: payload.issue.html_url || "",
+            senderName: ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.login) || ""
         };
     }
     if (payload.action === "opened" && payload.pull_request) {
         return {
             body: payload.pull_request.body || "",
             title: payload.pull_request.title,
-            url: payload.pull_request.html_url || ""
+            url: payload.pull_request.html_url || "",
+            senderName: ((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.login) || ""
         };
     }
     if (payload.action === "created" && payload.comment) {
@@ -12821,22 +12823,25 @@ exports.pickupInfoFromGithubPayload = (payload) => {
             return {
                 body: payload.comment.body,
                 title: payload.issue.title,
-                url: payload.comment.html_url
+                url: payload.comment.html_url,
+                senderName: ((_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login) || ""
             };
         }
         if (payload.pull_request) {
             return {
                 body: payload.comment.body,
                 title: payload.pull_request.title,
-                url: payload.comment.html_url
+                url: payload.comment.html_url,
+                senderName: ((_d = payload.sender) === null || _d === void 0 ? void 0 : _d.login) || ""
             };
         }
     }
     if (payload.action === "submitted" && payload.review) {
         return {
             body: payload.review.body,
-            title: ((_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.title) || "",
-            url: payload.review.html_url
+            title: ((_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.title) || "",
+            url: payload.review.html_url,
+            senderName: ((_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login) || ""
         };
     }
     throw new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
@@ -32824,41 +32829,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = __importDefault(__webpack_require__(53));
-exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody) => {
+exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
     const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
     const body = githubBody
         .split("\n")
         .map(line => `> ${line}`)
         .join("\n");
     return [
-        `${mentionBlock} mentioned at <${commentLink}|${issueTitle}>`,
+        `${mentionBlock} mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
         body
     ].join("\n");
 };
 const defaultBotName = "Github Mention To Slack";
-exports.postToSlack = async (webhookUrl, message, options) => {
-    const botName = (() => {
-        const n = options === null || options === void 0 ? void 0 : options.botName;
-        if (n && n !== "") {
-            return n;
+exports.SlackRepositoryImpl = {
+    postToSlack: async (webhookUrl, message, options) => {
+        const botName = (() => {
+            const n = options === null || options === void 0 ? void 0 : options.botName;
+            if (n && n !== "") {
+                return n;
+            }
+            return defaultBotName;
+        })();
+        const slackPostParam = {
+            text: message,
+            link_names: 0,
+            username: botName
+        };
+        const u = options === null || options === void 0 ? void 0 : options.iconUrl;
+        if (u && u !== "") {
+            slackPostParam.icon_url = u;
         }
-        return defaultBotName;
-    })();
-    const slackPostParam = {
-        text: message,
-        link_names: 0,
-        username: botName
-    };
-    const u = options === null || options === void 0 ? void 0 : options.iconUrl;
-    if (u && u !== "") {
-        slackPostParam.icon_url = u;
+        else {
+            slackPostParam.icon_emoji = ":bell:";
+        }
+        await axios_1.default.post(webhookUrl, JSON.stringify(slackPostParam), {
+            headers: { "Content-Type": "application/json" }
+        });
     }
-    else {
-        slackPostParam.icon_emoji = ":bell:";
-    }
-    await axios_1.default.post(webhookUrl, JSON.stringify(slackPostParam), {
-        headers: { "Content-Type": "application/json" }
-    });
 };
 
 
