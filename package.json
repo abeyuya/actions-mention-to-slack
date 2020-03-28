@@ -2,7 +2,7 @@
   "name": "actions-mention-to-slack",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "dependencies": {
     "@actions/core": "^1.2.3",
     "@actions/github": "^2.1.1",
@@ -11,12 +11,13 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^3.12.2",
+    "@zeit/ncc": "^0.22.0",
     "ts-node": "^8.8.1",
     "typescript": "^3.8.3"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "ncc build"
   },
   "repository": {
     "type": "git",
