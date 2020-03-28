@@ -25,6 +25,21 @@ describe("src/index", () => {
 
       expect(result).toEqual(["slack_user_1", "slack_user_2"]);
     });
+
+    it("should return empty when no listed github_user", async () => {
+      const mock = {
+        loadNameMappingConfig: jest.fn(async () => mapping)
+      };
+
+      const result = await convertToSlackUsername(
+        ["github_user_not_listed"],
+        mock,
+        "",
+        ""
+      );
+
+      expect(result).toEqual([]);
+    });
   });
 
   describe("execPrReviewRequestedMention", () => {
