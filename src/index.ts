@@ -9,7 +9,7 @@ import {
 } from "./modules/github";
 import { buildSlackPostMessage, SlackRepositoryImpl } from "./modules/slack";
 
-type AllInputs = {
+export type AllInputs = {
   repoToken: string;
   configurationPath: string;
   slackWebhookUrl: string;
@@ -35,7 +35,7 @@ export const convertToSlackUsername = async (
   return slackIds;
 };
 
-const execPrReviewRequestedMention = async (
+export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
