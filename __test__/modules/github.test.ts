@@ -1,6 +1,6 @@
-import { pickupUsername } from "../src/index";
+import { pickupUsername } from "../../src/modules/github";
 
-describe("src/index", () => {
+describe("modules/github", () => {
   describe("pickupUsername", () => {
     it("should return names when message include mention", () => {
       const text =
