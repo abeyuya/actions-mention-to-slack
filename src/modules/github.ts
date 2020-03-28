@@ -1,4 +1,6 @@
+import * as github from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
+import * as yaml from "js-yaml";
 
 export const pickupUsername = (text: string) => {
   const pattern = /\B@[a-z0-9_-]+/gi;
@@ -63,4 +65,30 @@ export const pickupInfoFromGithubPayload = (
   throw new Error(
     `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
   );
+};
+
+export const loadNameMappingConfig = async (
+  client: github.GitHub,
+  configurationPath: string
+) => {
+  const configurationContent = await fetchContent(client, configurationPath);
+
+  const configObject: { [githugUsername: string]: string } = yaml.safeLoad(
+    configurationContent
+  );
+  return configObject;
+};
+
+const fetchContent = async (
+  client: github.GitHub,
+  repoPath: string
+): Promise<string> => {
+  const response: any = await client.repos.getContents({
+    owner: github.context.repo.owner,
+    repo: github.context.repo.repo,
+    path: repoPath,
+    ref: github.context.sha
+  });
+
+  return Buffer.from(response.data.content, response.data.encoding).toString();
 };
