@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run
-        uses: abeyuya/actions-mention-to-slack@v1.22
+        uses: abeyuya/actions-mention-to-slack@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
