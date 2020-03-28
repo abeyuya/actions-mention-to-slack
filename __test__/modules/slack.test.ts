@@ -7,11 +7,13 @@ describe("modules/slack", () => {
         ["slackUser1"],
         "title",
         "link",
-        "message"
+        "message",
+        "sender_github_username"
       );
 
       expect(result.includes("<@slackUser1>")).toEqual(true);
       expect(result.includes("<link|title>")).toEqual(true);
+      expect(result.includes("by sender_github_username")).toEqual(true);
       expect(result.includes("> message")).toEqual(true);
     });
   });
