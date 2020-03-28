@@ -1,4 +1,7 @@
-import { pickupUsername } from "../../src/modules/github";
+import {
+  pickupUsername,
+  pickupInfoFromGithubPayload
+} from "../../src/modules/github";
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
@@ -15,6 +18,27 @@ describe("modules/github", () => {
       const result = pickupUsername(text);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("pickupInfoFromGithubPayload", () => {
+    it("should return when issue opend", () => {
+      const dummyPayload = {
+        action: "opened",
+        issue: {
+          body: "body",
+          title: "title",
+          html_url: "url"
+        }
+      };
+
+      const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+      expect(result).toEqual({
+        body: "body",
+        title: "title",
+        url: "url"
+      });
     });
   });
 });
