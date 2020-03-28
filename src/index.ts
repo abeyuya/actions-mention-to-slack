@@ -65,7 +65,7 @@ export const execPrReviewRequestedMention = async (
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
-const execNormalMention = async (
+export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
