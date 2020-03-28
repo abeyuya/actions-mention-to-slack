@@ -17,12 +17,12 @@ type AllInputs = {
   botName?: string;
 };
 
-const convertToSlackUsername = async (
+export const convertToSlackUsername = async (
   githubUsernames: string[],
   githubClient: typeof GithubRepositoryImpl,
   repoToken: string,
   configurationPath: string
-) => {
+): Promise<string[]> => {
   const mapping = await githubClient.loadNameMappingConfig(
     repoToken,
     configurationPath
