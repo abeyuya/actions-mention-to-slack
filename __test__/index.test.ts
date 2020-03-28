@@ -1,0 +1,3 @@
+describe("src/index", () => {
+  it("", () => {});
+});

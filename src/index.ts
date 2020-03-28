@@ -5,7 +5,8 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  loadNameMappingConfig
+  GithubClientRepository,
+  GithubRepositoryImpl
 } from "./modules/github";
 import { postToSlack, buildSlackPostMessage } from "./modules/slack";
 
@@ -19,26 +20,32 @@ type AllInputs = {
 
 const convertToSlackUsername = async (
   githubUsernames: string[],
+  githubClient: GithubClientRepository,
   repoToken: string,
   configurationPath: string
 ) => {
-  const githubClient = new github.GitHub(repoToken);
-  const mapping = await loadNameMappingConfig(githubClient, configurationPath);
+  const mapping = await githubClient.loadNameMappingConfig(
+    repoToken,
+    configurationPath
+  );
+
   const slackIds = githubUsernames
-    .filter(githubUsername => mapping[githubUsername] !== undefined)
-    .map(githubUsername => mapping[githubUsername]);
+    .map(githubUsername => mapping[githubUsername])
+    .filter(slackId => slackId !== undefined) as string[];
 
   return slackIds;
 };
 
 const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
-  allInputs: AllInputs
+  allInputs: AllInputs,
+  githubClient: GithubClientRepository
 ) => {
   const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername = payload.requested_reviewer.login;
   const slackIds = await convertToSlackUsername(
     [requestedGithubUsername],
+    githubClient,
     repoToken,
     configurationPath
   );
@@ -60,7 +67,8 @@ const execPrReviewRequestedMention = async (
 
 const execNormalMention = async (
   payload: WebhookPayload,
-  allInputs: AllInputs
+  allInputs: AllInputs,
+  githubClient: GithubClientRepository
 ) => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -72,6 +80,7 @@ const execNormalMention = async (
   const { repoToken, configurationPath } = allInputs;
   const slackIds = await convertToSlackUsername(
     githubUsernames,
+    githubClient,
     repoToken,
     configurationPath
   );
@@ -123,11 +132,15 @@ const main = async () => {
 
   try {
     if (payload.action === "review_requested") {
-      await execPrReviewRequestedMention(payload, allInputs);
+      await execPrReviewRequestedMention(
+        payload,
+        allInputs,
+        GithubRepositoryImpl
+      );
       return;
     }
 
-    await execNormalMention(payload, allInputs);
+    await execNormalMention(payload, allInputs, GithubRepositoryImpl);
   } catch (error) {
     core.setFailed(error.message);
   }

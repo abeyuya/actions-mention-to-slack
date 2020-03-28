@@ -67,18 +67,6 @@ export const pickupInfoFromGithubPayload = (
   );
 };
 
-export const loadNameMappingConfig = async (
-  client: github.GitHub,
-  configurationPath: string
-) => {
-  const configurationContent = await fetchContent(client, configurationPath);
-
-  const configObject: { [githugUsername: string]: string } = yaml.safeLoad(
-    configurationContent
-  );
-  return configObject;
-};
-
 const fetchContent = async (
   client: github.GitHub,
   repoPath: string
@@ -91,4 +79,31 @@ const fetchContent = async (
   });
 
   return Buffer.from(response.data.content, response.data.encoding).toString();
+};
+
+type MappingFile = {
+  [githugUsername: string]: string | undefined;
+};
+
+export type GithubClientRepository = {
+  loadNameMappingConfig: (
+    repoToken: string,
+    configurationPath: string
+  ) => Promise<MappingFile>;
+};
+
+export const GithubRepositoryImpl: GithubClientRepository = {
+  loadNameMappingConfig: async (
+    repoToken: string,
+    configurationPath: string
+  ) => {
+    const githubClient = new github.GitHub(repoToken);
+    const configurationContent = await fetchContent(
+      githubClient,
+      configurationPath
+    );
+
+    const configObject: MappingFile = yaml.safeLoad(configurationContent);
+    return configObject;
+  }
 };
