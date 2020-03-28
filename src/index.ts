@@ -4,7 +4,7 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import * as yaml from "js-yaml";
 import axios from "axios";
 
-const pickupUsername = (text: string) => {
+export const pickupUsername = (text: string) => {
   const pattern = /\B@[a-z0-9_-]+/gi;
   const hits = text.match(pattern);
 
@@ -14,37 +14,6 @@ const pickupUsername = (text: string) => {
 
   return hits.map(username => username.replace("@", ""));
 };
-
-// const testPickupUsername = () => {
-//   const test1 = () => {
-//     const text =
-//       "@jpotts18 what is up man? Are you hanging out with @kyle_clegg";
-//     const usernames = pickupUsername(text);
-
-//     if (
-//       usernames.length === 2 &&
-//       usernames[0] === "jpotts18" &&
-//       usernames[1] === "kyle_clegg"
-//     ) {
-//       console.log("pass! testPickupUsername.test1");
-//     } else {
-//       throw new Error(`fail! testPickupUsername.test1: ${usernames}`);
-//     }
-//   };
-//   test1();
-
-//   const test2 = () => {
-//     const text = "no mention comment";
-//     const usernames = pickupUsername(text);
-//     if (usernames.length === 0) {
-//       console.log("pass! testPickupUsername.test2");
-//     } else {
-//       throw new Error(`fail! testPickupUsername.test2: ${usernames}`);
-//     }
-//   };
-//   test2();
-// };
-// testPickupUsername();
 
 const pickupInfoFromGithubPayload = (
   payload: WebhookPayload
@@ -152,22 +121,6 @@ const postToSlack = async (webhookUrl: string, message: string) => {
     headers: { "Content-Type": "application/json" }
   });
 };
-
-// const testPostToSlack = async () => {
-//   const message = buildSlackPostMessage(
-//     ["abeyuya"],
-//     "title of issue here",
-//     "https://google.com",
-//     "pr comment dummy @abeyuya"
-//   );
-
-//   try {
-//     await postToSlack(process.env.SLACK_WEBHOOK_URL, message);
-//   } catch (e) {
-//     console.error(e);
-//   }
-// };
-// testPostToSlack();
 
 const loadNameMappingConfig = async (
   client: github.GitHub,
