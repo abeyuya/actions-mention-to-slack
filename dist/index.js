@@ -12798,60 +12798,87 @@ exports.pickupUsername = (text) => {
     if (hits === null) {
         return [];
     }
-    return hits.map(username => username.replace("@", ""));
+    return hits.map((username) => username.replace("@", ""));
+};
+const acceptActionTypes = {
+    issues: ["opened", "edited"],
+    issue_comment: ["created", "edited"],
+    pull_request: ["opened", "edited", "review_requested"],
+    pull_request_review: ["submitted"],
+    pull_request_review_comment: ["created", "edited"],
+};
+const buildError = (payload) => {
+    return new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
 };
 exports.pickupInfoFromGithubPayload = (payload) => {
     var _a, _b, _c, _d, _e, _f;
-    if (payload.action === "opened" && payload.issue) {
-        return {
-            body: payload.issue.body || "",
-            title: payload.issue.title,
-            url: payload.issue.html_url || "",
-            senderName: ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.login) || ""
-        };
+    const { action } = payload;
+    if (action === undefined) {
+        throw buildError(payload);
     }
-    if (payload.action === "opened" && payload.pull_request) {
-        return {
-            body: payload.pull_request.body || "",
-            title: payload.pull_request.title,
-            url: payload.pull_request.html_url || "",
-            senderName: ((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.login) || ""
-        };
-    }
-    if (payload.action === "created" && payload.comment) {
-        if (payload.issue) {
+    if (payload.issue) {
+        if (payload.comment) {
+            if (!acceptActionTypes.issue_comment.includes(action)) {
+                throw buildError(payload);
+            }
             return {
                 body: payload.comment.body,
                 title: payload.issue.title,
                 url: payload.comment.html_url,
-                senderName: ((_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login) || ""
+                senderName: ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.login) || "",
             };
         }
-        if (payload.pull_request) {
+        if (!acceptActionTypes.issues.includes(action)) {
+            throw buildError(payload);
+        }
+        return {
+            body: payload.issue.body || "",
+            title: payload.issue.title,
+            url: payload.issue.html_url || "",
+            senderName: ((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.login) || "",
+        };
+    }
+    if (payload.pull_request) {
+        if (payload.review) {
+            if (!acceptActionTypes.pull_request_review.includes(action)) {
+                throw buildError(payload);
+            }
+            return {
+                body: payload.review.body,
+                title: ((_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title) || "",
+                url: payload.review.html_url,
+                senderName: ((_d = payload.sender) === null || _d === void 0 ? void 0 : _d.login) || "",
+            };
+        }
+        if (payload.comment) {
+            if (!acceptActionTypes.issue_comment.includes(action)) {
+                throw buildError(payload);
+            }
             return {
                 body: payload.comment.body,
                 title: payload.pull_request.title,
                 url: payload.comment.html_url,
-                senderName: ((_d = payload.sender) === null || _d === void 0 ? void 0 : _d.login) || ""
+                senderName: ((_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login) || "",
             };
         }
-    }
-    if (payload.action === "submitted" && payload.review) {
+        if (!acceptActionTypes.pull_request.includes(action)) {
+            throw buildError(payload);
+        }
         return {
-            body: payload.review.body,
-            title: ((_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.title) || "",
-            url: payload.review.html_url,
-            senderName: ((_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login) || ""
+            body: payload.pull_request.body || "",
+            title: payload.pull_request.title,
+            url: payload.pull_request.html_url || "",
+            senderName: ((_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login) || "",
         };
     }
-    throw new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
+    throw buildError(payload);
 };
 const fetchContent = async (client, repoPath) => {
     const response = await client.repos.getContents({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         path: repoPath,
-        ref: github.context.sha
+        ref: github.context.sha,
     });
     return Buffer.from(response.data.content, response.data.encoding).toString();
 };
@@ -12861,7 +12888,7 @@ exports.GithubRepositoryImpl = {
         const configurationContent = await fetchContent(githubClient, configurationPath);
         const configObject = yaml.safeLoad(configurationContent);
         return configObject;
-    }
+    },
 };
 
 
