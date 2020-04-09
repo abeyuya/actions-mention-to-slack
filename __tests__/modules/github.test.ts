@@ -116,6 +116,17 @@ describe("modules/github", () => {
           senderName: "sender_github_username",
         });
       });
+
+      it("should throw error when issue comment deleted", () => {
+        const dummyPayload = buildIssueCommentPayload("deleted");
+
+        try {
+          pickupInfoFromGithubPayload(dummyPayload as any);
+          fail();
+        } catch (e) {
+          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        }
+      });
     });
 
     describe("pr comment event", () => {
@@ -160,6 +171,17 @@ describe("modules/github", () => {
           url: "comment url",
           senderName: "sender_github_username",
         });
+      });
+
+      it("should throw error when pull_request comment deleted", () => {
+        const dummyPayload = buildPrCommentPayload("deleted");
+
+        try {
+          pickupInfoFromGithubPayload(dummyPayload as any);
+          fail();
+        } catch (e) {
+          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        }
       });
     });
 
