@@ -1,6 +1,6 @@
 import {
   pickupUsername,
-  pickupInfoFromGithubPayload
+  pickupInfoFromGithubPayload,
 } from "../../src/modules/github";
 
 describe("modules/github", () => {
@@ -28,11 +28,11 @@ describe("modules/github", () => {
         issue: {
           body: "body",
           title: "title",
-          html_url: "url"
+          html_url: "url",
         },
         sender: {
-          login: "sender_github_username"
-        }
+          login: "sender_github_username",
+        },
       };
 
       const result = pickupInfoFromGithubPayload(dummyPayload as any);
@@ -41,8 +41,29 @@ describe("modules/github", () => {
         body: "body",
         title: "title",
         url: "url",
-        senderName: "sender_github_username"
+        senderName: "sender_github_username",
       });
+    });
+
+    it("should throw error when issue deleted", () => {
+      const dummyPayload = {
+        action: "deleted",
+        issue: {
+          body: "body",
+          title: "title",
+          html_url: "url",
+        },
+        sender: {
+          login: "sender_github_username",
+        },
+      };
+
+      try {
+        pickupInfoFromGithubPayload(dummyPayload as any);
+        fail();
+      } catch (e) {
+        expect(e.message.includes("unknown event hook:")).toEqual(true);
+      }
     });
   });
 });

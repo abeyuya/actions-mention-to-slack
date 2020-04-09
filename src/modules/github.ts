@@ -10,7 +10,15 @@ export const pickupUsername = (text: string) => {
     return [];
   }
 
-  return hits.map(username => username.replace("@", ""));
+  return hits.map((username) => username.replace("@", ""));
+};
+
+const acceptActionTypes = {
+  issues: ["opened", "edited"],
+  issue_comment: ["created", "edited"],
+  pull_request: ["opened", "edited", "review_requested"],
+  pull_request_review: ["submitted"],
+  pull_request_review_comment: ["created", "edited"],
 };
 
 export const pickupInfoFromGithubPayload = (
@@ -21,21 +29,29 @@ export const pickupInfoFromGithubPayload = (
   url: string;
   senderName: string;
 } => {
-  if (payload.action === "opened" && payload.issue) {
+  const { action } = payload;
+
+  if (action === undefined) {
+    throw new Error(
+      `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
+    );
+  }
+
+  if (payload.issue && acceptActionTypes.issues.includes(action)) {
     return {
       body: payload.issue.body || "",
       title: payload.issue.title,
       url: payload.issue.html_url || "",
-      senderName: payload.sender?.login || ""
+      senderName: payload.sender?.login || "",
     };
   }
 
-  if (payload.action === "opened" && payload.pull_request) {
+  if (payload.pull_request && acceptActionTypes.pull_request.includes(action)) {
     return {
       body: payload.pull_request.body || "",
       title: payload.pull_request.title,
       url: payload.pull_request.html_url || "",
-      senderName: payload.sender?.login || ""
+      senderName: payload.sender?.login || "",
     };
   }
 
@@ -45,7 +61,7 @@ export const pickupInfoFromGithubPayload = (
         body: payload.comment.body,
         title: payload.issue.title,
         url: payload.comment.html_url,
-        senderName: payload.sender?.login || ""
+        senderName: payload.sender?.login || "",
       };
     }
 
@@ -54,7 +70,7 @@ export const pickupInfoFromGithubPayload = (
         body: payload.comment.body,
         title: payload.pull_request.title,
         url: payload.comment.html_url,
-        senderName: payload.sender?.login || ""
+        senderName: payload.sender?.login || "",
       };
     }
   }
@@ -64,7 +80,7 @@ export const pickupInfoFromGithubPayload = (
       body: payload.review.body,
       title: payload.pull_request?.title || "",
       url: payload.review.html_url,
-      senderName: payload.sender?.login || ""
+      senderName: payload.sender?.login || "",
     };
   }
 
@@ -81,7 +97,7 @@ const fetchContent = async (
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
     path: repoPath,
-    ref: github.context.sha
+    ref: github.context.sha,
   });
 
   return Buffer.from(response.data.content, response.data.encoding).toString();
@@ -104,5 +120,5 @@ export const GithubRepositoryImpl = {
 
     const configObject: MappingFile = yaml.safeLoad(configurationContent);
     return configObject;
-  }
+  },
 };
