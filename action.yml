@@ -1,5 +1,5 @@
 name: "Github mention to Slack"
-description: "Send mention to your slack account when you have been mentioned at github."
+description: "Convert Github mention to Slack mention"
 inputs:
   configuration-path:
     description: "Mapping config for Github username to Slack member ID."
