@@ -138,5 +138,38 @@ describe("modules/github", () => {
         });
       });
     });
+
+    describe("pr review event", () => {
+      const buildPrReviewPayload = (action: string) => {
+        return {
+          action,
+          pull_request: {
+            body: "pr body",
+            title: "pr title",
+            html_url: "pr url",
+          },
+          review: {
+            body: "review body",
+            title: "review title",
+            html_url: "review url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
+      };
+
+      it("should return when review submitted", () => {
+        const dummyPayload = buildPrReviewPayload("submitted");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "review body",
+          title: "pr title",
+          url: "review url",
+          senderName: "sender_github_username",
+        });
+      });
+    });
   });
 });
