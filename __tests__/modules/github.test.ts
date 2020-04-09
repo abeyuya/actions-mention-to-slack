@@ -149,6 +149,18 @@ describe("modules/github", () => {
           senderName: "sender_github_username",
         });
       });
+
+      it("should return when pull_request comment edited", () => {
+        const dummyPayload = buildPrCommentPayload("edited");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "comment body",
+          title: "pr title",
+          url: "comment url",
+          senderName: "sender_github_username",
+        });
+      });
     });
 
     describe("pr review event", () => {

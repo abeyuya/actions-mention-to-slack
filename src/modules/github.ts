@@ -67,17 +67,25 @@ export const pickupInfoFromGithubPayload = (
     };
   }
 
-  if (payload.pull_request && acceptActionTypes.pull_request.includes(action)) {
-    return {
-      body: payload.pull_request.body || "",
-      title: payload.pull_request.title,
-      url: payload.pull_request.html_url || "",
-      senderName: payload.sender?.login || "",
-    };
-  }
+  if (payload.pull_request) {
+    if (payload.review) {
+      if (!acceptActionTypes.pull_request_review.includes(action)) {
+        throw buildError(payload);
+      }
 
-  if (payload.action === "created" && payload.comment) {
-    if (payload.pull_request) {
+      return {
+        body: payload.review.body,
+        title: payload.pull_request?.title || "",
+        url: payload.review.html_url,
+        senderName: payload.sender?.login || "",
+      };
+    }
+
+    if (payload.comment) {
+      if (!acceptActionTypes.issue_comment.includes(action)) {
+        throw buildError(payload);
+      }
+
       return {
         body: payload.comment.body,
         title: payload.pull_request.title,
@@ -85,13 +93,15 @@ export const pickupInfoFromGithubPayload = (
         senderName: payload.sender?.login || "",
       };
     }
-  }
 
-  if (payload.action === "submitted" && payload.review) {
+    if (!acceptActionTypes.pull_request.includes(action)) {
+      throw buildError(payload);
+    }
+
     return {
-      body: payload.review.body,
-      title: payload.pull_request?.title || "",
-      url: payload.review.html_url,
+      body: payload.pull_request.body || "",
+      title: payload.pull_request.title,
+      url: payload.pull_request.html_url || "",
       senderName: payload.sender?.login || "",
     };
   }
