@@ -22,25 +22,40 @@ describe("modules/github", () => {
   });
 
   describe("pickupInfoFromGithubPayload", () => {
-    it("should return when issue opend", () => {
-      const dummyPayload = {
-        action: "opened",
+    const buildIssuePayload = (action: string) => {
+      return {
+        action,
         issue: {
-          body: "body",
-          title: "title",
-          html_url: "url",
+          body: "issue body",
+          title: "issue title",
+          html_url: "issue url",
         },
         sender: {
           login: "sender_github_username",
         },
       };
+    };
 
+    it("should return when issue opend", () => {
+      const dummyPayload = buildIssuePayload("opened");
       const result = pickupInfoFromGithubPayload(dummyPayload as any);
 
       expect(result).toEqual({
-        body: "body",
-        title: "title",
-        url: "url",
+        body: "issue body",
+        title: "issue title",
+        url: "issue url",
+        senderName: "sender_github_username",
+      });
+    });
+
+    it("should return when issue edited", () => {
+      const dummyPayload = buildIssuePayload("edited");
+      const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+      expect(result).toEqual({
+        body: "issue body",
+        title: "issue title",
+        url: "issue url",
         senderName: "sender_github_username",
       });
     });
