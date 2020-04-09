@@ -22,114 +22,120 @@ describe("modules/github", () => {
   });
 
   describe("pickupInfoFromGithubPayload", () => {
-    const buildIssuePayload = (action: string) => {
-      return {
-        action,
-        issue: {
-          body: "issue body",
-          title: "issue title",
-          html_url: "issue url",
-        },
-        sender: {
-          login: "sender_github_username",
-        },
+    describe("issue event", () => {
+      const buildIssuePayload = (action: string) => {
+        return {
+          action,
+          issue: {
+            body: "issue body",
+            title: "issue title",
+            html_url: "issue url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
       };
-    };
 
-    it("should return when issue opend", () => {
-      const dummyPayload = buildIssuePayload("opened");
-      const result = pickupInfoFromGithubPayload(dummyPayload as any);
+      it("should return when issue opend", () => {
+        const dummyPayload = buildIssuePayload("opened");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
 
-      expect(result).toEqual({
-        body: "issue body",
-        title: "issue title",
-        url: "issue url",
-        senderName: "sender_github_username",
-      });
-    });
-
-    it("should return when issue edited", () => {
-      const dummyPayload = buildIssuePayload("edited");
-      const result = pickupInfoFromGithubPayload(dummyPayload as any);
-
-      expect(result).toEqual({
-        body: "issue body",
-        title: "issue title",
-        url: "issue url",
-        senderName: "sender_github_username",
-      });
-    });
-
-    it("should throw error when issue deleted", () => {
-      const dummyPayload = buildIssuePayload("deleted");
-
-      try {
-        pickupInfoFromGithubPayload(dummyPayload as any);
-        fail();
-      } catch (e) {
-        expect(e.message.includes("unknown event hook:")).toEqual(true);
-      }
-    });
-
-    const buildIssueCommentPayload = (action: string) => {
-      return {
-        action,
-        issue: {
+        expect(result).toEqual({
           body: "issue body",
           title: "issue title",
-          html_url: "issue url",
-        },
-        comment: {
+          url: "issue url",
+          senderName: "sender_github_username",
+        });
+      });
+
+      it("should return when issue edited", () => {
+        const dummyPayload = buildIssuePayload("edited");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "issue body",
+          title: "issue title",
+          url: "issue url",
+          senderName: "sender_github_username",
+        });
+      });
+
+      it("should throw error when issue deleted", () => {
+        const dummyPayload = buildIssuePayload("deleted");
+
+        try {
+          pickupInfoFromGithubPayload(dummyPayload as any);
+          fail();
+        } catch (e) {
+          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        }
+      });
+    });
+
+    describe("issue comment event", () => {
+      const buildIssueCommentPayload = (action: string) => {
+        return {
+          action,
+          issue: {
+            body: "issue body",
+            title: "issue title",
+            html_url: "issue url",
+          },
+          comment: {
+            body: "comment body",
+            title: "comment title",
+            html_url: "comment url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
+      };
+
+      it("should return when issue commented", () => {
+        const dummyPayload = buildIssueCommentPayload("created");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
           body: "comment body",
-          title: "comment title",
-          html_url: "comment url",
-        },
-        sender: {
-          login: "sender_github_username",
-        },
-      };
-    };
-
-    it("should return when issue commented", () => {
-      const dummyPayload = buildIssueCommentPayload("created");
-      const result = pickupInfoFromGithubPayload(dummyPayload as any);
-
-      expect(result).toEqual({
-        body: "comment body",
-        title: "issue title",
-        url: "comment url",
-        senderName: "sender_github_username",
+          title: "issue title",
+          url: "comment url",
+          senderName: "sender_github_username",
+        });
       });
     });
 
-    const buildPrCommentPayload = (action: string) => {
-      return {
-        action,
-        pull_request: {
-          body: "pr body",
+    describe("pr comment event", () => {
+      const buildPrCommentPayload = (action: string) => {
+        return {
+          action,
+          pull_request: {
+            body: "pr body",
+            title: "pr title",
+            html_url: "pr url",
+          },
+          comment: {
+            body: "comment body",
+            title: "comment title",
+            html_url: "comment url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
+      };
+
+      it("should return when pull_request commented", () => {
+        const dummyPayload = buildPrCommentPayload("created");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "comment body",
           title: "pr title",
-          html_url: "pr url",
-        },
-        comment: {
-          body: "comment body",
-          title: "comment title",
-          html_url: "comment url",
-        },
-        sender: {
-          login: "sender_github_username",
-        },
-      };
-    };
-
-    it("should return when pull_request commented", () => {
-      const dummyPayload = buildPrCommentPayload("created");
-      const result = pickupInfoFromGithubPayload(dummyPayload as any);
-
-      expect(result).toEqual({
-        body: "comment body",
-        title: "pr title",
-        url: "comment url",
-        senderName: "sender_github_username",
+          url: "comment url",
+          senderName: "sender_github_username",
+        });
       });
     });
   });
