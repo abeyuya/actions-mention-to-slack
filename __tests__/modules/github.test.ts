@@ -60,9 +60,20 @@ describe("modules/github", () => {
       });
     });
 
-    it("should return when issue commented", () => {
-      const dummyPayload = {
-        action: "created",
+    it("should throw error when issue deleted", () => {
+      const dummyPayload = buildIssuePayload("deleted");
+
+      try {
+        pickupInfoFromGithubPayload(dummyPayload as any);
+        fail();
+      } catch (e) {
+        expect(e.message.includes("unknown event hook:")).toEqual(true);
+      }
+    });
+
+    const buildIssueCommentPayload = (action: string) => {
+      return {
+        action,
         issue: {
           body: "issue body",
           title: "issue title",
@@ -77,7 +88,10 @@ describe("modules/github", () => {
           login: "sender_github_username",
         },
       };
+    };
 
+    it("should return when issue commented", () => {
+      const dummyPayload = buildIssueCommentPayload("created");
       const result = pickupInfoFromGithubPayload(dummyPayload as any);
 
       expect(result).toEqual({
@@ -88,30 +102,9 @@ describe("modules/github", () => {
       });
     });
 
-    it("should throw error when issue deleted", () => {
-      const dummyPayload = {
-        action: "deleted",
-        issue: {
-          body: "body",
-          title: "title",
-          html_url: "url",
-        },
-        sender: {
-          login: "sender_github_username",
-        },
-      };
-
-      try {
-        pickupInfoFromGithubPayload(dummyPayload as any);
-        fail();
-      } catch (e) {
-        expect(e.message.includes("unknown event hook:")).toEqual(true);
-      }
-    });
-
-    it("should return when pull_request commented", () => {
-      const dummyPayload = {
-        action: "created",
+    const buildPrCommentPayload = (action: string) => {
+      return {
+        action,
         pull_request: {
           body: "pr body",
           title: "pr title",
@@ -126,7 +119,10 @@ describe("modules/github", () => {
           login: "sender_github_username",
         },
       };
+    };
 
+    it("should return when pull_request commented", () => {
+      const dummyPayload = buildPrCommentPayload("created");
       const result = pickupInfoFromGithubPayload(dummyPayload as any);
 
       expect(result).toEqual({
