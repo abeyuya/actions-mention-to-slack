@@ -41,7 +41,24 @@ export const pickupInfoFromGithubPayload = (
     throw buildError(payload);
   }
 
-  if (payload.issue && acceptActionTypes.issues.includes(action)) {
+  if (payload.issue) {
+    if (payload.comment) {
+      if (!acceptActionTypes.issue_comment.includes(action)) {
+        throw buildError(payload);
+      }
+
+      return {
+        body: payload.comment.body,
+        title: payload.issue.title,
+        url: payload.comment.html_url,
+        senderName: payload.sender?.login || "",
+      };
+    }
+
+    if (!acceptActionTypes.issues.includes(action)) {
+      throw buildError(payload);
+    }
+
     return {
       body: payload.issue.body || "",
       title: payload.issue.title,
@@ -60,15 +77,6 @@ export const pickupInfoFromGithubPayload = (
   }
 
   if (payload.action === "created" && payload.comment) {
-    if (payload.issue) {
-      return {
-        body: payload.comment.body,
-        title: payload.issue.title,
-        url: payload.comment.html_url,
-        senderName: payload.sender?.login || "",
-      };
-    }
-
     if (payload.pull_request) {
       return {
         body: payload.comment.body,

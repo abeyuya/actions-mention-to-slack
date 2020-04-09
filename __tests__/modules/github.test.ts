@@ -104,6 +104,18 @@ describe("modules/github", () => {
           senderName: "sender_github_username",
         });
       });
+
+      it("should return when issue comment edited", () => {
+        const dummyPayload = buildIssueCommentPayload("edited");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "comment body",
+          title: "issue title",
+          url: "comment url",
+          senderName: "sender_github_username",
+        });
+      });
     });
 
     describe("pr comment event", () => {
