@@ -129,6 +129,57 @@ describe("modules/github", () => {
       });
     });
 
+    describe("pr event", () => {
+      const buildPrPayload = (action: string) => {
+        return {
+          action,
+          pull_request: {
+            body: "pr body",
+            title: "pr title",
+            html_url: "pr url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
+      };
+
+      it("should return when pr opend", () => {
+        const dummyPayload = buildPrPayload("opened");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "pr body",
+          title: "pr title",
+          url: "pr url",
+          senderName: "sender_github_username",
+        });
+      });
+
+      it("should return when pr edited", () => {
+        const dummyPayload = buildPrPayload("edited");
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "pr body",
+          title: "pr title",
+          url: "pr url",
+          senderName: "sender_github_username",
+        });
+      });
+
+      it("should throw error when pr deleted", () => {
+        const dummyPayload = buildPrPayload("deleted");
+
+        try {
+          pickupInfoFromGithubPayload(dummyPayload as any);
+          fail();
+        } catch (e) {
+          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        }
+      });
+    });
+
     describe("pr comment event", () => {
       const buildPrCommentPayload = (action: string) => {
         return {
