@@ -19,15 +19,15 @@ This action sends mention to your slack account when you have been mentioned at 
 ```yml
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
   issue_comment:
-    types: [created]
+    types: [created, edited]
   pull_request:
-    types: [opened, review_requested]
+    types: [opened, edited, review_requested]
   pull_request_review:
     types: [submitted]
   pull_request_review_comment:
-    types: [created]
+    types: [created, edited]
 
 jobs:
   mention-to-slack:
