@@ -21,6 +21,12 @@ const acceptActionTypes = {
   pull_request_review_comment: ["created", "edited"],
 };
 
+const buildError = (payload: object): Error => {
+  return new Error(
+    `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
+  );
+};
+
 export const pickupInfoFromGithubPayload = (
   payload: WebhookPayload
 ): {
@@ -32,9 +38,7 @@ export const pickupInfoFromGithubPayload = (
   const { action } = payload;
 
   if (action === undefined) {
-    throw new Error(
-      `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
-    );
+    throw buildError(payload);
   }
 
   if (payload.issue && acceptActionTypes.issues.includes(action)) {
@@ -84,9 +88,7 @@ export const pickupInfoFromGithubPayload = (
     };
   }
 
-  throw new Error(
-    `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
-  );
+  throw buildError(payload);
 };
 
 const fetchContent = async (
