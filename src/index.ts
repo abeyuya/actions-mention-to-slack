@@ -7,7 +7,11 @@ import {
   pickupInfoFromGithubPayload,
   GithubRepositoryImpl,
 } from "./modules/github";
-import { buildSlackPostMessage, SlackRepositoryImpl } from "./modules/slack";
+import {
+  buildSlackPostMessage,
+  buildSlackErrorMessage,
+  SlackRepositoryImpl,
+} from "./modules/slack";
 
 export type AllInputs = {
   repoToken: string;
@@ -99,6 +103,16 @@ export const execNormalMention = async (
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
+export const execPostError = async (
+  error: Error,
+  allInputs: AllInputs,
+  slackClient: typeof SlackRepositoryImpl
+) => {
+  const message = buildSlackErrorMessage(error);
+  const { slackWebhookUrl, iconUrl, botName } = allInputs;
+  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+};
+
 const getAllInputs = (): AllInputs => {
   const slackWebhookUrl = core.getInput("slack-webhook-url", {
     required: true,
@@ -150,7 +164,7 @@ const main = async () => {
       SlackRepositoryImpl
     );
   } catch (error) {
-    core.setFailed(error.message);
+    await execPostError(error, allInputs, SlackRepositoryImpl);
   }
 };
 
