@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import * as github from "@actions/github";
+import { context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -143,7 +143,7 @@ const getAllInputs = (): AllInputs => {
 };
 
 export const main = async () => {
-  const { payload } = github.context;
+  const { payload } = context;
   const allInputs = getAllInputs();
 
   try {

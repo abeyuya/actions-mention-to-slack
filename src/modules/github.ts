@@ -1,4 +1,4 @@
-import * as github from "@actions/github";
+import { GitHub, context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import * as yaml from "js-yaml";
 
@@ -112,14 +112,14 @@ export const pickupInfoFromGithubPayload = (
 };
 
 const fetchContent = async (
-  client: github.GitHub,
+  client: GitHub,
   repoPath: string
 ): Promise<string> => {
   const response: any = await client.repos.getContents({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
+    owner: context.repo.owner,
+    repo: context.repo.repo,
     path: repoPath,
-    ref: github.context.sha,
+    ref: context.sha,
   });
 
   return Buffer.from(response.data.content, response.data.encoding).toString();
@@ -134,7 +134,7 @@ export const GithubRepositoryImpl = {
     repoToken: string,
     configurationPath: string
   ) => {
-    const githubClient = new github.GitHub(repoToken);
+    const githubClient = new GitHub(repoToken);
     const configurationContent = await fetchContent(
       githubClient,
       configurationPath
