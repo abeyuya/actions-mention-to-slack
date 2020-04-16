@@ -5,7 +5,7 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  GithubRepositoryImpl
+  GithubRepositoryImpl,
 } from "./modules/github";
 import { buildSlackPostMessage, SlackRepositoryImpl } from "./modules/slack";
 
@@ -29,8 +29,8 @@ export const convertToSlackUsername = async (
   );
 
   const slackIds = githubUsernames
-    .map(githubUsername => mapping[githubUsername])
-    .filter(slackId => slackId !== undefined) as string[];
+    .map((githubUsername) => mapping[githubUsername])
+    .filter((slackId) => slackId !== undefined) as string[];
 
   return slackIds;
 };
@@ -101,7 +101,7 @@ export const execNormalMention = async (
 
 const getAllInputs = (): AllInputs => {
   const slackWebhookUrl = core.getInput("slack-webhook-url", {
-    required: true
+    required: true,
   });
 
   if (!slackWebhookUrl) {
@@ -116,7 +116,7 @@ const getAllInputs = (): AllInputs => {
   const iconUrl = core.getInput("icon-url", { required: false });
   const botName = core.getInput("bot-name", { required: false });
   const configurationPath = core.getInput("configuration-path", {
-    required: true
+    required: true,
   });
 
   return {
@@ -124,16 +124,15 @@ const getAllInputs = (): AllInputs => {
     configurationPath,
     slackWebhookUrl,
     iconUrl,
-    botName
+    botName,
   };
 };
 
 const main = async () => {
   const { payload } = github.context;
+  const allInputs = getAllInputs();
 
   try {
-    const allInputs = getAllInputs();
-
     if (payload.action === "review_requested") {
       await execPrReviewRequestedMention(
         payload,
