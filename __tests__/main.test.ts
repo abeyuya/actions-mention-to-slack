@@ -2,19 +2,19 @@ import {
   convertToSlackUsername,
   execPrReviewRequestedMention,
   execNormalMention,
-  AllInputs
-} from "../src/index";
+  AllInputs,
+} from "../src/main";
 
-describe("src/index", () => {
+describe("src/main", () => {
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
-      github_user_2: "slack_user_2"
+      github_user_2: "slack_user_2",
     };
 
     it("should return hits slack member ids", async () => {
       const mock = {
-        loadNameMappingConfig: jest.fn(async () => mapping)
+        loadNameMappingConfig: jest.fn(async () => mapping),
       };
 
       const result = await convertToSlackUsername(
@@ -29,7 +29,7 @@ describe("src/index", () => {
 
     it("should return empty when no listed github_user", async () => {
       const mock = {
-        loadNameMappingConfig: jest.fn(async () => mapping)
+        loadNameMappingConfig: jest.fn(async () => mapping),
       };
 
       const result = await convertToSlackUsername(
@@ -49,33 +49,33 @@ describe("src/index", () => {
       configurationPath: "",
       slackWebhookUrl: "dummy_url",
       iconUrl: "",
-      botName: ""
+      botName: "",
     };
 
     const dummyMapping = {
-      github_user_1: "slack_user_1"
+      github_user_1: "slack_user_1",
     };
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const githubMock = {
-        loadNameMappingConfig: jest.fn(async () => dummyMapping)
+        loadNameMappingConfig: jest.fn(async () => dummyMapping),
       };
 
       const slackMock = {
-        postToSlack: jest.fn()
+        postToSlack: jest.fn(),
       };
 
       const dummyPayload = {
         requested_reviewer: {
-          login: "github_user_1"
+          login: "github_user_1",
         },
         pull_request: {
           title: "pr_title",
-          html_url: "pr_url"
+          html_url: "pr_url",
         },
         sender: {
-          login: "sender_github_username"
-        }
+          login: "sender_github_username",
+        },
       };
 
       await execPrReviewRequestedMention(
@@ -96,24 +96,24 @@ describe("src/index", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const githubMock = {
-        loadNameMappingConfig: jest.fn(async () => dummyMapping)
+        loadNameMappingConfig: jest.fn(async () => dummyMapping),
       };
 
       const slackMock = {
-        postToSlack: jest.fn()
+        postToSlack: jest.fn(),
       };
 
       const dummyPayload = {
         requested_reviewer: {
-          login: "github_user_not_linsted"
+          login: "github_user_not_linsted",
         },
         pull_request: {
           title: "pr_title",
-          html_url: "pr_url"
+          html_url: "pr_url",
         },
         sender: {
-          login: "sender_github_username"
-        }
+          login: "sender_github_username",
+        },
       };
 
       await execPrReviewRequestedMention(
@@ -134,34 +134,34 @@ describe("src/index", () => {
       configurationPath: "",
       slackWebhookUrl: "dummy_url",
       iconUrl: "",
-      botName: ""
+      botName: "",
     };
 
     const dummyMapping = {
-      github_user_1: "slack_user_1"
+      github_user_1: "slack_user_1",
     };
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const githubMock = {
-        loadNameMappingConfig: jest.fn(async () => dummyMapping)
+        loadNameMappingConfig: jest.fn(async () => dummyMapping),
       };
 
       const slackMock = {
-        postToSlack: jest.fn()
+        postToSlack: jest.fn(),
       };
 
       const dummyPayload = {
         action: "submitted",
         review: {
           body: "@github_user_1 LGTM!",
-          html_url: "review_comment_url"
+          html_url: "review_comment_url",
         },
         pull_request: {
-          title: "pr_title"
+          title: "pr_title",
         },
         sender: {
-          login: "sender_github_username"
-        }
+          login: "sender_github_username",
+        },
       };
 
       await execNormalMention(

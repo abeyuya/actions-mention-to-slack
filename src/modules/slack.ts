@@ -7,15 +7,29 @@ export const buildSlackPostMessage = (
   githubBody: string,
   senderName: string
 ) => {
-  const mentionBlock = slackIdsForMention.map(id => `<@${id}>`).join(" ");
+  const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
   const body = githubBody
     .split("\n")
-    .map(line => `> ${line}`)
+    .map((line) => `> ${line}`)
     .join("\n");
 
   return [
     `${mentionBlock} mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-    body
+    body,
+  ].join("\n");
+};
+
+const openIssueLink =
+  "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
+
+export const buildSlackErrorMessage = (error: Error) => {
+  return [
+    "❗ An internal error occurred in mention-to-slack action (but action didn't fail as this action is not critical).",
+    `To solve the problem, please copy and paste the text below and <${openIssueLink}|open an issue>`,
+    "",
+    "```",
+    error.stack || error.message,
+    "```",
   ].join("\n");
 };
 
@@ -33,6 +47,7 @@ type SlackPostParam = {
 };
 
 const defaultBotName = "Github Mention To Slack";
+const defaultIconEmoji = ":bell:";
 
 export const SlackRepositoryImpl = {
   postToSlack: async (
@@ -51,18 +66,18 @@ export const SlackRepositoryImpl = {
     const slackPostParam: SlackPostParam = {
       text: message,
       link_names: 0,
-      username: botName
+      username: botName,
     };
 
     const u = options?.iconUrl;
     if (u && u !== "") {
       slackPostParam.icon_url = u;
     } else {
-      slackPostParam.icon_emoji = ":bell:";
+      slackPostParam.icon_emoji = defaultIconEmoji;
     }
 
     await axios.post(webhookUrl, JSON.stringify(slackPostParam), {
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
     });
-  }
+  },
 };
