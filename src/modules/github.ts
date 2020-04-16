@@ -2,6 +2,8 @@ import * as github from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import * as yaml from "js-yaml";
 
+const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
+
 export const pickupUsername = (text: string) => {
   const pattern = /\B@[a-z0-9_-]+/gi;
   const hits = text.match(pattern);
@@ -10,7 +12,7 @@ export const pickupUsername = (text: string) => {
     return [];
   }
 
-  return hits.map((username) => username.replace("@", ""));
+  return uniq(hits).map((username) => username.replace("@", ""));
 };
 
 const acceptActionTypes = {
