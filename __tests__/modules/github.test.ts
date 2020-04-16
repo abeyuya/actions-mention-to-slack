@@ -5,7 +5,7 @@ import {
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
-    it("should return names when message include mention", () => {
+    it("should return names if message includes mentions", () => {
       const text =
         "@jpotts18 what is up man? Are you hanging out with @kyle_clegg";
       const result = pickupUsername(text);
@@ -13,11 +13,18 @@ describe("modules/github", () => {
       expect(result).toEqual(["jpotts18", "kyle_clegg"]);
     });
 
-    it("should return empty when message not include mention", () => {
+    it("should return empty if message does not include mention", () => {
       const text = "no mention comment";
       const result = pickupUsername(text);
 
       expect(result).toEqual([]);
+    });
+
+    it("should return unique names if message includes same mention", () => {
+      const text = "hello @abeyuya world @abeyuya";
+      const result = pickupUsername(text);
+
+      expect(result).toEqual(["abeyuya"]);
     });
   });
 
