@@ -3,9 +3,9 @@ import {
   execPrReviewRequestedMention,
   execNormalMention,
   AllInputs,
-} from "../src/index";
+} from "../src/main";
 
-describe("src/index", () => {
+describe("src/main", () => {
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
