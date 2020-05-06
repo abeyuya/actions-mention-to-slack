@@ -180,5 +180,40 @@ describe("src/main", () => {
       expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(true);
       expect(call[1].includes("by sender_github_username")).toEqual(true);
     });
+
+    it("should not call postToSlack if requested_user is not listed in mapping", async () => {
+      const githubMock = {
+        loadNameMappingConfig: jest.fn(async () => ({
+          some_github_user: "some_slack_user_id",
+        })),
+      };
+
+      const slackMock = {
+        postToSlack: jest.fn(),
+      };
+
+      const dummyPayload = {
+        action: "submitted",
+        review: {
+          body: "@github_user_1 LGTM!",
+          html_url: "review_comment_url",
+        },
+        pull_request: {
+          title: "pr_title",
+        },
+        sender: {
+          login: "sender_github_username",
+        },
+      };
+
+      await execNormalMention(
+        dummyPayload as any,
+        dummyInputs,
+        githubMock,
+        slackMock
+      );
+
+      expect(slackMock.postToSlack.mock.calls.length).toEqual(0);
+    });
   });
 });

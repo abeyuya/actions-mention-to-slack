@@ -90,6 +90,10 @@ export const execNormalMention = async (
     configurationPath
   );
 
+  if (slackIds.length === 0) {
+    return;
+  }
+
   const message = buildSlackPostMessage(
     slackIds,
     info.title,
