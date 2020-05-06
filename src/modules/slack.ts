@@ -13,10 +13,13 @@ export const buildSlackPostMessage = (
     .map((line) => `> ${line}`)
     .join("\n");
 
-  return [
-    `${mentionBlock} mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-    body,
-  ].join("\n");
+  const message = [
+    mentionBlock,
+    `${slackIdsForMention.length === 1 ? "has" : "have"}`,
+    `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
+  ].join(" ");
+
+  return `${message}\n${body}`;
 };
 
 const openIssueLink =

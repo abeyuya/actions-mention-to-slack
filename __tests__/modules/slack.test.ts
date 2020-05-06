@@ -14,7 +14,7 @@ describe("modules/slack", () => {
         "sender_github_username"
       );
 
-      expect(result.includes("<@slackUser1>")).toEqual(true);
+      expect(result.includes("<@slackUser1> has been mentioned")).toEqual(true);
       expect(result.includes("<link|title>")).toEqual(true);
       expect(result.includes("by sender_github_username")).toEqual(true);
       expect(result.includes("> message")).toEqual(true);
