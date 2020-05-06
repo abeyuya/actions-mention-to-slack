@@ -32879,10 +32879,12 @@ exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gi
         .split("\n")
         .map((line) => `> ${line}`)
         .join("\n");
-    return [
-        `${mentionBlock} mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-        body,
-    ].join("\n");
+    const message = [
+        mentionBlock,
+        `${slackIdsForMention.length === 1 ? "has" : "have"}`,
+        `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
+    ].join(" ");
+    return `${message}\n${body}`;
 };
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
 exports.buildSlackErrorMessage = (error) => {
