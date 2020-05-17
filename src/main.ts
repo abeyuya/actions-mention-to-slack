@@ -78,6 +78,10 @@ export const execNormalMention = async (
 ) => {
   const info = pickupInfoFromGithubPayload(payload);
 
+  if (info.body === null) {
+    return;
+  }
+
   const githubUsernames = pickupUsername(info.body);
   if (githubUsernames.length === 0) {
     return;
