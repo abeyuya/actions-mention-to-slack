@@ -2908,6 +2908,9 @@ exports.execNormalMention = async (payload, allInputs, githubClient, slackClient
     }
     const { repoToken, configurationPath } = allInputs;
     const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath);
+    if (slackIds.length === 0) {
+        return;
+    }
     const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
