@@ -2945,6 +2945,7 @@ const getAllInputs = () => {
     };
 };
 exports.main = async () => {
+    core.debug(JSON.stringify(github_1.context));
     const { payload } = github_1.context;
     const allInputs = getAllInputs();
     try {

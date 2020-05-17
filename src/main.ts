@@ -147,6 +147,7 @@ const getAllInputs = (): AllInputs => {
 };
 
 export const main = async () => {
+  core.debug(JSON.stringify(context));
   const { payload } = context;
   const allInputs = getAllInputs();
 
