@@ -32,7 +32,7 @@ const buildError = (payload: object): Error => {
 export const pickupInfoFromGithubPayload = (
   payload: WebhookPayload
 ): {
-  body: string;
+  body: string | null;
   title: string;
   url: string;
   senderName: string;

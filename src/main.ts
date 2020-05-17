@@ -19,6 +19,7 @@ export type AllInputs = {
   slackWebhookUrl: string;
   iconUrl?: string;
   botName?: string;
+  runId?: string;
 };
 
 export const convertToSlackUsername = async (
@@ -77,6 +78,10 @@ export const execNormalMention = async (
 ) => {
   const info = pickupInfoFromGithubPayload(payload);
 
+  if (info.body === null) {
+    return;
+  }
+
   const githubUsernames = pickupUsername(info.body);
   if (githubUsernames.length === 0) {
     return;
@@ -107,13 +112,24 @@ export const execNormalMention = async (
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
+const buildCurrentJobUrl = (runId: string) => {
+  const { owner, repo } = context.repo;
+  return `https://github.com/${owner}/${repo}/runs/${runId}`;
+};
+
 export const execPostError = async (
   error: Error,
   allInputs: AllInputs,
   slackClient: typeof SlackRepositoryImpl
 ) => {
-  const message = buildSlackErrorMessage(error);
+  const { runId } = allInputs;
+  const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
+  const message = buildSlackErrorMessage(error, currentJobUrl);
+
+  core.warning(message);
+
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
+
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 
@@ -136,6 +152,7 @@ const getAllInputs = (): AllInputs => {
   const configurationPath = core.getInput("configuration-path", {
     required: true,
   });
+  const runId = core.getInput("run-id", { required: false });
 
   return {
     repoToken,
@@ -143,6 +160,7 @@ const getAllInputs = (): AllInputs => {
     slackWebhookUrl,
     iconUrl,
     botName,
+    runId,
   };
 };
 

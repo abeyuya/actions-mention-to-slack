@@ -2902,6 +2902,9 @@ exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, 
 };
 exports.execNormalMention = async (payload, allInputs, githubClient, slackClient) => {
     const info = github_2.pickupInfoFromGithubPayload(payload);
+    if (info.body === null) {
+        return;
+    }
     const githubUsernames = github_2.pickupUsername(info.body);
     if (githubUsernames.length === 0) {
         return;
@@ -2915,8 +2918,15 @@ exports.execNormalMention = async (payload, allInputs, githubClient, slackClient
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
+const buildCurrentJobUrl = (runId) => {
+    const { owner, repo } = github_1.context.repo;
+    return `https://github.com/${owner}/${repo}/runs/${runId}`;
+};
 exports.execPostError = async (error, allInputs, slackClient) => {
-    const message = slack_1.buildSlackErrorMessage(error);
+    const { runId } = allInputs;
+    const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
+    const message = slack_1.buildSlackErrorMessage(error, currentJobUrl);
+    core.warning(message);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
@@ -2936,12 +2946,14 @@ const getAllInputs = () => {
     const configurationPath = core.getInput("configuration-path", {
         required: true,
     });
+    const runId = core.getInput("run-id", { required: false });
     return {
         repoToken,
         configurationPath,
         slackWebhookUrl,
         iconUrl,
         botName,
+        runId,
     };
 };
 exports.main = async () => {
@@ -32890,9 +32902,14 @@ exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gi
     return `${message}\n${body}`;
 };
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
-exports.buildSlackErrorMessage = (error) => {
+exports.buildSlackErrorMessage = (error, currentJobUrl) => {
+    const jobTitle = "mention-to-slack action";
+    const jobLinkMessage = currentJobUrl
+        ? `<${currentJobUrl}|${jobTitle}>`
+        : jobTitle;
     return [
-        "❗ An internal error occurred in mention-to-slack action (but action didn't fail as this action is not critical).",
+        `❗ An internal error occurred in ${jobLinkMessage}`,
+        "(but action didn't fail as this action is not critical).",
         `To solve the problem, please copy and paste the text below and <${openIssueLink}|open an issue>`,
         "",
         "```",

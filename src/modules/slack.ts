@@ -25,9 +25,18 @@ export const buildSlackPostMessage = (
 const openIssueLink =
   "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
 
-export const buildSlackErrorMessage = (error: Error) => {
+export const buildSlackErrorMessage = (
+  error: Error,
+  currentJobUrl?: string
+) => {
+  const jobTitle = "mention-to-slack action";
+  const jobLinkMessage = currentJobUrl
+    ? `<${currentJobUrl}|${jobTitle}>`
+    : jobTitle;
+
   return [
-    "❗ An internal error occurred in mention-to-slack action (but action didn't fail as this action is not critical).",
+    `❗ An internal error occurred in ${jobLinkMessage}`,
+    "(but action didn't fail as this action is not critical).",
     `To solve the problem, please copy and paste the text below and <${openIssueLink}|open an issue>`,
     "",
     "```",
