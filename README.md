@@ -2,6 +2,13 @@
 
 This action sends mention to your slack account when you have been mentioned at github.
 
+## Feature
+
+- Send mention to slack if you have been mentioned
+  - issue
+  - pull request
+- Send notification to slack if you have been requested to review.
+
 ## Inputs
 
 | Name | Required | Default | Description |
@@ -47,8 +54,12 @@ jobs:
 .github/mention-to-slack.yml
 
 ```yml
+# github_username: "slack_member_id"
+
+github_username_A: "slack_member_id_A"
+github_username_B: "slack_member_id_B"
+github_username_C: "slack_member_id_C"
 abeyuya: "XXXXXXXXX"
-other_github_username: "slack_member_id_here"
 ```
 
 ## Development
