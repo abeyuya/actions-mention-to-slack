@@ -165,6 +165,8 @@ const getAllInputs = (): AllInputs => {
 };
 
 export const main = async () => {
+  console.log('Start of run');
+
   const { payload } = context;
   const allInputs = getAllInputs();
 
