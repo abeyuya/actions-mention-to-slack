@@ -46,6 +46,7 @@ export const execPrReviewRequestedMention = async (
   githubClient: typeof GithubRepositoryImpl,
   slackClient: typeof SlackRepositoryImpl
 ) => {
+  console.log('execPrReviewRequestedMention', payload);
   const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername = payload.requested_reviewer.login;
   const slackIds = await convertToSlackUsername(
@@ -76,6 +77,7 @@ export const execNormalMention = async (
   githubClient: typeof GithubRepositoryImpl,
   slackClient: typeof SlackRepositoryImpl
 ) => {
+  console.log('execNormalMention', payload);
   const info = pickupInfoFromGithubPayload(payload);
 
   if (info.body === null) {
@@ -134,6 +136,8 @@ export const execPostError = async (
 };
 
 const getAllInputs = (): AllInputs => {
+  console.log('getAllInputs');
+
   const slackWebhookUrl = core.getInput("slack-webhook-url", {
     required: true,
   });

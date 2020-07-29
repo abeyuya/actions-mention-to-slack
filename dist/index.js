@@ -3981,6 +3981,7 @@ exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken
 };
 exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient) => {
     var _a, _b, _c;
+    console.log('execPrReviewRequestedMention', payload);
     const { repoToken, configurationPath } = allInputs;
     const requestedGithubUsername = payload.requested_reviewer.login;
     const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath);
@@ -3996,6 +3997,7 @@ exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, 
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 exports.execNormalMention = async (payload, allInputs, githubClient, slackClient) => {
+    console.log('execNormalMention', payload);
     const info = github_2.pickupInfoFromGithubPayload(payload);
     if (info.body === null) {
         return;
@@ -4026,6 +4028,7 @@ exports.execPostError = async (error, allInputs, slackClient) => {
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 const getAllInputs = () => {
+    console.log('getAllInputs');
     const slackWebhookUrl = core.getInput("slack-webhook-url", {
         required: true,
     });
@@ -33131,6 +33134,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SlackRepositoryImpl = exports.buildSlackErrorMessage = exports.buildSlackPostMessage = void 0;
 const axios_1 = __importDefault(__webpack_require__(53));
 exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+    console.log('buildSlackPostMessage', slackIdsForMention, issueTitle, commentLink, githubBody, senderName);
     const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
     const body = githubBody
         .split("\n")
@@ -33145,6 +33149,7 @@ exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gi
 };
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
 exports.buildSlackErrorMessage = (error, currentJobUrl) => {
+    console.log('buildSlackErrorMessage', error);
     const jobTitle = "mention-to-slack action";
     const jobLinkMessage = currentJobUrl
         ? `<${currentJobUrl}|${jobTitle}>`
@@ -33163,6 +33168,7 @@ const defaultBotName = "Github Mention To Slack";
 const defaultIconEmoji = ":bell:";
 exports.SlackRepositoryImpl = {
     postToSlack: async (webhookUrl, message, options) => {
+        console.log('postToSlack', message, options);
         const botName = (() => {
             const n = options === null || options === void 0 ? void 0 : options.botName;
             if (n && n !== "") {
