@@ -28,10 +28,13 @@ export const convertToSlackUsername = async (
   repoToken: string,
   configurationPath: string
 ): Promise<string[]> => {
+  console.log('convertToSlackUsername', githubUsernames, configurationPath);
+
   const mapping = await githubClient.loadNameMappingConfig(
     repoToken,
     configurationPath
   );
+  console.log('mapping', mapping)
 
   const slackIds = githubUsernames
     .map((githubUsername) => mapping[githubUsername])
@@ -77,15 +80,17 @@ export const execNormalMention = async (
   githubClient: typeof GithubRepositoryImpl,
   slackClient: typeof SlackRepositoryImpl
 ) => {
-  console.log('execNormalMention', payload);
+  console.log('execNormalMention');
   const info = pickupInfoFromGithubPayload(payload);
 
   if (info.body === null) {
+    console.error('info.body === null');
     return;
   }
 
   const githubUsernames = pickupUsername(info.body);
   if (githubUsernames.length === 0) {
+    console.error('githubUsernames.length === 0');
     return;
   }
 
@@ -98,6 +103,7 @@ export const execNormalMention = async (
   );
 
   if (slackIds.length === 0) {
+    console.error('slackIds.length === 0');
     return;
   }
 

@@ -3973,7 +3973,9 @@ const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
 exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath) => {
+    console.log('convertToSlackUsername', githubUsernames, configurationPath);
     const mapping = await githubClient.loadNameMappingConfig(repoToken, configurationPath);
+    console.log('mapping', mapping);
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
@@ -3997,18 +3999,21 @@ exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, 
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 exports.execNormalMention = async (payload, allInputs, githubClient, slackClient) => {
-    console.log('execNormalMention', payload);
+    console.log('execNormalMention');
     const info = github_2.pickupInfoFromGithubPayload(payload);
     if (info.body === null) {
+        console.error('info.body === null');
         return;
     }
     const githubUsernames = github_2.pickupUsername(info.body);
     if (githubUsernames.length === 0) {
+        console.error('githubUsernames.length === 0');
         return;
     }
     const { repoToken, configurationPath } = allInputs;
     const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath);
     if (slackIds.length === 0) {
+        console.error('slackIds.length === 0');
         return;
     }
     const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body, info.senderName);
