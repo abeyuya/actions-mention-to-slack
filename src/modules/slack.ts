@@ -88,7 +88,9 @@ export const SlackRepositoryImpl = {
       slackPostParam.icon_emoji = defaultIconEmoji;
     }
 
-    await axios.post(webhookUrl, JSON.stringify(slackPostParam), {
+    console.log('Posting message: ', slackPostParam);
+
+    await axios.post(webhookUrl, JSON.stringify('{"text": "Test World"}'), {
       headers: { "Content-Type": "application/json" },
     });
   },

@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abeyuya/actions-mention-to-slack.git"
+    "url": "git+https://github.com/justslone/actions-mention-to-slack.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/abeyuya/actions-mention-to-slack/issues"
+    "url": "https://github.com/justslone/actions-mention-to-slack/issues"
   },
-  "homepage": "https://github.com/abeyuya/actions-mention-to-slack#readme"
+  "homepage": "https://github.com/justslone/actions-mention-to-slack#readme"
 }

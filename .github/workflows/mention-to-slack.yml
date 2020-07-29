@@ -1,3 +1,5 @@
+name: Mentions
+
 on:
   issues:
     types: [opened, edited]
@@ -13,19 +15,12 @@ on:
 jobs:
   mention-to-slack:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Run
-        uses: justslone/actions-mention-to-slack@v2
+        uses: justslone/actions-mention-to-slack
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
           icon-url: https://img.icons8.com/color/256/000000/github-2.png
-          bot-name: "Send Mention from abeyuya/actions-mention-to-slack"
-          run-id: ${{ github.run_id }}.github/mention-to-slack.yml
-
-# github_username: "slack_member_id"
-
-github_username_A: "slack_member_id_A"
-github_username_B: "slack_member_id_B"
-github_username_C: "slack_member_id_C"
-abeyuya: "XXXXXXXXX"
+          bot-name: "Send Mention from abeyuya/actions-mention-to-slack"          
