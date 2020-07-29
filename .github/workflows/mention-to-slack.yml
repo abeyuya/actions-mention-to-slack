@@ -17,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Run
-        uses: justslone/actions-mention-to-slack
+      - uses: actions/checkout@v2
+      - name: Run        
+        uses: ./action.yml
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
