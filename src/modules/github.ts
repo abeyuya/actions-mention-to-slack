@@ -140,7 +140,7 @@ export const GithubRepositoryImpl = {
       configurationPath
     );
 
-    const configObject: MappingFile = yaml.safeLoad(configurationContent);
+    const configObject: MappingFile = yaml.safeLoad(configurationContent) as MappingFile;
     return configObject;
   },
 };
