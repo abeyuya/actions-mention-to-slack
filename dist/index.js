@@ -4052,6 +4052,7 @@ const getAllInputs = () => {
     };
 };
 exports.main = async () => {
+    console.log('Start of run');
     const { payload } = github_1.context;
     const allInputs = getAllInputs();
     try {
@@ -33181,7 +33182,8 @@ exports.SlackRepositoryImpl = {
         else {
             slackPostParam.icon_emoji = defaultIconEmoji;
         }
-        await axios_1.default.post(webhookUrl, JSON.stringify(slackPostParam), {
+        console.log('Posting message: ', slackPostParam);
+        await axios_1.default.post(webhookUrl, JSON.stringify('{"text": "Test World"}'), {
             headers: { "Content-Type": "application/json" },
         });
     },
