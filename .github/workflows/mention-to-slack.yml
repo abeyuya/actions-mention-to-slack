@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run        
-        uses: ./action.yml
+        uses: ./
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
