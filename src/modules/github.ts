@@ -1,6 +1,6 @@
-import { GitHub, context } from "@actions/github";
+// import { GitHub, context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
-import * as yaml from "js-yaml";
+// import * as yaml from "js-yaml";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -111,36 +111,41 @@ export const pickupInfoFromGithubPayload = (
   throw buildError(payload);
 };
 
-const fetchContent = async (
-  client: GitHub,
-  repoPath: string
-): Promise<string> => {
-  const response: any = await client.repos.getContents({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: repoPath,
-    ref: context.sha,
-  });
+// const fetchContent = async (
+//   client: GitHub,
+//   repoPath: string
+// ): Promise<string> => {
+//   let params = {
+//     owner: context.repo.owner,
+//     repo: context.repo.repo,
+//     path: repoPath,
+//     ref: context.sha,
+//   };
+//   console.log('fetchContent', params);
+//   const response: any = await client.repos.getContents(params);
 
-  return Buffer.from(response.data.content, response.data.encoding).toString();
-};
+//   return Buffer.from(response.data.content, response.data.encoding).toString();
+// };
 
-type MappingFile = {
-  [githugUsername: string]: string | undefined;
-};
+// type MappingFile = {
+//   [githugUsername: string]: string | undefined;
+// };
 
-export const GithubRepositoryImpl = {
-  loadNameMappingConfig: async (
-    repoToken: string,
-    configurationPath: string
-  ) => {
-    const githubClient = new GitHub(repoToken);
-    const configurationContent = await fetchContent(
-      githubClient,
-      configurationPath
-    );
+// export const GithubRepositoryImpl = {
+//   loadNameMappingConfig: async (
+//     repoToken: string,
+//     configurationPath: string
+//   ) => {
+//     console.log('loadNameMappingConfig', configurationPath);
+//     const githubClient = new GitHub(repoToken);
+//     const configurationContent = await fetchContent(
+//       githubClient,
+//       configurationPath
+//     );
 
-    const configObject: MappingFile = yaml.safeLoad(configurationContent) as MappingFile;
-    return configObject;
-  },
-};
+//     console.log('before safeLoad', configurationContent);
+//     const configObject: MappingFile = yaml.safeLoad(configurationContent) as MappingFile;
+//     console.log('after safeLoad', configObject);
+//     return configObject;
+//   },
+// };
