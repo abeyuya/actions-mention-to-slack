@@ -17,6 +17,9 @@ inputs:
   icon-url:
     description: "Display icon url for this bot on Slack."
     required: false
+  run-id:
+    description: "Used for the link in the error message when an error occurs."
+    required: false
 runs:
   using: "node12"
   main: "dist/index.js"
