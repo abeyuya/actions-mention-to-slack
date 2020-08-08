@@ -19,6 +19,22 @@ describe("modules/slack", () => {
       expect(result.includes("by sender_github_username")).toEqual(true);
       expect(result.includes("> message")).toEqual(true);
     });
+
+    it("should be correct format with blockquotes", () => {
+      const result = buildSlackPostMessage(
+        ["slackUser1"],
+        "title",
+        "link",
+        "> message\nhello",
+        "sender_github_username"
+      );
+
+      expect(result).toEqual(
+        `<@slackUser1> has been mentioned at <link|title> by sender_github_username
+> > message
+> hello`
+      );
+    });
   });
 
   describe("buildSlackErrorMessage", () => {
