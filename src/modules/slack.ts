@@ -10,7 +10,14 @@ export const buildSlackPostMessage = (
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
   const body = githubBody
     .split("\n")
-    .map((line) => `> ${line}`)
+    .map((line, i) => {
+      // fix slack layout collapse problem when first line starts with blockquotes.
+      if (i === 0 && line.startsWith(">")) {
+        return `>\n> ${line}`;
+      }
+
+      return `> ${line}`;
+    })
     .join("\n");
 
   const message = [

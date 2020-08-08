@@ -112,6 +112,33 @@ describe("modules/github", () => {
         });
       });
 
+      it("should return when issue commented with blockquotes", () => {
+        const dummyPayload = {
+          action: "created",
+          issue: {
+            body: "issue body",
+            title: "issue title",
+            html_url: "issue url",
+          },
+          comment: {
+            body: "> comment body \nhello",
+            title: "comment title",
+            html_url: "comment url",
+          },
+          sender: {
+            login: "sender_github_username",
+          },
+        };
+        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+
+        expect(result).toEqual({
+          body: "> comment body \nhello",
+          title: "issue title",
+          url: "comment url",
+          senderName: "sender_github_username",
+        });
+      });
+
       it("should return when issue comment edited", () => {
         const dummyPayload = buildIssueCommentPayload("edited");
         const result = pickupInfoFromGithubPayload(dummyPayload as any);
