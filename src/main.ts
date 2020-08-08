@@ -187,5 +187,6 @@ export const main = async () => {
     );
   } catch (error) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
+    core.warning(JSON.stringify({ payload }));
   }
 };
