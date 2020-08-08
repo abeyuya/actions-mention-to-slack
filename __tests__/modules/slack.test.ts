@@ -14,10 +14,10 @@ describe("modules/slack", () => {
         "sender_github_username"
       );
 
-      expect(result.includes("<@slackUser1> has been mentioned")).toEqual(true);
-      expect(result.includes("<link|title>")).toEqual(true);
-      expect(result.includes("by sender_github_username")).toEqual(true);
-      expect(result.includes("> message")).toEqual(true);
+      expect(result).toEqual(
+        `<@slackUser1> has been mentioned at <link|title> by sender_github_username
+> message`
+      );
     });
 
     it("should be correct format with blockquotes", () => {
