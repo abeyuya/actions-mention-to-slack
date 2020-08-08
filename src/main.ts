@@ -114,7 +114,7 @@ export const execNormalMention = async (
 
 const buildCurrentJobUrl = (runId: string) => {
   const { owner, repo } = context.repo;
-  return `https://github.com/${owner}/${repo}/runs/${runId}`;
+  return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 };
 
 export const execPostError = async (
@@ -187,5 +187,6 @@ export const main = async () => {
     );
   } catch (error) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
+    core.warning(JSON.stringify({ payload }));
   }
 };

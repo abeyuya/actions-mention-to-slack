@@ -2920,7 +2920,7 @@ exports.execNormalMention = async (payload, allInputs, githubClient, slackClient
 };
 const buildCurrentJobUrl = (runId) => {
     const { owner, repo } = github_1.context.repo;
-    return `https://github.com/${owner}/${repo}/runs/${runId}`;
+    return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 };
 exports.execPostError = async (error, allInputs, slackClient) => {
     const { runId } = allInputs;
@@ -2968,6 +2968,7 @@ exports.main = async () => {
     }
     catch (error) {
         await exports.execPostError(error, allInputs, slack_1.SlackRepositoryImpl);
+        core.warning(JSON.stringify({ payload }));
     }
 };
 
@@ -32892,7 +32893,13 @@ exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gi
     const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
     const body = githubBody
         .split("\n")
-        .map((line) => `> ${line}`)
+        .map((line, i) => {
+        // fix slack layout collapse problem when first line starts with blockquotes.
+        if (i === 0 && line.startsWith(">")) {
+            return `>\n> ${line}`;
+        }
+        return `> ${line}`;
+    })
         .join("\n");
     const message = [
         mentionBlock,
