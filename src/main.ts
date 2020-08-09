@@ -47,7 +47,13 @@ export const execPrReviewRequestedMention = async (
   slackClient: typeof SlackRepositoryImpl
 ) => {
   const { repoToken, configurationPath } = allInputs;
-  const requestedGithubUsername = payload.requested_reviewer.login;
+  const requestedGithubUsername =
+    payload.requested_reviewer?.login || payload.requested_team?.name;
+
+  if (!requestedGithubUsername) {
+    throw new Error("Can not find review requested user.");
+  }
+
   const slackIds = await convertToSlackUsername(
     [requestedGithubUsername],
     githubClient,
