@@ -54,12 +54,22 @@ jobs:
 .github/mention-to-slack.yml
 
 ```yml
+##################
+# For Github User
+
 # github_username: "slack_member_id"
 
 github_username_A: "slack_member_id_A"
 github_username_B: "slack_member_id_B"
 github_username_C: "slack_member_id_C"
 abeyuya: "XXXXXXXXX"
+
+##################
+# For Github Team
+
+# github_teamname: "slack_member_id"
+
+github_teamname_A: "slack_member_id_D"
 ```
 
 ## Development
