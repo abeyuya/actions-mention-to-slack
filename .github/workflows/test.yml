@@ -1,4 +1,4 @@
-name: Test
+name: Test & Lint
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
       - ".github/workflows/test.yml"
 
 jobs:
-  jest:
+  test-and-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -29,3 +29,4 @@ jobs:
             ${{ runner.os }}-npm-
       - run: npm install
       - run: npm run test -- --coverage
+      - run: npm run lint

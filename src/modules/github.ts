@@ -4,7 +4,7 @@ import * as yaml from "js-yaml";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
-export const pickupUsername = (text: string) => {
+export const pickupUsername = (text: string): string[] => {
   const pattern = /\B@[a-z0-9_-]+/gi;
   const hits = text.match(pattern);
 
@@ -23,7 +23,7 @@ const acceptActionTypes = {
   pull_request_review_comment: ["created", "edited"],
 };
 
-const buildError = (payload: object): Error => {
+const buildError = (payload: unknown): Error => {
   return new Error(
     `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
   );
@@ -115,14 +115,17 @@ const fetchContent = async (
   client: GitHub,
   repoPath: string
 ): Promise<string> => {
-  const response: any = await client.repos.getContents({
+  const response = await client.repos.getContents({
     owner: context.repo.owner,
     repo: context.repo.repo,
     path: repoPath,
     ref: context.sha,
   });
 
-  return Buffer.from(response.data.content, response.data.encoding).toString();
+  return Buffer.from(
+    (response.data as any).content,
+    (response.data as any).encoding
+  ).toString();
 };
 
 type MappingFile = {
@@ -133,7 +136,7 @@ export const GithubRepositoryImpl = {
   loadNameMappingConfig: async (
     repoToken: string,
     configurationPath: string
-  ) => {
+  ): Promise<MappingFile> => {
     const githubClient = new GitHub(repoToken);
     const configurationContent = await fetchContent(
       githubClient,
