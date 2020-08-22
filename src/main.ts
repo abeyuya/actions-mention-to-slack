@@ -45,7 +45,7 @@ export const execPrReviewRequestedMention = async (
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
   slackClient: typeof SlackRepositoryImpl
-) => {
+): Promise<void> => {
   const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername =
     payload.requested_reviewer?.login || payload.requested_team?.name;
@@ -81,7 +81,7 @@ export const execNormalMention = async (
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
   slackClient: typeof SlackRepositoryImpl
-) => {
+): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
   if (info.body === null) {
@@ -127,7 +127,7 @@ export const execPostError = async (
   error: Error,
   allInputs: AllInputs,
   slackClient: typeof SlackRepositoryImpl
-) => {
+): Promise<void> => {
   const { runId } = allInputs;
   const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
   const message = buildSlackErrorMessage(error, currentJobUrl);
@@ -170,7 +170,7 @@ const getAllInputs = (): AllInputs => {
   };
 };
 
-export const main = async () => {
+export const main = async (): Promise<void> => {
   const { payload } = context;
   const allInputs = getAllInputs();
 

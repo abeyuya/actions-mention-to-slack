@@ -6,7 +6,7 @@ export const buildSlackPostMessage = (
   commentLink: string,
   githubBody: string,
   senderName: string
-) => {
+): string => {
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
   const body = githubBody
     .split("\n")
@@ -35,7 +35,7 @@ const openIssueLink =
 export const buildSlackErrorMessage = (
   error: Error,
   currentJobUrl?: string
-) => {
+): string => {
   const jobTitle = "mention-to-slack action";
   const jobLinkMessage = currentJobUrl
     ? `<${currentJobUrl}|${jobTitle}>`
@@ -73,7 +73,7 @@ export const SlackRepositoryImpl = {
     webhookUrl: string,
     message: string,
     options?: SlackOption
-  ) => {
+  ): Promise<void> => {
     const botName = (() => {
       const n = options?.botName;
       if (n && n !== "") {
