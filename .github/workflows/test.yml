@@ -1,4 +1,4 @@
-name: Test
+name: Test & Lint
 
 on:
   push:
@@ -29,3 +29,4 @@ jobs:
             ${{ runner.os }}-npm-
       - run: npm install
       - run: npm run test -- --coverage
+      - run: npm run lint
