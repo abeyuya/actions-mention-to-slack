@@ -12,7 +12,7 @@ on:
       - ".github/workflows/test.yml"
 
 jobs:
-  jest:
+  test-and-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
