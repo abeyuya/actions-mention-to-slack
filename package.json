@@ -10,7 +10,7 @@
     "js-yaml": "^3.13.1"
   },
   "devDependencies": {
-    "@types/jest": "26.0.10",
+    "@types/jest": "26.0.12",
     "@types/js-yaml": "3.12.2",
     "@typescript-eslint/eslint-plugin": "4.0.1",
     "@typescript-eslint/parser": "4.0.1",
