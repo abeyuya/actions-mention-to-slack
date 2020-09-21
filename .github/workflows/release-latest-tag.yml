@@ -17,6 +17,10 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: "12.13.1"
+      - name: Checkout release
+        run: |
+          git checkout release
+          git merge origin/master --no-commit --no-ff
       - name: Cache npm
         uses: actions/cache@v2
         with:
@@ -24,14 +28,14 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
-      - run: npm install
+      - name: Build
+      - run: |
+          npm install
+          npm run build
       - name: Commit
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git checkout release
-          git merge origin/master
-          npm run build
           git add dist -f
           git diff-index --quiet HEAD || git commit -m"update build ${{ github.run_number }}" && git tag latest -f
       - name: Push changes
