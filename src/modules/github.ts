@@ -1,6 +1,6 @@
 import { getOctokit, context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
-import * as yaml from "js-yaml";
+import { safeLoad } from "js-yaml";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -143,7 +143,12 @@ export const GithubRepositoryImpl = {
       configurationPath
     );
 
-    const configObject: MappingFile = yaml.safeLoad(configurationContent);
-    return configObject;
+    const configObject = safeLoad(configurationContent);
+
+    if (configObject === undefined) {
+      throw new Error(`failed to load yaml\n${configurationContent}`);
+    }
+
+    return configObject as MappingFile;
   },
 };
