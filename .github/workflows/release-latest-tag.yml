@@ -22,7 +22,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git checkout release
-          git merge origin/master --no-commit --no-ff
+          git merge origin/master --theirs --no-commit --no-ff
       - name: Cache npm
         uses: actions/cache@v2
         with:
