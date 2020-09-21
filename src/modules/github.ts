@@ -1,4 +1,4 @@
-import { GitHub, context } from "@actions/github";
+import { getOctokit, context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import * as yaml from "js-yaml";
 
@@ -112,10 +112,10 @@ export const pickupInfoFromGithubPayload = (
 };
 
 const fetchContent = async (
-  client: GitHub,
+  client: ReturnType<typeof getOctokit>,
   repoPath: string
 ): Promise<string> => {
-  const response = await client.repos.getContents({
+  const response = await client.repos.get({
     owner: context.repo.owner,
     repo: context.repo.repo,
     path: repoPath,
@@ -137,7 +137,7 @@ export const GithubRepositoryImpl = {
     repoToken: string,
     configurationPath: string
   ): Promise<MappingFile> => {
-    const githubClient = new GitHub(repoToken);
+    const githubClient = getOctokit(repoToken);
     const configurationContent = await fetchContent(
       githubClient,
       configurationPath

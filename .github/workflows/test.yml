@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "**"
+      - "!release"
     paths:
       - "src/**"
       - "__tests__/**"
