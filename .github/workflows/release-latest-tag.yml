@@ -37,11 +37,11 @@ jobs:
       - name: Commit
         run: |
           git add dist -f
-          git diff-index --quiet HEAD || git commit -m"update build ${{ github.run_number }}" && git tag latest -f
+          git diff-index --quiet HEAD || (git commit -m"update build ${{ github.run_number }}" && git tag latest -f)
       - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: release
-          force: true
-          tags: true
+        run: |
+          git push \
+            "https://${{ github.actor }}:${{ secrets.MY_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+            HEAD:release \
+            -f \
+            --tags
