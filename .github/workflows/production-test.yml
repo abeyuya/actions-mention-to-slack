@@ -1,0 +1,25 @@
+name: Production test
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  comment-to-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Create comment
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          repository: abeyuya/github-actions-test
+          issue-number: 7
+          body: |
+            hey @abeyuya!
+            This is a test comment from ci to test abeyuya/actions-mention-to-slack.
+
+            - With GitHub **Markdown** :sparkles:
+            - Created by [create-or-update-comment][1]
+
+            [1]: https://github.com/peter-evans/create-or-update-comment
