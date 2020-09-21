@@ -32,7 +32,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git checkout release
           git add dist -f
-          git commit -m"update build ${{ github.run_id }}"
+          git commit -m"update build ${{ github.run_number }}"
           git tag latest
       - name: Push changes
         uses: ad-m/github-push-action@master
