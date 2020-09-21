@@ -32,7 +32,7 @@ jobs:
           git checkout release
           npm run build
           git add dist -f
-          git commit -m"update build ${{ github.run_number }}"
+          git diff-index --quiet HEAD || git commit -m"update build ${{ github.run_number }}"
           git tag latest
       - name: Push changes
         uses: ad-m/github-push-action@master
