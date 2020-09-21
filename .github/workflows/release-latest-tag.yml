@@ -41,7 +41,7 @@ jobs:
       - name: Push changes
         run: |
           git push \
-            "https://${{ github.actor }}:${{ env.MY_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+            "https://${{ github.actor }}:${{ secrets.MY_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
             HEAD:release \
             -f \
             --tags
