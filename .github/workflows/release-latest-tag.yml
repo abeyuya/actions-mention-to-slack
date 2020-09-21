@@ -30,7 +30,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git checkout release
-          git merge origin/master -m'merge origin/master'
+          git merge origin/master
           npm run build
           git add dist -f
           git diff-index --quiet HEAD || git commit -m"update build ${{ github.run_number }}" && git tag latest -f
