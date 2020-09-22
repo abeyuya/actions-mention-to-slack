@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import { context } from "@actions/github";
+import { Context } from "@actions/github/lib/context";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -26,11 +27,15 @@ export const convertToSlackUsername = async (
   githubUsernames: string[],
   githubClient: typeof GithubRepositoryImpl,
   repoToken: string,
-  configurationPath: string
+  configurationPath: string,
+  context: Pick<Context, "repo" | "sha">
 ): Promise<string[]> => {
   const mapping = await githubClient.loadNameMappingConfig(
     repoToken,
-    configurationPath
+    context.repo.owner,
+    context.repo.repo,
+    configurationPath,
+    context.sha
   );
 
   const slackIds = githubUsernames
@@ -44,7 +49,8 @@ export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: typeof SlackRepositoryImpl,
+  context: Pick<Context, "repo" | "sha">
 ): Promise<void> => {
   const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername =
@@ -58,7 +64,8 @@ export const execPrReviewRequestedMention = async (
     [requestedGithubUsername],
     githubClient,
     repoToken,
-    configurationPath
+    configurationPath,
+    context
   );
 
   if (slackIds.length === 0) {
@@ -80,7 +87,8 @@ export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   githubClient: typeof GithubRepositoryImpl,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: typeof SlackRepositoryImpl,
+  context: Pick<Context, "repo" | "sha">
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -98,7 +106,8 @@ export const execNormalMention = async (
     githubUsernames,
     githubClient,
     repoToken,
-    configurationPath
+    configurationPath,
+    context
   );
 
   if (slackIds.length === 0) {
@@ -180,7 +189,8 @@ export const main = async (): Promise<void> => {
         payload,
         allInputs,
         GithubRepositoryImpl,
-        SlackRepositoryImpl
+        SlackRepositoryImpl,
+        context
       );
       return;
     }
@@ -189,7 +199,8 @@ export const main = async (): Promise<void> => {
       payload,
       allInputs,
       GithubRepositoryImpl,
-      SlackRepositoryImpl
+      SlackRepositoryImpl,
+      context
     );
   } catch (error) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
