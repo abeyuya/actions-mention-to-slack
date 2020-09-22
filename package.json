@@ -7,8 +7,7 @@
     "@actions/core": "^1.2.3",
     "@actions/github": "^4.0.0",
     "axios": "^0.20.0",
-    "js-yaml": "^3.13.1",
-    "source-map-support": "^0.5.19"
+    "js-yaml": "^3.13.1"
   },
   "devDependencies": {
     "@types/jest": "26.0.14",
@@ -24,7 +23,7 @@
   },
   "scripts": {
     "test": "jest",
-    "build": "ncc build",
+    "build": "ncc build --source-map",
     "lint": "tsc --noEmit && eslint --ext .js,.ts ./"
   },
   "repository": {
