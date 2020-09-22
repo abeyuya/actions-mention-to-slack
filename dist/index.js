@@ -1551,21 +1551,21 @@ const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
-exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath) => {
-    const mapping = await githubClient.loadNameMappingConfig(repoToken, configurationPath);
+exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
+    const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
     return slackIds;
 };
-exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient) => {
+exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient, context) => {
     var _a, _b, _c, _d, _e;
     const { repoToken, configurationPath } = allInputs;
     const requestedGithubUsername = ((_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login) || ((_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name);
     if (!requestedGithubUsername) {
         throw new Error("Can not find review requested user.");
     }
-    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath);
+    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1577,7 +1577,7 @@ exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, 
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
-exports.execNormalMention = async (payload, allInputs, githubClient, slackClient) => {
+exports.execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
     const info = github_2.pickupInfoFromGithubPayload(payload);
     if (info.body === null) {
         return;
@@ -1587,7 +1587,7 @@ exports.execNormalMention = async (payload, allInputs, githubClient, slackClient
         return;
     }
     const { repoToken, configurationPath } = allInputs;
-    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath);
+    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1638,10 +1638,10 @@ exports.main = async () => {
     const allInputs = getAllInputs();
     try {
         if (payload.action === "review_requested") {
-            await exports.execPrReviewRequestedMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl);
+            await exports.execPrReviewRequestedMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
             return;
         }
-        await exports.execNormalMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl);
+        await exports.execNormalMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
     }
     catch (error) {
         await exports.execPostError(error, allInputs, slack_1.SlackRepositoryImpl);
@@ -9751,19 +9751,16 @@ exports.pickupInfoFromGithubPayload = (payload) => {
     }
     throw buildError(payload);
 };
-const fetchContent = async (client, repoPath) => {
-    const response = await client.repos.get({
-        owner: github_1.context.repo.owner,
-        repo: github_1.context.repo.repo,
-        path: repoPath,
-        ref: github_1.context.sha,
-    });
-    return Buffer.from(response.data.content, response.data.encoding).toString();
-};
 exports.GithubRepositoryImpl = {
-    loadNameMappingConfig: async (repoToken, configurationPath) => {
+    loadNameMappingConfig: async (repoToken, owner, repo, configurationPath, sha) => {
         const githubClient = github_1.getOctokit(repoToken);
-        const configurationContent = await fetchContent(githubClient, configurationPath);
+        const response = await githubClient.repos.getContent({
+            owner,
+            repo,
+            path: configurationPath,
+            ref: sha,
+        });
+        const configurationContent = Buffer.from(response.data.content, "base64").toString();
         const configObject = js_yaml_1.safeLoad(configurationContent);
         if (configObject === undefined) {
             throw new Error(`failed to load yaml\n${configurationContent}`);

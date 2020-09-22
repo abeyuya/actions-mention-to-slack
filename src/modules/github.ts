@@ -1,4 +1,4 @@
-import { getOctokit, context } from "@actions/github";
+import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import { safeLoad } from "js-yaml";
 
@@ -111,23 +111,6 @@ export const pickupInfoFromGithubPayload = (
   throw buildError(payload);
 };
 
-const fetchContent = async (
-  client: ReturnType<typeof getOctokit>,
-  repoPath: string
-): Promise<string> => {
-  const response = await client.repos.get({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: repoPath,
-    ref: context.sha,
-  });
-
-  return Buffer.from(
-    (response.data as any).content,
-    (response.data as any).encoding
-  ).toString();
-};
-
 type MappingFile = {
   [githugUsername: string]: string | undefined;
 };
@@ -135,14 +118,23 @@ type MappingFile = {
 export const GithubRepositoryImpl = {
   loadNameMappingConfig: async (
     repoToken: string,
-    configurationPath: string
+    owner: string,
+    repo: string,
+    configurationPath: string,
+    sha: string
   ): Promise<MappingFile> => {
     const githubClient = getOctokit(repoToken);
-    const configurationContent = await fetchContent(
-      githubClient,
-      configurationPath
-    );
+    const response = await githubClient.repos.getContent({
+      owner,
+      repo,
+      path: configurationPath,
+      ref: sha,
+    });
 
+    const configurationContent = Buffer.from(
+      response.data.content,
+      "base64"
+    ).toString();
     const configObject = safeLoad(configurationContent);
 
     if (configObject === undefined) {

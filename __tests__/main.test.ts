@@ -6,6 +6,11 @@ import {
 } from "../src/main";
 
 describe("src/main", () => {
+  const dummyContext = {
+    repo: { owner: "owner_name", repo: "repo_name" },
+    sha: "commit_sha",
+  };
+
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
@@ -21,7 +26,8 @@ describe("src/main", () => {
         ["github_user_1", "github_user_2"],
         mock,
         "",
-        ""
+        "",
+        dummyContext
       );
 
       expect(result).toEqual(["slack_user_1", "slack_user_2"]);
@@ -36,7 +42,8 @@ describe("src/main", () => {
         ["github_user_not_listed"],
         mock,
         "",
-        ""
+        "",
+        dummyContext
       );
 
       expect(result).toEqual([]);
@@ -83,7 +90,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         githubMock,
-        slackMock
+        slackMock,
+        dummyContext
       );
 
       expect(slackMock.postToSlack.mock.calls.length).toEqual(1);
@@ -121,7 +129,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         githubMock,
-        slackMock
+        slackMock,
+        dummyContext
       );
 
       expect(githubMock.loadNameMappingConfig.mock.calls.length).toEqual(1);
@@ -154,7 +163,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         githubMock,
-        slackMock
+        slackMock,
+        dummyContext
       );
 
       expect(githubMock.loadNameMappingConfig.mock.calls.length).toEqual(1);
@@ -202,7 +212,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         githubMock,
-        slackMock
+        slackMock,
+        dummyContext
       );
 
       expect(slackMock.postToSlack.mock.calls.length).toEqual(1);
@@ -244,7 +255,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         githubMock,
-        slackMock
+        slackMock,
+        dummyContext
       );
 
       expect(slackMock.postToSlack.mock.calls.length).toEqual(0);
