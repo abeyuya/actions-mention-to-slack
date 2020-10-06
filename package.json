@@ -12,8 +12,8 @@
   "devDependencies": {
     "@types/jest": "26.0.14",
     "@types/js-yaml": "3.12.5",
-    "@typescript-eslint/eslint-plugin": "4.3.0",
-    "@typescript-eslint/parser": "4.3.0",
+    "@typescript-eslint/eslint-plugin": "4.4.0",
+    "@typescript-eslint/parser": "4.4.0",
     "@zeit/ncc": "0.22.3",
     "eslint": "7.10.0",
     "jest": "26.5.0",
