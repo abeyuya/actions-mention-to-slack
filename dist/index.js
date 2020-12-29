@@ -1517,14 +1517,15 @@ const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
-exports.convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
+const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
     const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
     return slackIds;
 };
-exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient, context) => {
+exports.convertToSlackUsername = convertToSlackUsername;
+const execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient, context) => {
     var _a, _b, _c, _d, _e;
     const { repoToken, configurationPath } = allInputs;
     const requestedGithubUsername = ((_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login) || ((_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name);
@@ -1543,7 +1544,8 @@ exports.execPrReviewRequestedMention = async (payload, allInputs, githubClient, 
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
-exports.execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
+exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
+const execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
     const info = github_2.pickupInfoFromGithubPayload(payload);
     if (info.body === null) {
         return;
@@ -1561,11 +1563,12 @@ exports.execNormalMention = async (payload, allInputs, githubClient, slackClient
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
+exports.execNormalMention = execNormalMention;
 const buildCurrentJobUrl = (runId) => {
     const { owner, repo } = github_1.context.repo;
     return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 };
-exports.execPostError = async (error, allInputs, slackClient) => {
+const execPostError = async (error, allInputs, slackClient) => {
     const { runId } = allInputs;
     const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
     const message = slack_1.buildSlackErrorMessage(error, currentJobUrl);
@@ -1573,6 +1576,7 @@ exports.execPostError = async (error, allInputs, slackClient) => {
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
+exports.execPostError = execPostError;
 const getAllInputs = () => {
     const slackWebhookUrl = core.getInput("slack-webhook-url", {
         required: true,
@@ -1599,7 +1603,7 @@ const getAllInputs = () => {
         runId,
     };
 };
-exports.main = async () => {
+const main = async () => {
     const { payload } = github_1.context;
     const allInputs = getAllInputs();
     try {
@@ -1614,6 +1618,7 @@ exports.main = async () => {
         core.warning(JSON.stringify({ payload }));
     }
 };
+exports.main = main;
 
 
 /***/ }),
@@ -9659,7 +9664,7 @@ exports.GithubRepositoryImpl = exports.pickupInfoFromGithubPayload = exports.pic
 const github_1 = __webpack_require__(469);
 const js_yaml_1 = __webpack_require__(414);
 const uniq = (arr) => [...new Set(arr)];
-exports.pickupUsername = (text) => {
+const pickupUsername = (text) => {
     const pattern = /\B@[a-z0-9_-]+/gi;
     const hits = text.match(pattern);
     if (hits === null) {
@@ -9667,6 +9672,7 @@ exports.pickupUsername = (text) => {
     }
     return uniq(hits).map((username) => username.replace("@", ""));
 };
+exports.pickupUsername = pickupUsername;
 const acceptActionTypes = {
     issues: ["opened", "edited"],
     issue_comment: ["created", "edited"],
@@ -9677,7 +9683,7 @@ const acceptActionTypes = {
 const buildError = (payload) => {
     return new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
 };
-exports.pickupInfoFromGithubPayload = (payload) => {
+const pickupInfoFromGithubPayload = (payload) => {
     var _a, _b, _c, _d, _e, _f;
     const { action } = payload;
     if (action === undefined) {
@@ -9740,6 +9746,7 @@ exports.pickupInfoFromGithubPayload = (payload) => {
     }
     throw buildError(payload);
 };
+exports.pickupInfoFromGithubPayload = pickupInfoFromGithubPayload;
 exports.GithubRepositoryImpl = {
     loadNameMappingConfig: async (repoToken, owner, repo, configurationPath, sha) => {
         const githubClient = github_1.getOctokit(repoToken);
@@ -14010,7 +14017,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SlackRepositoryImpl = exports.buildSlackErrorMessage = exports.buildSlackPostMessage = void 0;
 const axios_1 = __importDefault(__webpack_require__(53));
-exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
     const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
     const body = githubBody
         .split("\n")
@@ -14029,8 +14036,9 @@ exports.buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gi
     ].join(" ");
     return `${message}\n${body}`;
 };
+exports.buildSlackPostMessage = buildSlackPostMessage;
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
-exports.buildSlackErrorMessage = (error, currentJobUrl) => {
+const buildSlackErrorMessage = (error, currentJobUrl) => {
     const jobTitle = "mention-to-slack action";
     const jobLinkMessage = currentJobUrl
         ? `<${currentJobUrl}|${jobTitle}>`
@@ -14049,6 +14057,7 @@ exports.buildSlackErrorMessage = (error, currentJobUrl) => {
         "```",
     ].join("\n");
 };
+exports.buildSlackErrorMessage = buildSlackErrorMessage;
 const defaultBotName = "Github Mention To Slack";
 const defaultIconEmoji = ":bell:";
 exports.SlackRepositoryImpl = {
