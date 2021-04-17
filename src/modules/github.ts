@@ -124,7 +124,7 @@ export const GithubRepositoryImpl = {
     configuration: string,
     sha: string
   ): Promise<MappingFile> => {
-    const pattern = /https?:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+/g;
+    const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
     if (pattern.test(configuration)) {
       const response = await axios.get(configuration);
       const configObject = safeLoad(response.data);
