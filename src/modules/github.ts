@@ -120,14 +120,14 @@ export const GithubRepositoryImpl = {
     repoToken: string,
     owner: string,
     repo: string,
-    configurationPath: string,
+    configuration: string,
     sha: string
   ): Promise<MappingFile> => {
     const githubClient = getOctokit(repoToken);
     const response = await githubClient.repos.getContent({
       owner,
       repo,
-      path: configurationPath,
+      path: configuration,
       ref: sha,
     });
 
