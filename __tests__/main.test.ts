@@ -53,7 +53,7 @@ describe("src/main", () => {
   describe("execPrReviewRequestedMention", () => {
     const dummyInputs: AllInputs = {
       repoToken: "",
-      configurationPath: "",
+      configuration: "",
       slackWebhookUrl: "dummy_url",
       iconUrl: "",
       botName: "",
@@ -175,7 +175,7 @@ describe("src/main", () => {
   describe("execNormalMention", () => {
     const dummyInputs: AllInputs = {
       repoToken: "",
-      configurationPath: "",
+      configuration: "",
       slackWebhookUrl: "dummy_url",
       iconUrl: "",
       botName: "",

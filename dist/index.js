@@ -1539,8 +1539,8 @@ const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
-const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
-    const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
+const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configuration, context) => {
+    const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configuration, context.sha);
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
@@ -1549,12 +1549,12 @@ const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, 
 exports.convertToSlackUsername = convertToSlackUsername;
 const execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient, context) => {
     var _a, _b, _c, _d, _e;
-    const { repoToken, configurationPath } = allInputs;
+    const { repoToken, configuration } = allInputs;
     const requestedGithubUsername = ((_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login) || ((_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name);
     if (!requestedGithubUsername) {
         throw new Error("Can not find review requested user.");
     }
-    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath, context);
+    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configuration, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1576,8 +1576,8 @@ const execNormalMention = async (payload, allInputs, githubClient, slackClient, 
     if (githubUsernames.length === 0) {
         return;
     }
-    const { repoToken, configurationPath } = allInputs;
-    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath, context);
+    const { repoToken, configuration } = allInputs;
+    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configuration, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1612,13 +1612,13 @@ const getAllInputs = () => {
     }
     const iconUrl = core.getInput("icon-url", { required: false });
     const botName = core.getInput("bot-name", { required: false });
-    const configurationPath = core.getInput("configuration-path", {
+    const configuration = core.getInput("configuration", {
         required: true,
     });
     const runId = core.getInput("run-id", { required: false });
     return {
         repoToken,
-        configurationPath,
+        configuration,
         slackWebhookUrl,
         iconUrl,
         botName,
@@ -9708,10 +9708,14 @@ module.exports = YAMLException;
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GithubRepositoryImpl = exports.pickupInfoFromGithubPayload = exports.pickupUsername = void 0;
 const github_1 = __webpack_require__(469);
 const js_yaml_1 = __webpack_require__(414);
+const axios_1 = __importDefault(__webpack_require__(53));
 const uniq = (arr) => [...new Set(arr)];
 const pickupUsername = (text) => {
     const pattern = /\B@[a-z0-9_-]+/gi;
@@ -9797,12 +9801,21 @@ const pickupInfoFromGithubPayload = (payload) => {
 };
 exports.pickupInfoFromGithubPayload = pickupInfoFromGithubPayload;
 exports.GithubRepositoryImpl = {
-    loadNameMappingConfig: async (repoToken, owner, repo, configurationPath, sha) => {
+    loadNameMappingConfig: async (repoToken, owner, repo, configuration, sha) => {
+        const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
+        if (pattern.test(configuration)) {
+            const response = await axios_1.default.get(configuration);
+            const configObject = js_yaml_1.safeLoad(response.data);
+            if (configObject === undefined) {
+                throw new Error(`failed to load yaml\n${configuration}`);
+            }
+            return configObject;
+        }
         const githubClient = github_1.getOctokit(repoToken);
         const response = await githubClient.repos.getContent({
             owner,
             repo,
-            path: configurationPath,
+            path: configuration,
             ref: sha,
         });
         const configurationContent = Buffer.from(response.data.content, "base64").toString();

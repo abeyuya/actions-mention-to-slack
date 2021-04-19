@@ -13,7 +13,7 @@ This action sends mention to your slack account when you have been mentioned at 
 
 | Name | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| configuration-path | Yes | .github/mention-to-slack.yml | Mapping config for Github username to Slack member ID. |
+| configuration | Yes | .github/mention-to-slack.yml | Mapping config for Github username to Slack member ID. |
 | slack-webhook-url | Yes | Null | Slack Incomming Webhook URL to notify. |
 | repo-token | Yes | Null | Github access token to fetch .github/mention-to-slack.yml file. |
 | bot-name | No | Github Mention To Slack | Display name for this bot on Slack. |
