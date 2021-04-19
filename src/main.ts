@@ -16,7 +16,7 @@ import {
 
 export type AllInputs = {
   repoToken: string;
-  configurationPath: string;
+  configuration: string;
   slackWebhookUrl: string;
   iconUrl?: string;
   botName?: string;
@@ -27,14 +27,14 @@ export const convertToSlackUsername = async (
   githubUsernames: string[],
   githubClient: typeof GithubRepositoryImpl,
   repoToken: string,
-  configurationPath: string,
+  configuration: string,
   context: Pick<Context, "repo" | "sha">
 ): Promise<string[]> => {
   const mapping = await githubClient.loadNameMappingConfig(
     repoToken,
     context.repo.owner,
     context.repo.repo,
-    configurationPath,
+    configuration,
     context.sha
   );
 
@@ -52,7 +52,7 @@ export const execPrReviewRequestedMention = async (
   slackClient: typeof SlackRepositoryImpl,
   context: Pick<Context, "repo" | "sha">
 ): Promise<void> => {
-  const { repoToken, configurationPath } = allInputs;
+  const { repoToken, configuration } = allInputs;
   const requestedGithubUsername =
     payload.requested_reviewer?.login || payload.requested_team?.name;
 
@@ -64,7 +64,7 @@ export const execPrReviewRequestedMention = async (
     [requestedGithubUsername],
     githubClient,
     repoToken,
-    configurationPath,
+    configuration,
     context
   );
 
@@ -101,12 +101,12 @@ export const execNormalMention = async (
     return;
   }
 
-  const { repoToken, configurationPath } = allInputs;
+  const { repoToken, configuration } = allInputs;
   const slackIds = await convertToSlackUsername(
     githubUsernames,
     githubClient,
     repoToken,
-    configurationPath,
+    configuration,
     context
   );
 
@@ -164,14 +164,14 @@ const getAllInputs = (): AllInputs => {
 
   const iconUrl = core.getInput("icon-url", { required: false });
   const botName = core.getInput("bot-name", { required: false });
-  const configurationPath = core.getInput("configuration-path", {
+  const configuration = core.getInput("configuration", {
     required: true,
   });
   const runId = core.getInput("run-id", { required: false });
 
   return {
     repoToken,
-    configurationPath,
+    configuration,
     slackWebhookUrl,
     iconUrl,
     botName,

@@ -1,8 +1,13 @@
+jest.mock('axios');
+import axios, { AxiosInstance } from "axios";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  // GithubRepositoryImpl,
+  GithubRepositoryImpl,
 } from "../../src/modules/github";
+
+const myAxios: jest.Mocked<AxiosInstance> = axios as any;
+myAxios.get.mockResolvedValue({ data: "github_user_id: \"XXXXXXX\"" });
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
@@ -305,19 +310,32 @@ describe("modules/github", () => {
     });
   });
 
-  // describe("GithubRepositoryImpl", () => {
-  //   describe("loadNameMappingConfig", () => {
-  //     it("real test", async () => {
-  //       const result = await GithubRepositoryImpl.loadNameMappingConfig(
-  //         process.env.GITHUB_TOKEN || "",
-  //         "abeyuya",
-  //         "github-actions-test",
-  //         ".github/mention-to-slack.yml",
-  //         "783a58d010c23f10e80f0177e406cde78d1ea894"
-  //       );
+  describe("GithubRepositoryImpl", () => {
+    describe("loadNameMappingConfig", () => {
+      // it("real test", async () => {
+      //   const result = await GithubRepositoryImpl.loadNameMappingConfig(
+      //     process.env.GITHUB_TOKEN || "",
+      //     "abeyuya",
+      //     "github-actions-test",
+      //     ".github/mention-to-slack.yml",
+      //     "783a58d010c23f10e80f0177e406cde78d1ea894"
+      //   );
 
-  //       console.log(result);
-  //     });
-  //   });
-  // });
+      //   console.log(result);
+      // });
+
+      describe("setting config url", () => {
+        it("should return yaml", async () => {
+          const result = await GithubRepositoryImpl.loadNameMappingConfig(
+            process.env.GITHUB_TOKEN || "",
+            "abeyuya",
+            "github-actions-test",
+            "https://example.com",
+            "783a58d010c23f10e80f0177e406cde78d1ea894"
+          );
+          expect({"github_user_id": "XXXXXXX"}).toEqual(result);
+        });
+      });
+    });
+  });
 });
