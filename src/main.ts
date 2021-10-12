@@ -202,7 +202,7 @@ export const main = async (): Promise<void> => {
       SlackRepositoryImpl,
       context
     );
-  } catch (error) {
+  } catch (error: any) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
     core.warning(JSON.stringify({ payload }));
   }
