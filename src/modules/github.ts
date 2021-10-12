@@ -121,16 +121,16 @@ export const GithubRepositoryImpl = {
     repoToken: string,
     owner: string,
     repo: string,
-    configuration: string,
+    configurationPath: string,
     sha: string
   ): Promise<MappingFile> => {
     const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
-    if (pattern.test(configuration)) {
-      const response = await axios.get(configuration);
+    if (pattern.test(configurationPath)) {
+      const response = await axios.get(configurationPath);
       const configObject = load(response.data);
 
       if (configObject === undefined) {
-        throw new Error(`failed to load yaml\n${configuration}`);
+        throw new Error(`failed to load yaml\n${configurationPath}`);
       }
 
       return configObject as MappingFile;
@@ -140,7 +140,7 @@ export const GithubRepositoryImpl = {
     const response = await githubClient.rest.repos.getContent({
       owner,
       repo,
-      path: configuration,
+      path: configurationPath,
       ref: sha,
     });
 
