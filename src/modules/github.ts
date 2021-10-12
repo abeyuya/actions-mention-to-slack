@@ -1,6 +1,6 @@
 import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
-import { safeLoad } from "js-yaml";
+import { load } from "js-yaml";
 import axios from "axios";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
@@ -127,7 +127,7 @@ export const GithubRepositoryImpl = {
     const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
     if (pattern.test(configuration)) {
       const response = await axios.get(configuration);
-      const configObject = safeLoad(response.data);
+      const configObject = load(response.data);
 
       if (configObject === undefined) {
         throw new Error(`failed to load yaml\n${configuration}`);
@@ -148,7 +148,7 @@ export const GithubRepositoryImpl = {
       response.data.toString(),
       "base64"
     ).toString();
-    const configObject = safeLoad(configurationContent);
+    const configObject = load(configurationContent);
 
     if (configObject === undefined) {
       throw new Error(`failed to load yaml\n${configurationContent}`);
