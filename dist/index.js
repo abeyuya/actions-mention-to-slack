@@ -1243,7 +1243,7 @@ const execPrReviewRequestedMention = async (payload, allInputs, githubClient, sl
     if (!requestedGithubUsername) {
         throw new Error("Can not find review requested user.");
     }
-    const slackIds = await exports.convertToSlackUsername([requestedGithubUsername], githubClient, repoToken, configurationPath, context);
+    const slackIds = await (0, exports.convertToSlackUsername)([requestedGithubUsername], githubClient, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1257,20 +1257,20 @@ const execPrReviewRequestedMention = async (payload, allInputs, githubClient, sl
 };
 exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
 const execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
-    const info = github_2.pickupInfoFromGithubPayload(payload);
+    const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     if (info.body === null) {
         return;
     }
-    const githubUsernames = github_2.pickupUsername(info.body);
+    const githubUsernames = (0, github_2.pickupUsername)(info.body);
     if (githubUsernames.length === 0) {
         return;
     }
     const { repoToken, configurationPath } = allInputs;
-    const slackIds = await exports.convertToSlackUsername(githubUsernames, githubClient, repoToken, configurationPath, context);
+    const slackIds = await (0, exports.convertToSlackUsername)(githubUsernames, githubClient, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         return;
     }
-    const message = slack_1.buildSlackPostMessage(slackIds, info.title, info.url, info.body, info.senderName);
+    const message = (0, slack_1.buildSlackPostMessage)(slackIds, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
@@ -1282,7 +1282,7 @@ const buildCurrentJobUrl = (runId) => {
 const execPostError = async (error, allInputs, slackClient) => {
     const { runId } = allInputs;
     const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
-    const message = slack_1.buildSlackErrorMessage(error, currentJobUrl);
+    const message = (0, slack_1.buildSlackErrorMessage)(error, currentJobUrl);
     core.warning(message);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
@@ -1319,13 +1319,13 @@ const main = async () => {
     const allInputs = getAllInputs();
     try {
         if (payload.action === "review_requested") {
-            await exports.execPrReviewRequestedMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+            await (0, exports.execPrReviewRequestedMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
             return;
         }
-        await exports.execNormalMention(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+        await (0, exports.execNormalMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
     }
     catch (error) {
-        await exports.execPostError(error, allInputs, slack_1.SlackRepositoryImpl);
+        await (0, exports.execPostError)(error, allInputs, slack_1.SlackRepositoryImpl);
         core.warning(JSON.stringify({ payload }));
     }
 };
@@ -3616,7 +3616,7 @@ function plural(ms, msAbs, n, name) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const main_1 = __webpack_require__(131);
-main_1.main();
+(0, main_1.main)();
 
 
 /***/ }),
@@ -10575,13 +10575,13 @@ exports.GithubRepositoryImpl = {
         const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
         if (pattern.test(configurationPath)) {
             const response = await axios_1.default.get(configurationPath);
-            const configObject = js_yaml_1.load(response.data);
+            const configObject = (0, js_yaml_1.load)(response.data);
             if (configObject === undefined) {
                 throw new Error(`failed to load yaml\n${configurationPath}`);
             }
             return configObject;
         }
-        const githubClient = github_1.getOctokit(repoToken);
+        const githubClient = (0, github_1.getOctokit)(repoToken);
         const response = await githubClient.rest.repos.getContent({
             owner,
             repo,
@@ -10589,7 +10589,7 @@ exports.GithubRepositoryImpl = {
             ref: sha,
         });
         const configurationContent = Buffer.from(response.data.toString(), "base64").toString();
-        const configObject = js_yaml_1.load(configurationContent);
+        const configObject = (0, js_yaml_1.load)(configurationContent);
         if (configObject === undefined) {
             throw new Error(`failed to load yaml\n${configurationContent}`);
         }
