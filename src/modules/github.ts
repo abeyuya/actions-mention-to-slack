@@ -137,7 +137,7 @@ export const GithubRepositoryImpl = {
     }
 
     const githubClient = getOctokit(repoToken);
-    const response = await githubClient.repos.getContent({
+    const response = await githubClient.rest.repos.getContent({
       owner,
       repo,
       path: configuration,
@@ -145,7 +145,7 @@ export const GithubRepositoryImpl = {
     });
 
     const configurationContent = Buffer.from(
-      response.data.content,
+      response.data.toString(),
       "base64"
     ).toString();
     const configObject = safeLoad(configurationContent);
