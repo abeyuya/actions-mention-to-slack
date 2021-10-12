@@ -11,14 +11,14 @@ This action sends mention to your slack account when you have been mentioned at 
 
 ## Inputs
 
-| Name               | Required | Default                      | Description                                                     |
-| :----------------- | :------- | :--------------------------- | :-------------------------------------------------------------- |
-| configuration-path | Yes      | .github/mention-to-slack.yml | Mapping config for Github username to Slack member ID.          |
-| slack-webhook-url  | Yes      | Null                         | Slack Incomming Webhook URL to notify.                          |
-| repo-token         | Yes      | Null                         | Github access token to fetch .github/mention-to-slack.yml file. |
-| bot-name           | No       | Github Mention To Slack      | Display name for this bot on Slack.                             |
-| icon-url           | No       | Null                         | Display icon url for this bot on Slack.                         |
-| run-id             | No       | Null                         | Used for the link in the error message when an error occurs.    |
+| Name               | Required | Default                                                                                         | Description                                                             |
+| :----------------- | :------- | :---------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| configuration-path | Yes      | .github/mention-to-slack.yml (or you can use URL like https://github.com/path/to/yaml_raw_file) | Path to config-yaml-file to convert Github username to Slack member ID. |
+| slack-webhook-url  | Yes      | Null                                                                                            | Slack Incomming Webhook URL to notify.                                  |
+| repo-token         | Yes      | Null                                                                                            | Github access token to fetch .github/mention-to-slack.yml file.         |
+| bot-name           | No       | Github Mention To Slack                                                                         | Display name for this bot on Slack.                                     |
+| icon-url           | No       | Null                                                                                            | Display icon url for this bot on Slack.                                 |
+| run-id             | No       | Null                                                                                            | Used for the link in the error message when an error occurs.            |
 
 ## Example usage
 
