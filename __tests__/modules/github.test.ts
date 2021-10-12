@@ -1,4 +1,4 @@
-jest.mock('axios');
+jest.mock("axios");
 import axios, { AxiosInstance } from "axios";
 import {
   pickupUsername,
@@ -7,7 +7,7 @@ import {
 } from "../../src/modules/github";
 
 const myAxios: jest.Mocked<AxiosInstance> = axios as any;
-myAxios.get.mockResolvedValue({ data: "github_user_id: \"XXXXXXX\"" });
+myAxios.get.mockResolvedValue({ data: 'github_user_id: "XXXXXXX"' });
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
@@ -80,7 +80,7 @@ describe("modules/github", () => {
         try {
           pickupInfoFromGithubPayload(dummyPayload as any);
           fail();
-        } catch (e) {
+        } catch (e: any) {
           expect(e.message.includes("unknown event hook:")).toEqual(true);
         }
       });
@@ -163,7 +163,7 @@ describe("modules/github", () => {
         try {
           pickupInfoFromGithubPayload(dummyPayload as any);
           fail();
-        } catch (e) {
+        } catch (e: any) {
           expect(e.message.includes("unknown event hook:")).toEqual(true);
         }
       });
@@ -214,7 +214,7 @@ describe("modules/github", () => {
         try {
           pickupInfoFromGithubPayload(dummyPayload as any);
           fail();
-        } catch (e) {
+        } catch (e: any) {
           expect(e.message.includes("unknown event hook:")).toEqual(true);
         }
       });
@@ -270,7 +270,7 @@ describe("modules/github", () => {
         try {
           pickupInfoFromGithubPayload(dummyPayload as any);
           fail();
-        } catch (e) {
+        } catch (e: any) {
           expect(e.message.includes("unknown event hook:")).toEqual(true);
         }
       });
@@ -333,7 +333,7 @@ describe("modules/github", () => {
             "https://example.com",
             "783a58d010c23f10e80f0177e406cde78d1ea894"
           );
-          expect({"github_user_id": "XXXXXXX"}).toEqual(result);
+          expect({ github_user_id: "XXXXXXX" }).toEqual(result);
         });
       });
     });
