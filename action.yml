@@ -1,7 +1,7 @@
 name: "Github mention to Slack"
 description: "Convert Github mention to Slack mention"
 inputs:
-  configuration:
+  configuration-path:
     description: "Mapping config for Github username to Slack member ID."
     required: true
     default: ".github/mention-to-slack.yml"
