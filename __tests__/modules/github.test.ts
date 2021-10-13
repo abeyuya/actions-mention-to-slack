@@ -1,13 +1,10 @@
-jest.mock("axios");
-import axios, { AxiosInstance } from "axios";
+import axios from "axios";
+
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
   GithubRepositoryImpl,
 } from "../../src/modules/github";
-
-const myAxios: jest.Mocked<AxiosInstance> = axios as any;
-myAxios.get.mockResolvedValue({ data: 'github_user_id: "XXXXXXX"' });
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
@@ -326,6 +323,10 @@ describe("modules/github", () => {
 
       describe("setting config url", () => {
         it("should return yaml", async () => {
+          const spy = jest
+            .spyOn(axios, "get")
+            .mockResolvedValueOnce({ data: 'github_user_id: "XXXXXXX"' });
+
           const result = await GithubRepositoryImpl.loadNameMappingConfig(
             process.env.GITHUB_TOKEN || "",
             "abeyuya",
@@ -333,6 +334,8 @@ describe("modules/github", () => {
             "https://example.com",
             "783a58d010c23f10e80f0177e406cde78d1ea894"
           );
+
+          expect(spy).toHaveBeenCalledTimes(1);
           expect({ github_user_id: "XXXXXXX" }).toEqual(result);
         });
       });
