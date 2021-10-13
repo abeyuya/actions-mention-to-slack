@@ -1815,7 +1815,7 @@ exports.debug = debug; // for test
 /***/ (function(module) {
 
 module.exports = {
-  "version": "0.22.0"
+  "version": "0.23.0"
 };
 
 /***/ }),
@@ -2159,7 +2159,7 @@ module.exports = function xhrAdapter(config) {
 
     // Handle timeout
     request.ontimeout = function handleTimeout() {
-      var timeoutErrorMessage = 'timeout of ' + config.timeout + 'ms exceeded';
+      var timeoutErrorMessage = config.timeout ? 'timeout of ' + config.timeout + 'ms exceeded' : 'timeout exceeded';
       var transitional = config.transitional || defaults.transitional;
       if (config.timeoutErrorMessage) {
         timeoutErrorMessage = config.timeoutErrorMessage;
