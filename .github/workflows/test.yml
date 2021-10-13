@@ -13,7 +13,7 @@ on:
       - ".github/workflows/test.yml"
 
 jobs:
-  test-and-lint:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,4 +30,20 @@ jobs:
             ${{ runner.os }}-npm-
       - run: npm install
       - run: npm run test -- --coverage
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+      - run: npm install
       - run: npm run lint
