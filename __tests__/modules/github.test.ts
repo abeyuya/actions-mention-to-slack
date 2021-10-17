@@ -6,7 +6,7 @@ import {
   GithubRepositoryImpl,
 } from "../../src/modules/github";
 
-import { realPayload } from "./real-payload-20211017";
+import { realPayload } from "../fixture/real-payload-20211017";
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
