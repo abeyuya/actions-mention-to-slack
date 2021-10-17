@@ -180,8 +180,13 @@ const getAllInputs = (): AllInputs => {
 };
 
 export const main = async (): Promise<void> => {
+  core.debug("start main()");
+
   const { payload } = context;
+  core.debug(JSON.stringify({ payload }, null, 2));
+
   const allInputs = getAllInputs();
+  core.debug(JSON.stringify({ allInputs }, null, 2));
 
   try {
     if (payload.action === "review_requested") {
@@ -192,6 +197,7 @@ export const main = async (): Promise<void> => {
         SlackRepositoryImpl,
         context
       );
+      core.debug("finish execPrReviewRequestedMention()");
       return;
     }
 
@@ -202,8 +208,9 @@ export const main = async (): Promise<void> => {
       SlackRepositoryImpl,
       context
     );
+    core.debug("finish execNormalMention()");
   } catch (error: any) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
-    core.warning(JSON.stringify({ payload }));
+    core.warning(JSON.stringify({ payload }, null, 2));
   }
 };

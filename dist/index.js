@@ -1315,18 +1315,23 @@ const getAllInputs = () => {
     };
 };
 const main = async () => {
+    core.debug("start main()");
     const { payload } = github_1.context;
+    core.debug(JSON.stringify({ payload }, null, 2));
     const allInputs = getAllInputs();
+    core.debug(JSON.stringify({ allInputs }, null, 2));
     try {
         if (payload.action === "review_requested") {
             await (0, exports.execPrReviewRequestedMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+            core.debug("finish execPrReviewRequestedMention()");
             return;
         }
         await (0, exports.execNormalMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+        core.debug("finish execNormalMention()");
     }
     catch (error) {
         await (0, exports.execPostError)(error, allInputs, slack_1.SlackRepositoryImpl);
-        core.warning(JSON.stringify({ payload }));
+        core.warning(JSON.stringify({ payload }, null, 2));
     }
 };
 exports.main = main;
@@ -16545,7 +16550,7 @@ const buildSlackErrorMessage = (error, currentJobUrl) => {
     const issueBody = error.stack
         ? encodeURI(["```", error.stack, "```"].join("\n"))
         : "";
-    const link = `${openIssueLink}?title=${error.message}&body=${issueBody}`;
+    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
     return [
         `❗ An internal error occurred in ${jobLinkMessage}`,
         "(but action didn't fail as this action is not critical).",
