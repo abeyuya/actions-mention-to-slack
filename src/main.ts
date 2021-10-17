@@ -93,11 +93,13 @@ export const execNormalMention = async (
   const info = pickupInfoFromGithubPayload(payload);
 
   if (info.body === null) {
+    core.debug("finish execNormalMention because info.body === null");
     return;
   }
 
   const githubUsernames = pickupUsername(info.body);
   if (githubUsernames.length === 0) {
+    core.debug("finish execNormalMention because githubUsernames.length === 0");
     return;
   }
 
@@ -111,6 +113,7 @@ export const execNormalMention = async (
   );
 
   if (slackIds.length === 0) {
+    core.debug("finish execNormalMention because slackIds.length === 0");
     return;
   }
 
@@ -124,7 +127,14 @@ export const execNormalMention = async (
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  const result = await slackClient.postToSlack(slackWebhookUrl, message, {
+    iconUrl,
+    botName,
+  });
+
+  core.debug(
+    ["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n")
+  );
 };
 
 const buildCurrentJobUrl = (runId: string) => {
