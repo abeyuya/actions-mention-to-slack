@@ -76,12 +76,14 @@ type SlackPostParam = {
 const defaultBotName = "Github Mention To Slack";
 const defaultIconEmoji = ":bell:";
 
+type SlackPostResult = Record<string, unknown>;
+
 export const SlackRepositoryImpl = {
   postToSlack: async (
     webhookUrl: string,
     message: string,
     options?: SlackOption
-  ): Promise<void> => {
+  ): Promise<SlackPostResult> => {
     const botName = (() => {
       const n = options?.botName;
       if (n && n !== "") {
@@ -103,8 +105,14 @@ export const SlackRepositoryImpl = {
       slackPostParam.icon_emoji = defaultIconEmoji;
     }
 
-    await axios.post(webhookUrl, JSON.stringify(slackPostParam), {
-      headers: { "Content-Type": "application/json" },
-    });
+    const result = await axios.post<SlackPostResult>(
+      webhookUrl,
+      JSON.stringify(slackPostParam),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    return result.data;
   },
 };

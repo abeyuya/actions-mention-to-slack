@@ -6,6 +6,8 @@ import {
   GithubRepositoryImpl,
 } from "../../src/modules/github";
 
+import { realPayload } from "../fixture/real-payload-20211017";
+
 describe("modules/github", () => {
   describe("pickupUsername", () => {
     it("should return names if message includes mentions", () => {
@@ -28,6 +30,14 @@ describe("modules/github", () => {
       const result = pickupUsername(text);
 
       expect(result).toEqual(["abeyuya"]);
+    });
+
+    describe("real payload test 20211017", () => {
+      it("should return abeyuya", () => {
+        const info = pickupInfoFromGithubPayload(realPayload);
+        const result = pickupUsername(info.body || "");
+        expect(result).toEqual(["abeyuya"]);
+      });
     });
   });
 
@@ -303,6 +313,14 @@ describe("modules/github", () => {
           url: "review url",
           senderName: "sender_github_username",
         });
+      });
+    });
+
+    describe("real payloat test 20211017", () => {
+      it("should return correct info", () => {
+        const result = pickupInfoFromGithubPayload(realPayload);
+        expect(result.title).toEqual("test");
+        expect(result.senderName).toEqual("abeyuya");
       });
     });
   });
