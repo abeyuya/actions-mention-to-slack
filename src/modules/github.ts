@@ -144,14 +144,27 @@ export const GithubRepositoryImpl = {
       ref: sha,
     });
 
+    if (!("content" in response.data)) {
+      throw new Error(
+        ["Unexpected response", JSON.stringify({ response }, null, 2)].join(
+          "\n"
+        )
+      );
+    }
+
     const configurationContent = Buffer.from(
-      response.data.toString(),
+      response.data.content,
       "base64"
     ).toString();
     const configObject = load(configurationContent);
 
     if (configObject === undefined) {
-      throw new Error(`failed to load yaml\n${configurationContent}`);
+      throw new Error(
+        [
+          "failed to load yaml",
+          JSON.stringify({ configurationContent }, null, 2),
+        ].join("\n")
+      );
     }
 
     return configObject as MappingFile;

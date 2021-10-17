@@ -1229,10 +1229,13 @@ const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
 const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
+    core.debug(JSON.stringify({ githubUsernames }, null, 2));
     const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
+    core.debug(JSON.stringify({ mapping }, null, 2));
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
+    core.debug(JSON.stringify({ slackIds }, null, 2));
     return slackIds;
 };
 exports.convertToSlackUsername = convertToSlackUsername;
@@ -10600,10 +10603,16 @@ exports.GithubRepositoryImpl = {
             path: configurationPath,
             ref: sha,
         });
-        const configurationContent = Buffer.from(response.data.toString(), "base64").toString();
+        if (!("content" in response.data)) {
+            throw new Error(["Unexpected response", JSON.stringify({ response }, null, 2)].join("\n"));
+        }
+        const configurationContent = Buffer.from(response.data.content, "base64").toString();
         const configObject = (0, js_yaml_1.load)(configurationContent);
         if (configObject === undefined) {
-            throw new Error(`failed to load yaml\n${configurationContent}`);
+            throw new Error([
+                "failed to load yaml",
+                JSON.stringify({ configurationContent }, null, 2),
+            ].join("\n"));
         }
         return configObject;
     },
