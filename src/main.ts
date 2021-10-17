@@ -30,6 +30,8 @@ export const convertToSlackUsername = async (
   configurationPath: string,
   context: Pick<Context, "repo" | "sha">
 ): Promise<string[]> => {
+  core.debug(JSON.stringify({ githubUsernames }, null, 2));
+
   const mapping = await githubClient.loadNameMappingConfig(
     repoToken,
     context.repo.owner,
@@ -38,9 +40,13 @@ export const convertToSlackUsername = async (
     context.sha
   );
 
+  core.debug(JSON.stringify({ mapping }, null, 2));
+
   const slackIds = githubUsernames
     .map((githubUsername) => mapping[githubUsername])
     .filter((slackId) => slackId !== undefined) as string[];
+
+  core.debug(JSON.stringify({ slackIds }, null, 2));
 
   return slackIds;
 };
