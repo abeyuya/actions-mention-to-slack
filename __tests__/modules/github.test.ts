@@ -31,6 +31,14 @@ describe("modules/github", () => {
 
       expect(result).toEqual(["abeyuya"]);
     });
+
+    describe("real payload test 20211017", () => {
+      it("should return abeyuya", () => {
+        const info = pickupInfoFromGithubPayload(realPayload);
+        const result = pickupUsername(info.body || "");
+        expect(result).toEqual(["abeyuya"]);
+      });
+    });
   });
 
   describe("pickupInfoFromGithubPayload", () => {
