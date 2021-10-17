@@ -1259,20 +1259,27 @@ exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
 const execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     if (info.body === null) {
+        core.debug("finish execNormalMention because info.body === null");
         return;
     }
     const githubUsernames = (0, github_2.pickupUsername)(info.body);
     if (githubUsernames.length === 0) {
+        core.debug("finish execNormalMention because githubUsernames.length === 0");
         return;
     }
     const { repoToken, configurationPath } = allInputs;
     const slackIds = await (0, exports.convertToSlackUsername)(githubUsernames, githubClient, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
+        core.debug("finish execNormalMention because slackIds.length === 0");
         return;
     }
     const message = (0, slack_1.buildSlackPostMessage)(slackIds, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    const result = await slackClient.postToSlack(slackWebhookUrl, message, {
+        iconUrl,
+        botName,
+    });
+    core.debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 exports.execNormalMention = execNormalMention;
 const buildCurrentJobUrl = (runId) => {
@@ -16585,9 +16592,10 @@ exports.SlackRepositoryImpl = {
         else {
             slackPostParam.icon_emoji = defaultIconEmoji;
         }
-        await axios_1.default.post(webhookUrl, JSON.stringify(slackPostParam), {
+        const result = await axios_1.default.post(webhookUrl, JSON.stringify(slackPostParam), {
             headers: { "Content-Type": "application/json" },
         });
+        return result.data;
     },
 };
 
