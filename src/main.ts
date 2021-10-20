@@ -23,9 +23,6 @@ export type AllInputs = {
   runId?: string;
 };
 
-const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
-export const isUrl = (text: string) => pattern.test(text);
-
 export const convertToSlackUsername = async (
   githubUsernames: string[],
   githubClient: typeof GithubRepositoryImpl,
