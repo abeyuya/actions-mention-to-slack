@@ -1,7 +1,8 @@
 import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import { load } from "js-yaml";
-import axios from "axios";
+
+import { Downloader } from "./downloader";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -126,8 +127,10 @@ export const GithubRepositoryImpl = {
   ): Promise<MappingFile> => {
     const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
     if (pattern.test(configurationPath)) {
-      const response = await axios.get<string>(configurationPath);
-      const configObject = load(response.data);
+      const response = await Downloader.downloadMappingConfigFile(
+        configurationPath
+      );
+      const configObject = load(response);
 
       if (configObject === undefined) {
         throw new Error(`failed to load yaml\n${configurationPath}`);
