@@ -2,7 +2,7 @@ import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import { load } from "js-yaml";
 
-import { Downloader } from "./downloader";
+import { MappingConfigRepositoryImpl } from "./mappingConfig";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -127,7 +127,7 @@ export const GithubRepositoryImpl = {
   ): Promise<MappingFile> => {
     const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
     if (pattern.test(configurationPath)) {
-      const response = await Downloader.downloadMappingConfigFile(
+      const response = await MappingConfigRepositoryImpl.downloadFromUrl(
         configurationPath
       );
       const configObject = load(response);
