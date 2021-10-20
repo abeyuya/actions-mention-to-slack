@@ -18,7 +18,9 @@ jobs:
           issue-number: 7
           body: |
             hey @abeyuya!
-            This is a test comment from ci to test abeyuya/actions-mention-to-slack.
+            This is a test comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
+
+            [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
 
             - With GitHub **Markdown** :sparkles:
             - Created by [create-or-update-comment][1]
