@@ -34,6 +34,23 @@ describe("src/main", () => {
       expect(result).toEqual(["slack_user_1", "slack_user_2"]);
     });
 
+    it("should return hits slack member ids when path is url", async () => {
+      const mock = {
+        loadFromUrl: jest.fn().mockResolvedValueOnce(mapping),
+        loadFromGithubPath: () => fail(),
+      };
+
+      const result = await convertToSlackUsername(
+        ["github_user_1", "github_user_2"],
+        mock,
+        "dummyToken",
+        "https://example.com/path/to/yml",
+        dummyContext
+      );
+
+      expect(result).toEqual(["slack_user_1", "slack_user_2"]);
+    });
+
     it("should return empty when no listed github_user", async () => {
       const mock = {
         loadFromUrl: () => fail(),
