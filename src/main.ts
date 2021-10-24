@@ -126,7 +126,7 @@ export const execApproveMention = async (
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
-) => {
+): Promise<string | null> => {
   if (!needToSendApproveMention(payload)) {
     throw new Error("failed to parse payload");
   }
@@ -141,7 +141,7 @@ export const execApproveMention = async (
 
   if (slackIds.length === 0) {
     core.debug("finish execApproveMention because slackIds.length === 0");
-    return;
+    return null;
   }
 
   const title = payload.pull_request?.title;
@@ -152,7 +152,19 @@ export const execApproveMention = async (
   const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  const postSlackResult = await slackClient.postToSlack(
+    slackWebhookUrl,
+    message,
+    { iconUrl, botName }
+  );
+
+  core.debug(
+    ["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join(
+      "\n"
+    )
+  );
+
+  return prOwnerSlackUserId;
 };
 
 const buildCurrentJobUrl = (runId: string) => {
@@ -247,12 +259,13 @@ export const main = async (): Promise<void> => {
     }
 
     if (needToSendApproveMention(payload)) {
-      await execApproveMention(
+      const sentSlackUserId = await execApproveMention(
         payload,
         allInputs,
         mapping,
         SlackRepositoryImpl
       );
+      console.log(sentSlackUserId);
     }
 
     await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);

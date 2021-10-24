@@ -247,9 +247,9 @@ describe("src/main", () => {
         );
 
         expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+        expect(result).toEqual("pr_owner_slack_user");
 
         const call = slackMock.postToSlack.mock.calls[0];
-        console.log({ result, call });
         expect(call[0]).toEqual("dummy_url");
         expect(call[1]).toMatch("<@pr_owner_slack_user>");
         expect(call[1]).toMatch(
