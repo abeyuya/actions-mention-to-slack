@@ -265,7 +265,13 @@ export const main = async (): Promise<void> => {
         mapping,
         SlackRepositoryImpl
       );
-      console.log(sentSlackUserId);
+
+      core.debug(
+        [
+          "execApproveMention()",
+          JSON.stringify({ sentSlackUserId }, null, 2),
+        ].join("\n")
+      );
     }
 
     await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);

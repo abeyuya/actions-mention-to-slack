@@ -218,6 +218,74 @@ describe("src/main", () => {
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
     });
+
+    describe("with execApproveMention", () => {
+      describe("no mention in body", () => {
+        it("should not call slack post", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          await execNormalMention(
+            prApprovePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+            },
+            slackMock
+          );
+
+          expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        });
+      });
+
+      describe("another user mention in body", () => {
+        it("should call slack post", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          const overwritePayload = { ...prApprovePayload };
+          overwritePayload.review.body =
+            "this is approve comment. @github_user hello";
+
+          await execNormalMention(
+            overwritePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+              github_user: "slack_user_id_1",
+            },
+            slackMock
+          );
+
+          expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe("pr-owner-user mention in body", () => {
+        it("should not call slack post. (because pr-owner-user already mention by execApproveMention)", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          const overwritePayload = { ...prApprovePayload };
+          overwritePayload.review.body =
+            "this is approve comment. @abeyuya-bot hello";
+
+          await execNormalMention(
+            overwritePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+            },
+            slackMock
+          );
+
+          expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        });
+      });
+    });
   });
 
   describe("execApproveMention", () => {
