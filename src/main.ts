@@ -11,6 +11,7 @@ import {
   buildSlackPostMessage,
   buildSlackErrorMessage,
   SlackRepositoryImpl,
+  convertGithubTextToBlockquotesText,
 } from "./modules/slack";
 import {
   MappingConfigRepositoryImpl,
@@ -153,7 +154,14 @@ export const execApproveMention = async (
   const prOwnerSlackUserId = slackIds[0];
   const approveOwner = payload.sender?.login;
 
-  const message = `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`;
+  const blockquotesApproveMessage = convertGithubTextToBlockquotesText(
+    info.body || ""
+  );
+
+  const message = [
+    `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`,
+    blockquotesApproveMessage,
+  ].join("\n");
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   const postSlackResult = await slackClient.postToSlack(
