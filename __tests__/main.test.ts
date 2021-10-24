@@ -2,8 +2,11 @@ import {
   convertToSlackUsername,
   execPrReviewRequestedMention,
   execNormalMention,
+  execApproveMention,
   AllInputs,
 } from "../src/main";
+
+import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve";
 
 describe("src/main", () => {
   describe("convertToSlackUsername", () => {
@@ -214,6 +217,46 @@ describe("src/main", () => {
       );
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("execApproveMention", () => {
+    const dummyInputs: AllInputs = {
+      repoToken: "",
+      configurationPath: "",
+      slackWebhookUrl: "dummy_url",
+      iconUrl: "",
+      botName: "",
+    };
+
+    const dummyMapping = {
+      "abeyuya-bot": "pr_owner_slack_user",
+    };
+
+    describe("real payload test", () => {
+      it("should send slack mention", async () => {
+        const slackMock = {
+          postToSlack: jest.fn(),
+        };
+
+        const result = await execApproveMention(
+          prApprovePayload as any,
+          dummyInputs,
+          dummyMapping,
+          slackMock
+        );
+
+        expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+
+        const call = slackMock.postToSlack.mock.calls[0];
+        console.log({ result, call });
+        expect(call[0]).toEqual("dummy_url");
+        expect(call[1]).toMatch("<@pr_owner_slack_user>");
+        expect(call[1]).toMatch(
+          "<https://github.com/abeyuya/github-actions-test/pull/11|Update mention-to-slack.yml>"
+        );
+        expect(call[1]).toMatch("by abeyuya");
+      });
     });
   });
 });

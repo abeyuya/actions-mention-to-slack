@@ -46,7 +46,7 @@ export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<void> => {
   const requestedGithubUsername =
     payload.requested_reviewer?.login || payload.requested_team?.name;
@@ -58,6 +58,9 @@ export const execPrReviewRequestedMention = async (
   const slackIds = convertToSlackUsername([requestedGithubUsername], mapping);
 
   if (slackIds.length === 0) {
+    core.debug(
+      "finish execPrReviewRequestedMention because slackIds.length === 0"
+    );
     return;
   }
 
@@ -76,7 +79,7 @@ export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -118,7 +121,39 @@ export const execNormalMention = async (
   );
 };
 
-export const execApproveMention = async () => {};
+export const execApproveMention = async (
+  payload: WebhookPayload,
+  allInputs: AllInputs,
+  mapping: MappingFile,
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
+) => {
+  if (!needToSendApproveMention(payload)) {
+    throw new Error("failed to parse payload");
+  }
+
+  const prOwnerGithubUsername = payload.pull_request?.user?.login;
+
+  if (!prOwnerGithubUsername) {
+    throw new Error("Can not find pr owner user.");
+  }
+
+  const slackIds = convertToSlackUsername([prOwnerGithubUsername], mapping);
+
+  if (slackIds.length === 0) {
+    core.debug("finish execApproveMention because slackIds.length === 0");
+    return;
+  }
+
+  const title = payload.pull_request?.title;
+  const url = payload.pull_request?.html_url;
+  const prOwnerSlackUserId = slackIds[0];
+  const approveOwner = payload.sender?.login;
+
+  const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
+  const { slackWebhookUrl, iconUrl, botName } = allInputs;
+
+  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+};
 
 const buildCurrentJobUrl = (runId: string) => {
   const { owner, repo } = context.repo;
@@ -209,6 +244,15 @@ export const main = async (): Promise<void> => {
       );
       core.debug("finish execPrReviewRequestedMention()");
       return;
+    }
+
+    if (needToSendApproveMention(payload)) {
+      await execApproveMention(
+        payload,
+        allInputs,
+        mapping,
+        SlackRepositoryImpl
+      );
     }
 
     await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);
