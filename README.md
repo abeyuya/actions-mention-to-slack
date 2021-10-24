@@ -8,6 +8,7 @@ This action sends mention to your slack account when you have been mentioned at 
   - issue
   - pull request
 - Send notification to slack if you have been requested to review.
+- Send notification to slack if your pull request have been approved.
 
 ## Inputs
 
