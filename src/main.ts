@@ -23,10 +23,10 @@ export type AllInputs = {
   runId?: string;
 };
 
-export const convertToSlackUsername = async (
+export const convertToSlackUsername = (
   githubUsernames: string[],
   mapping: MappingFile
-): Promise<string[]> => {
+): string[] => {
   core.debug(JSON.stringify({ githubUsernames }, null, 2));
 
   const slackIds = githubUsernames
@@ -51,10 +51,7 @@ export const execPrReviewRequestedMention = async (
     throw new Error("Can not find review requested user.");
   }
 
-  const slackIds = await convertToSlackUsername(
-    [requestedGithubUsername],
-    mapping
-  );
+  const slackIds = convertToSlackUsername([requestedGithubUsername], mapping);
 
   if (slackIds.length === 0) {
     return;
@@ -90,7 +87,7 @@ export const execNormalMention = async (
     return;
   }
 
-  const slackIds = await convertToSlackUsername(githubUsernames, mapping);
+  const slackIds = convertToSlackUsername(githubUsernames, mapping);
 
   if (slackIds.length === 0) {
     core.debug("finish execNormalMention because slackIds.length === 0");
