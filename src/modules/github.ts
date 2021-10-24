@@ -27,6 +27,14 @@ const buildError = (payload: unknown): Error => {
   );
 };
 
+export const needToSendApproveMention = (payload: WebhookPayload): boolean => {
+  if (payload.review?.state === "approved") {
+    return true;
+  }
+
+  return false;
+};
+
 export const pickupInfoFromGithubPayload = (
   payload: WebhookPayload
 ): {

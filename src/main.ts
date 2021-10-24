@@ -3,7 +3,11 @@ import { context } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
-import { pickupUsername, pickupInfoFromGithubPayload } from "./modules/github";
+import {
+  pickupUsername,
+  pickupInfoFromGithubPayload,
+  needToSendApproveMention,
+} from "./modules/github";
 import {
   buildSlackPostMessage,
   buildSlackErrorMessage,
@@ -155,6 +159,8 @@ export const execNormalMention = async (
   );
 };
 
+export const execApproveMention = async () => {};
+
 const buildCurrentJobUrl = (runId: string) => {
   const { owner, repo } = context.repo;
   return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
@@ -227,6 +233,10 @@ export const main = async (): Promise<void> => {
       );
       core.debug("finish execPrReviewRequestedMention()");
       return;
+    }
+
+    if (needToSendApproveMention(payload)) {
+      // do something
     }
 
     await execNormalMention(
