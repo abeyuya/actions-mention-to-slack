@@ -347,7 +347,7 @@ describe("src/main", () => {
         expect(call[0]).toEqual("dummy_url");
         expect(call[1]).toMatch("<@pr_owner_slack_user>");
         expect(call[1]).toMatch(
-          "<https://github.com/abeyuya/github-actions-test/pull/11|Update mention-to-slack.yml>"
+          "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>"
         );
         expect(call[1]).toMatch("by abeyuya");
       });

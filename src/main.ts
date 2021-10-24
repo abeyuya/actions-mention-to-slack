@@ -149,12 +149,11 @@ export const execApproveMention = async (
     return null;
   }
 
-  const title = payload.pull_request?.title;
-  const url = payload.pull_request?.html_url;
+  const info = pickupInfoFromGithubPayload(payload);
   const prOwnerSlackUserId = slackIds[0];
   const approveOwner = payload.sender?.login;
 
-  const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
+  const message = `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`;
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   const postSlackResult = await slackClient.postToSlack(
