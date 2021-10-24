@@ -1223,12 +1223,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.execPostError = exports.execNormalMention = exports.execPrReviewRequestedMention = exports.convertToSlackUsername = void 0;
+exports.main = exports.execPostError = exports.execApproveMention = exports.execNormalMention = exports.execPrReviewRequestedMention = exports.convertToSlackUsername = exports.arrayDiff = void 0;
 const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
 const mappingConfig_1 = __webpack_require__(884);
+const arrayDiff = (arr1, arr2) => arr1.filter((i) => arr2.indexOf(i) === -1);
+exports.arrayDiff = arrayDiff;
 const convertToSlackUsername = (githubUsernames, mapping) => {
     core.debug(JSON.stringify({ githubUsernames }, null, 2));
     const slackIds = githubUsernames
@@ -1246,6 +1248,7 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
     }
     const slackIds = (0, exports.convertToSlackUsername)([requestedGithubUsername], mapping);
     if (slackIds.length === 0) {
+        core.debug("finish execPrReviewRequestedMention because slackIds.length === 0");
         return;
     }
     const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
@@ -1257,7 +1260,7 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
-const execNormalMention = async (payload, allInputs, mapping, slackClient) => {
+const execNormalMention = async (payload, allInputs, mapping, slackClient, ignoreSlackIds) => {
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     if (info.body === null) {
         core.debug("finish execNormalMention because info.body === null");
@@ -1269,11 +1272,12 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient) => {
         return;
     }
     const slackIds = (0, exports.convertToSlackUsername)(githubUsernames, mapping);
-    if (slackIds.length === 0) {
+    const slackIdsWithoutIgnore = (0, exports.arrayDiff)(slackIds, ignoreSlackIds);
+    if (slackIdsWithoutIgnore.length === 0) {
         core.debug("finish execNormalMention because slackIds.length === 0");
         return;
     }
-    const message = (0, slack_1.buildSlackPostMessage)(slackIds, info.title, info.url, info.body, info.senderName);
+    const message = (0, slack_1.buildSlackPostMessage)(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const result = await slackClient.postToSlack(slackWebhookUrl, message, {
         iconUrl,
@@ -1282,6 +1286,31 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient) => {
     core.debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 exports.execNormalMention = execNormalMention;
+const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
+    var _a, _b, _c, _d, _e;
+    if (!(0, github_2.needToSendApproveMention)(payload)) {
+        throw new Error("failed to parse payload");
+    }
+    const prOwnerGithubUsername = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.login;
+    if (!prOwnerGithubUsername) {
+        throw new Error("Can not find pr owner user.");
+    }
+    const slackIds = (0, exports.convertToSlackUsername)([prOwnerGithubUsername], mapping);
+    if (slackIds.length === 0) {
+        core.debug("finish execApproveMention because slackIds.length === 0");
+        return null;
+    }
+    const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
+    const url = (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.html_url;
+    const prOwnerSlackUserId = slackIds[0];
+    const approveOwner = (_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login;
+    const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
+    const { slackWebhookUrl, iconUrl, botName } = allInputs;
+    const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    core.debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
+    return prOwnerSlackUserId;
+};
+exports.execApproveMention = execApproveMention;
 const buildCurrentJobUrl = (runId) => {
     const { owner, repo } = github_1.context.repo;
     return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
@@ -1341,7 +1370,18 @@ const main = async () => {
             core.debug("finish execPrReviewRequestedMention()");
             return;
         }
-        await (0, exports.execNormalMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl);
+        const ignoreSlackIds = [];
+        if ((0, github_2.needToSendApproveMention)(payload)) {
+            const sentSlackUserId = await (0, exports.execApproveMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl);
+            if (sentSlackUserId) {
+                ignoreSlackIds.push(sentSlackUserId);
+            }
+            core.debug([
+                "execApproveMention()",
+                JSON.stringify({ sentSlackUserId }, null, 2),
+            ].join("\n"));
+        }
+        await (0, exports.execNormalMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl, ignoreSlackIds);
         core.debug("finish execNormalMention()");
     }
     catch (error) {
@@ -10499,7 +10539,7 @@ module.exports.wrap = wrap;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.pickupInfoFromGithubPayload = exports.pickupUsername = void 0;
+exports.pickupInfoFromGithubPayload = exports.needToSendApproveMention = exports.pickupUsername = void 0;
 const uniq = (arr) => [...new Set(arr)];
 const pickupUsername = (text) => {
     const pattern = /\B@[a-z0-9_-]+/gi;
@@ -10520,6 +10560,14 @@ const acceptActionTypes = {
 const buildError = (payload) => {
     return new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
 };
+const needToSendApproveMention = (payload) => {
+    var _a;
+    if (((_a = payload.review) === null || _a === void 0 ? void 0 : _a.state) === "approved") {
+        return true;
+    }
+    return false;
+};
+exports.needToSendApproveMention = needToSendApproveMention;
 const pickupInfoFromGithubPayload = (payload) => {
     var _a, _b, _c, _d, _e, _f;
     const { action } = payload;

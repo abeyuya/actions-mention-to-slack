@@ -2,10 +2,34 @@ import {
   convertToSlackUsername,
   execPrReviewRequestedMention,
   execNormalMention,
+  execApproveMention,
   AllInputs,
+  arrayDiff,
 } from "../src/main";
 
+import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve";
+
 describe("src/main", () => {
+  describe("arrayDiff", () => {
+    it("should return empty array when the same array is given", () => {
+      const a = [1, 2, 3];
+      const b = [1, 2, 3];
+      expect(arrayDiff(a, b)).toEqual([]);
+    });
+
+    it("should return empty array when b is big", () => {
+      const a = [1, 2, 3];
+      const b = [1, 2, 3, 4];
+      expect(arrayDiff(a, b)).toEqual([]);
+    });
+
+    it("should return diff array when a is big", () => {
+      const a = [1, 2, 3, 4];
+      const b = [1, 2, 3];
+      expect(arrayDiff(a, b)).toEqual([4]);
+    });
+  });
+
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
@@ -172,7 +196,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         dummyMapping,
-        slackMock
+        slackMock,
+        []
       );
 
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
@@ -210,10 +235,122 @@ describe("src/main", () => {
         {
           some_github_user: "some_slack_user_id",
         },
-        slackMock
+        slackMock,
+        []
       );
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
+    });
+
+    describe("with execApproveMention", () => {
+      describe("no mention in body", () => {
+        it("should not call slack post", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          await execNormalMention(
+            prApprovePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+            },
+            slackMock,
+            []
+          );
+
+          expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        });
+      });
+
+      describe("another user mention in body", () => {
+        it("should call slack post", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          const overwritePayload = { ...prApprovePayload };
+          overwritePayload.review.body =
+            "this is approve comment. @github_user hello";
+
+          await execNormalMention(
+            overwritePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+              github_user: "slack_user_id_1",
+            },
+            slackMock,
+            []
+          );
+
+          expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe("pr-owner-user mention in body", () => {
+        it("should not call slack post. (because pr-owner-user already mention by execApproveMention)", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          const overwritePayload = { ...prApprovePayload };
+          overwritePayload.review.body =
+            "this is approve comment. @abeyuya-bot hello";
+
+          await execNormalMention(
+            overwritePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+            },
+            slackMock,
+            ["pr_owner_slack_user_id"]
+          );
+
+          expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        });
+      });
+    });
+  });
+
+  describe("execApproveMention", () => {
+    const dummyInputs: AllInputs = {
+      repoToken: "",
+      configurationPath: "",
+      slackWebhookUrl: "dummy_url",
+      iconUrl: "",
+      botName: "",
+    };
+
+    const dummyMapping = {
+      "abeyuya-bot": "pr_owner_slack_user",
+    };
+
+    describe("real payload test", () => {
+      it("should send slack mention", async () => {
+        const slackMock = {
+          postToSlack: jest.fn(),
+        };
+
+        const result = await execApproveMention(
+          prApprovePayload as any,
+          dummyInputs,
+          dummyMapping,
+          slackMock
+        );
+
+        expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+        expect(result).toEqual("pr_owner_slack_user");
+
+        const call = slackMock.postToSlack.mock.calls[0];
+        expect(call[0]).toEqual("dummy_url");
+        expect(call[1]).toMatch("<@pr_owner_slack_user>");
+        expect(call[1]).toMatch(
+          "<https://github.com/abeyuya/github-actions-test/pull/11|Update mention-to-slack.yml>"
+        );
+        expect(call[1]).toMatch("by abeyuya");
+      });
     });
   });
 });

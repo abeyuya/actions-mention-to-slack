@@ -4,6 +4,7 @@ import {
 } from "../../src/modules/github";
 
 import { realPayload } from "../fixture/real-payload-20211017";
+import { prApprovePayload } from "../fixture/real-payload-20211024-pr-approve";
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
@@ -318,6 +319,15 @@ describe("modules/github", () => {
         const result = pickupInfoFromGithubPayload(realPayload);
         expect(result.title).toEqual("test");
         expect(result.senderName).toEqual("abeyuya");
+      });
+    });
+
+    describe("real payloat test 20211024 pr approve", () => {
+      it("should return correct info", () => {
+        const result = pickupInfoFromGithubPayload(prApprovePayload as any);
+        expect(result.title).toEqual("Update mention-to-slack.yml");
+        expect(result.senderName).toEqual("abeyuya");
+        expect(result.body).toEqual("approve comment");
       });
     });
   });
