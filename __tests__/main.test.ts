@@ -6,11 +6,6 @@ import {
 } from "../src/main";
 
 describe("src/main", () => {
-  const dummyContext = {
-    repo: { owner: "owner_name", repo: "repo_name" },
-    sha: "commit_sha",
-  };
-
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
@@ -18,51 +13,18 @@ describe("src/main", () => {
     };
 
     it("should return hits slack member ids", async () => {
-      const mock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(mapping),
-      };
-
-      const result = await convertToSlackUsername(
+      const result = convertToSlackUsername(
         ["github_user_1", "github_user_2"],
-        mock,
-        "dummyToken",
-        "./path/to/yml",
-        dummyContext
-      );
-
-      expect(result).toEqual(["slack_user_1", "slack_user_2"]);
-    });
-
-    it("should return hits slack member ids when path is url", async () => {
-      const mock = {
-        loadFromUrl: jest.fn().mockResolvedValueOnce(mapping),
-        loadFromGithubPath: () => fail(),
-      };
-
-      const result = await convertToSlackUsername(
-        ["github_user_1", "github_user_2"],
-        mock,
-        "dummyToken",
-        "https://example.com/path/to/yml",
-        dummyContext
+        mapping
       );
 
       expect(result).toEqual(["slack_user_1", "slack_user_2"]);
     });
 
     it("should return empty when no listed github_user", async () => {
-      const mock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(mapping),
-      };
-
-      const result = await convertToSlackUsername(
+      const result = convertToSlackUsername(
         ["github_user_not_listed"],
-        mock,
-        "dummyToken",
-        "./path/to/yml",
-        dummyContext
+        mapping
       );
 
       expect(result).toEqual([]);
@@ -84,11 +46,6 @@ describe("src/main", () => {
     };
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
-      const mappingConfigMock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(dummyMapping),
-      };
-
       const slackMock = {
         postToSlack: jest.fn(),
       };
@@ -109,9 +66,8 @@ describe("src/main", () => {
       await execPrReviewRequestedMention(
         dummyPayload as any,
         dummyInputs,
-        mappingConfigMock,
-        slackMock,
-        dummyContext
+        dummyMapping,
+        slackMock
       );
 
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
@@ -124,11 +80,6 @@ describe("src/main", () => {
     });
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
-      const mappingConfigMock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(dummyMapping),
-      };
-
       const slackMock = {
         postToSlack: jest.fn(),
       };
@@ -149,21 +100,14 @@ describe("src/main", () => {
       await execPrReviewRequestedMention(
         dummyPayload as any,
         dummyInputs,
-        mappingConfigMock,
-        slackMock,
-        dummyContext
+        dummyMapping,
+        slackMock
       );
 
-      expect(mappingConfigMock.loadFromGithubPath).toHaveBeenCalledTimes(1);
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
     });
 
     it("should call postToSlack if requested_user is team account", async () => {
-      const mappingConfigMock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(dummyMapping),
-      };
-
       const slackMock = {
         postToSlack: jest.fn(),
       };
@@ -184,12 +128,10 @@ describe("src/main", () => {
       await execPrReviewRequestedMention(
         dummyPayload as any,
         dummyInputs,
-        mappingConfigMock,
-        slackMock,
-        dummyContext
+        dummyMapping,
+        slackMock
       );
 
-      expect(mappingConfigMock.loadFromGithubPath).toHaveBeenCalledTimes(1);
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
     });
   });
@@ -208,11 +150,6 @@ describe("src/main", () => {
     };
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
-      const mappingConfigMock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce(dummyMapping),
-      };
-
       const slackMock = {
         postToSlack: jest.fn(),
       };
@@ -234,9 +171,8 @@ describe("src/main", () => {
       await execNormalMention(
         dummyPayload as any,
         dummyInputs,
-        mappingConfigMock,
-        slackMock,
-        dummyContext
+        dummyMapping,
+        slackMock
       );
 
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
@@ -250,13 +186,6 @@ describe("src/main", () => {
     });
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
-      const mappingConfigMock = {
-        loadFromUrl: () => fail(),
-        loadFromGithubPath: jest.fn().mockResolvedValueOnce({
-          some_github_user: "some_slack_user_id",
-        }),
-      };
-
       const slackMock = {
         postToSlack: jest.fn(),
       };
@@ -278,9 +207,10 @@ describe("src/main", () => {
       await execNormalMention(
         dummyPayload as any,
         dummyInputs,
-        mappingConfigMock,
-        slackMock,
-        dummyContext
+        {
+          some_github_user: "some_slack_user_id",
+        },
+        slackMock
       );
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
