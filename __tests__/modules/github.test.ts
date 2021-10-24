@@ -1,9 +1,6 @@
-import axios from "axios";
-
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  GithubRepositoryImpl,
 } from "../../src/modules/github";
 
 import { realPayload } from "../fixture/real-payload-20211017";
@@ -321,41 +318,6 @@ describe("modules/github", () => {
         const result = pickupInfoFromGithubPayload(realPayload);
         expect(result.title).toEqual("test");
         expect(result.senderName).toEqual("abeyuya");
-      });
-    });
-  });
-
-  describe("GithubRepositoryImpl", () => {
-    describe("loadNameMappingConfig", () => {
-      // it("real test", async () => {
-      //   const result = await GithubRepositoryImpl.loadNameMappingConfig(
-      //     process.env.GITHUB_TOKEN || "",
-      //     "abeyuya",
-      //     "github-actions-test",
-      //     ".github/mention-to-slack.yml",
-      //     "783a58d010c23f10e80f0177e406cde78d1ea894"
-      //   );
-
-      //   console.log(result);
-      // });
-
-      describe("setting config url", () => {
-        it("should return yaml", async () => {
-          const spy = jest
-            .spyOn(axios, "get")
-            .mockResolvedValueOnce({ data: 'github_user_id: "XXXXXXX"' });
-
-          const result = await GithubRepositoryImpl.loadNameMappingConfig(
-            process.env.GITHUB_TOKEN || "",
-            "abeyuya",
-            "github-actions-test",
-            "https://example.com",
-            "783a58d010c23f10e80f0177e406cde78d1ea894"
-          );
-
-          expect(spy).toHaveBeenCalledTimes(1);
-          expect({ github_user_id: "XXXXXXX" }).toEqual(result);
-        });
       });
     });
   });

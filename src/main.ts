@@ -3,16 +3,13 @@ import { context } from "@actions/github";
 import { Context } from "@actions/github/lib/context";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
-import {
-  pickupUsername,
-  pickupInfoFromGithubPayload,
-  GithubRepositoryImpl,
-} from "./modules/github";
+import { pickupUsername, pickupInfoFromGithubPayload } from "./modules/github";
 import {
   buildSlackPostMessage,
   buildSlackErrorMessage,
   SlackRepositoryImpl,
 } from "./modules/slack";
+import { MappingConfigRepositoryImpl, isUrl } from "./modules/mappingConfig";
 
 export type AllInputs = {
   repoToken: string;
@@ -25,20 +22,29 @@ export type AllInputs = {
 
 export const convertToSlackUsername = async (
   githubUsernames: string[],
-  githubClient: typeof GithubRepositoryImpl,
+  mappingConfigRepo: Pick<
+    typeof MappingConfigRepositoryImpl,
+    "loadFromGithubPath" | "loadFromUrl"
+  >,
   repoToken: string,
   configurationPath: string,
   context: Pick<Context, "repo" | "sha">
 ): Promise<string[]> => {
   core.debug(JSON.stringify({ githubUsernames }, null, 2));
 
-  const mapping = await githubClient.loadNameMappingConfig(
-    repoToken,
-    context.repo.owner,
-    context.repo.repo,
-    configurationPath,
-    context.sha
-  );
+  const mapping = await (async () => {
+    if (isUrl(configurationPath)) {
+      return mappingConfigRepo.loadFromUrl(configurationPath);
+    }
+
+    return mappingConfigRepo.loadFromGithubPath(
+      repoToken,
+      context.repo.owner,
+      context.repo.repo,
+      configurationPath,
+      context.sha
+    );
+  })();
 
   core.debug(JSON.stringify({ mapping }, null, 2));
 
@@ -54,7 +60,10 @@ export const convertToSlackUsername = async (
 export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  githubClient: typeof GithubRepositoryImpl,
+  mappingConfigRepo: Pick<
+    typeof MappingConfigRepositoryImpl,
+    "loadFromGithubPath" | "loadFromUrl"
+  >,
   slackClient: typeof SlackRepositoryImpl,
   context: Pick<Context, "repo" | "sha">
 ): Promise<void> => {
@@ -68,7 +77,7 @@ export const execPrReviewRequestedMention = async (
 
   const slackIds = await convertToSlackUsername(
     [requestedGithubUsername],
-    githubClient,
+    mappingConfigRepo,
     repoToken,
     configurationPath,
     context
@@ -92,7 +101,10 @@ export const execPrReviewRequestedMention = async (
 export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  githubClient: typeof GithubRepositoryImpl,
+  mappingConfigRepo: Pick<
+    typeof MappingConfigRepositoryImpl,
+    "loadFromGithubPath" | "loadFromUrl"
+  >,
   slackClient: typeof SlackRepositoryImpl,
   context: Pick<Context, "repo" | "sha">
 ): Promise<void> => {
@@ -112,7 +124,7 @@ export const execNormalMention = async (
   const { repoToken, configurationPath } = allInputs;
   const slackIds = await convertToSlackUsername(
     githubUsernames,
-    githubClient,
+    mappingConfigRepo,
     repoToken,
     configurationPath,
     context
@@ -209,7 +221,7 @@ export const main = async (): Promise<void> => {
       await execPrReviewRequestedMention(
         payload,
         allInputs,
-        GithubRepositoryImpl,
+        MappingConfigRepositoryImpl,
         SlackRepositoryImpl,
         context
       );
@@ -220,7 +232,7 @@ export const main = async (): Promise<void> => {
     await execNormalMention(
       payload,
       allInputs,
-      GithubRepositoryImpl,
+      MappingConfigRepositoryImpl,
       SlackRepositoryImpl,
       context
     );
