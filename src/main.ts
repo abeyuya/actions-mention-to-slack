@@ -2,7 +2,11 @@ import * as core from "@actions/core";
 import { context } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
-import { pickupUsername, pickupInfoFromGithubPayload } from "./modules/github";
+import {
+  pickupUsername,
+  pickupInfoFromGithubPayload,
+  needToSendApproveMention,
+} from "./modules/github";
 import {
   buildSlackPostMessage,
   buildSlackErrorMessage,
@@ -23,6 +27,9 @@ export type AllInputs = {
   runId?: string;
 };
 
+export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
+  arr1.filter((i) => arr2.indexOf(i) === -1);
+
 export const convertToSlackUsername = (
   githubUsernames: string[],
   mapping: MappingFile
@@ -42,7 +49,7 @@ export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<void> => {
   const requestedGithubUsername =
     payload.requested_reviewer?.login || payload.requested_team?.name;
@@ -54,6 +61,9 @@ export const execPrReviewRequestedMention = async (
   const slackIds = convertToSlackUsername([requestedGithubUsername], mapping);
 
   if (slackIds.length === 0) {
+    core.debug(
+      "finish execPrReviewRequestedMention because slackIds.length === 0"
+    );
     return;
   }
 
@@ -72,7 +82,8 @@ export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
+  ignoreSlackIds: string[]
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -88,14 +99,15 @@ export const execNormalMention = async (
   }
 
   const slackIds = convertToSlackUsername(githubUsernames, mapping);
+  const slackIdsWithoutIgnore = arrayDiff(slackIds, ignoreSlackIds);
 
-  if (slackIds.length === 0) {
+  if (slackIdsWithoutIgnore.length === 0) {
     core.debug("finish execNormalMention because slackIds.length === 0");
     return;
   }
 
   const message = buildSlackPostMessage(
-    slackIds,
+    slackIdsWithoutIgnore,
     info.title,
     info.url,
     info.body,
@@ -112,6 +124,52 @@ export const execNormalMention = async (
   core.debug(
     ["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n")
   );
+};
+
+export const execApproveMention = async (
+  payload: WebhookPayload,
+  allInputs: AllInputs,
+  mapping: MappingFile,
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
+): Promise<string | null> => {
+  if (!needToSendApproveMention(payload)) {
+    throw new Error("failed to parse payload");
+  }
+
+  const prOwnerGithubUsername = payload.pull_request?.user?.login;
+
+  if (!prOwnerGithubUsername) {
+    throw new Error("Can not find pr owner user.");
+  }
+
+  const slackIds = convertToSlackUsername([prOwnerGithubUsername], mapping);
+
+  if (slackIds.length === 0) {
+    core.debug("finish execApproveMention because slackIds.length === 0");
+    return null;
+  }
+
+  const title = payload.pull_request?.title;
+  const url = payload.pull_request?.html_url;
+  const prOwnerSlackUserId = slackIds[0];
+  const approveOwner = payload.sender?.login;
+
+  const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
+  const { slackWebhookUrl, iconUrl, botName } = allInputs;
+
+  const postSlackResult = await slackClient.postToSlack(
+    slackWebhookUrl,
+    message,
+    { iconUrl, botName }
+  );
+
+  core.debug(
+    ["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join(
+      "\n"
+    )
+  );
+
+  return prOwnerSlackUserId;
 };
 
 const buildCurrentJobUrl = (runId: string) => {
@@ -205,7 +263,35 @@ export const main = async (): Promise<void> => {
       return;
     }
 
-    await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);
+    const ignoreSlackIds: string[] = [];
+
+    if (needToSendApproveMention(payload)) {
+      const sentSlackUserId = await execApproveMention(
+        payload,
+        allInputs,
+        mapping,
+        SlackRepositoryImpl
+      );
+
+      if (sentSlackUserId) {
+        ignoreSlackIds.push(sentSlackUserId);
+      }
+
+      core.debug(
+        [
+          "execApproveMention()",
+          JSON.stringify({ sentSlackUserId }, null, 2),
+        ].join("\n")
+      );
+    }
+
+    await execNormalMention(
+      payload,
+      allInputs,
+      mapping,
+      SlackRepositoryImpl,
+      ignoreSlackIds
+    );
     core.debug("finish execNormalMention()");
   } catch (error: any) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
