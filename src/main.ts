@@ -1,6 +1,5 @@
 import * as core from "@actions/core";
 import { context } from "@actions/github";
-import { Context } from "@actions/github/lib/context";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -13,7 +12,11 @@ import {
   buildSlackErrorMessage,
   SlackRepositoryImpl,
 } from "./modules/slack";
-import { MappingConfigRepositoryImpl, isUrl } from "./modules/mappingConfig";
+import {
+  MappingConfigRepositoryImpl,
+  isUrl,
+  MappingFile,
+} from "./modules/mappingConfig";
 
 export type AllInputs = {
   repoToken: string;
@@ -24,33 +27,11 @@ export type AllInputs = {
   runId?: string;
 };
 
-export const convertToSlackUsername = async (
+export const convertToSlackUsername = (
   githubUsernames: string[],
-  mappingConfigRepo: Pick<
-    typeof MappingConfigRepositoryImpl,
-    "loadFromGithubPath" | "loadFromUrl"
-  >,
-  repoToken: string,
-  configurationPath: string,
-  context: Pick<Context, "repo" | "sha">
-): Promise<string[]> => {
+  mapping: MappingFile
+): string[] => {
   core.debug(JSON.stringify({ githubUsernames }, null, 2));
-
-  const mapping = await (async () => {
-    if (isUrl(configurationPath)) {
-      return mappingConfigRepo.loadFromUrl(configurationPath);
-    }
-
-    return mappingConfigRepo.loadFromGithubPath(
-      repoToken,
-      context.repo.owner,
-      context.repo.repo,
-      configurationPath,
-      context.sha
-    );
-  })();
-
-  core.debug(JSON.stringify({ mapping }, null, 2));
 
   const slackIds = githubUsernames
     .map((githubUsername) => mapping[githubUsername])
@@ -64,14 +45,9 @@ export const convertToSlackUsername = async (
 export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  mappingConfigRepo: Pick<
-    typeof MappingConfigRepositoryImpl,
-    "loadFromGithubPath" | "loadFromUrl"
-  >,
-  slackClient: typeof SlackRepositoryImpl,
-  context: Pick<Context, "repo" | "sha">
+  mapping: MappingFile,
+  slackClient: typeof SlackRepositoryImpl
 ): Promise<void> => {
-  const { repoToken, configurationPath } = allInputs;
   const requestedGithubUsername =
     payload.requested_reviewer?.login || payload.requested_team?.name;
 
@@ -79,13 +55,7 @@ export const execPrReviewRequestedMention = async (
     throw new Error("Can not find review requested user.");
   }
 
-  const slackIds = await convertToSlackUsername(
-    [requestedGithubUsername],
-    mappingConfigRepo,
-    repoToken,
-    configurationPath,
-    context
-  );
+  const slackIds = convertToSlackUsername([requestedGithubUsername], mapping);
 
   if (slackIds.length === 0) {
     return;
@@ -105,12 +75,8 @@ export const execPrReviewRequestedMention = async (
 export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
-  mappingConfigRepo: Pick<
-    typeof MappingConfigRepositoryImpl,
-    "loadFromGithubPath" | "loadFromUrl"
-  >,
-  slackClient: typeof SlackRepositoryImpl,
-  context: Pick<Context, "repo" | "sha">
+  mapping: MappingFile,
+  slackClient: typeof SlackRepositoryImpl
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -125,14 +91,7 @@ export const execNormalMention = async (
     return;
   }
 
-  const { repoToken, configurationPath } = allInputs;
-  const slackIds = await convertToSlackUsername(
-    githubUsernames,
-    mappingConfigRepo,
-    repoToken,
-    configurationPath,
-    context
-  );
+  const slackIds = convertToSlackUsername(githubUsernames, mapping);
 
   if (slackIds.length === 0) {
     core.debug("finish execNormalMention because slackIds.length === 0");
@@ -222,30 +181,37 @@ export const main = async (): Promise<void> => {
   const allInputs = getAllInputs();
   core.debug(JSON.stringify({ allInputs }, null, 2));
 
+  const { repoToken, configurationPath } = allInputs;
+
   try {
+    const mapping = await (async () => {
+      if (isUrl(configurationPath)) {
+        return MappingConfigRepositoryImpl.loadFromUrl(configurationPath);
+      }
+
+      return MappingConfigRepositoryImpl.loadFromGithubPath(
+        repoToken,
+        context.repo.owner,
+        context.repo.repo,
+        configurationPath,
+        context.sha
+      );
+    })();
+
+    core.debug(JSON.stringify({ mapping }, null, 2));
+
     if (payload.action === "review_requested") {
       await execPrReviewRequestedMention(
         payload,
         allInputs,
-        MappingConfigRepositoryImpl,
-        SlackRepositoryImpl,
-        context
+        mapping,
+        SlackRepositoryImpl
       );
       core.debug("finish execPrReviewRequestedMention()");
       return;
     }
 
-    if (needToSendApproveMention(payload)) {
-      // do something
-    }
-
-    await execNormalMention(
-      payload,
-      allInputs,
-      MappingConfigRepositoryImpl,
-      SlackRepositoryImpl,
-      context
-    );
+    await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);
     core.debug("finish execNormalMention()");
   } catch (error: any) {
     await execPostError(error, allInputs, SlackRepositoryImpl);
