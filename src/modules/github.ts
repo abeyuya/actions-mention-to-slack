@@ -1,7 +1,4 @@
-import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
-import { load } from "js-yaml";
-import axios from "axios";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -110,63 +107,4 @@ export const pickupInfoFromGithubPayload = (
   }
 
   throw buildError(payload);
-};
-
-type MappingFile = {
-  [githugUsername: string]: string | undefined;
-};
-
-export const GithubRepositoryImpl = {
-  loadNameMappingConfig: async (
-    repoToken: string,
-    owner: string,
-    repo: string,
-    configurationPath: string,
-    sha: string
-  ): Promise<MappingFile> => {
-    const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
-    if (pattern.test(configurationPath)) {
-      const response = await axios.get<string>(configurationPath);
-      const configObject = load(response.data);
-
-      if (configObject === undefined) {
-        throw new Error(`failed to load yaml\n${configurationPath}`);
-      }
-
-      return configObject as MappingFile;
-    }
-
-    const githubClient = getOctokit(repoToken);
-    const response = await githubClient.rest.repos.getContent({
-      owner,
-      repo,
-      path: configurationPath,
-      ref: sha,
-    });
-
-    if (!("content" in response.data)) {
-      throw new Error(
-        ["Unexpected response", JSON.stringify({ response }, null, 2)].join(
-          "\n"
-        )
-      );
-    }
-
-    const configurationContent = Buffer.from(
-      response.data.content,
-      "base64"
-    ).toString();
-    const configObject = load(configurationContent);
-
-    if (configObject === undefined) {
-      throw new Error(
-        [
-          "failed to load yaml",
-          JSON.stringify({ configurationContent }, null, 2),
-        ].join("\n")
-      );
-    }
-
-    return configObject as MappingFile;
-  },
 };

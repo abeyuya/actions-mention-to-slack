@@ -1228,9 +1228,15 @@ const core = __importStar(__webpack_require__(470));
 const github_1 = __webpack_require__(469);
 const github_2 = __webpack_require__(559);
 const slack_1 = __webpack_require__(970);
-const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, configurationPath, context) => {
+const mappingConfig_1 = __webpack_require__(884);
+const convertToSlackUsername = async (githubUsernames, mappingConfigRepo, repoToken, configurationPath, context) => {
     core.debug(JSON.stringify({ githubUsernames }, null, 2));
-    const mapping = await githubClient.loadNameMappingConfig(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
+    const mapping = await (async () => {
+        if ((0, mappingConfig_1.isUrl)(configurationPath)) {
+            return mappingConfigRepo.loadFromUrl(configurationPath);
+        }
+        return mappingConfigRepo.loadFromGithubPath(repoToken, context.repo.owner, context.repo.repo, configurationPath, context.sha);
+    })();
     core.debug(JSON.stringify({ mapping }, null, 2));
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
@@ -1239,14 +1245,14 @@ const convertToSlackUsername = async (githubUsernames, githubClient, repoToken, 
     return slackIds;
 };
 exports.convertToSlackUsername = convertToSlackUsername;
-const execPrReviewRequestedMention = async (payload, allInputs, githubClient, slackClient, context) => {
+const execPrReviewRequestedMention = async (payload, allInputs, mappingConfigRepo, slackClient, context) => {
     var _a, _b, _c, _d, _e;
     const { repoToken, configurationPath } = allInputs;
     const requestedGithubUsername = ((_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login) || ((_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name);
     if (!requestedGithubUsername) {
         throw new Error("Can not find review requested user.");
     }
-    const slackIds = await (0, exports.convertToSlackUsername)([requestedGithubUsername], githubClient, repoToken, configurationPath, context);
+    const slackIds = await (0, exports.convertToSlackUsername)([requestedGithubUsername], mappingConfigRepo, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         return;
     }
@@ -1259,7 +1265,7 @@ const execPrReviewRequestedMention = async (payload, allInputs, githubClient, sl
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
-const execNormalMention = async (payload, allInputs, githubClient, slackClient, context) => {
+const execNormalMention = async (payload, allInputs, mappingConfigRepo, slackClient, context) => {
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     if (info.body === null) {
         core.debug("finish execNormalMention because info.body === null");
@@ -1271,7 +1277,7 @@ const execNormalMention = async (payload, allInputs, githubClient, slackClient, 
         return;
     }
     const { repoToken, configurationPath } = allInputs;
-    const slackIds = await (0, exports.convertToSlackUsername)(githubUsernames, githubClient, repoToken, configurationPath, context);
+    const slackIds = await (0, exports.convertToSlackUsername)(githubUsernames, mappingConfigRepo, repoToken, configurationPath, context);
     if (slackIds.length === 0) {
         core.debug("finish execNormalMention because slackIds.length === 0");
         return;
@@ -1332,11 +1338,11 @@ const main = async () => {
     core.debug(JSON.stringify({ allInputs }, null, 2));
     try {
         if (payload.action === "review_requested") {
-            await (0, exports.execPrReviewRequestedMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+            await (0, exports.execPrReviewRequestedMention)(payload, allInputs, mappingConfig_1.MappingConfigRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
             core.debug("finish execPrReviewRequestedMention()");
             return;
         }
-        await (0, exports.execNormalMention)(payload, allInputs, github_2.GithubRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
+        await (0, exports.execNormalMention)(payload, allInputs, mappingConfig_1.MappingConfigRepositoryImpl, slack_1.SlackRepositoryImpl, github_1.context);
         core.debug("finish execNormalMention()");
     }
     catch (error) {
@@ -10489,18 +10495,12 @@ module.exports.wrap = wrap;
 /***/ }),
 
 /***/ 559:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GithubRepositoryImpl = exports.pickupInfoFromGithubPayload = exports.pickupUsername = void 0;
-const github_1 = __webpack_require__(469);
-const js_yaml_1 = __webpack_require__(414);
-const axios_1 = __importDefault(__webpack_require__(53));
+exports.pickupInfoFromGithubPayload = exports.pickupUsername = void 0;
 const uniq = (arr) => [...new Set(arr)];
 const pickupUsername = (text) => {
     const pattern = /\B@[a-z0-9_-]+/gi;
@@ -10585,38 +10585,6 @@ const pickupInfoFromGithubPayload = (payload) => {
     throw buildError(payload);
 };
 exports.pickupInfoFromGithubPayload = pickupInfoFromGithubPayload;
-exports.GithubRepositoryImpl = {
-    loadNameMappingConfig: async (repoToken, owner, repo, configurationPath, sha) => {
-        const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
-        if (pattern.test(configurationPath)) {
-            const response = await axios_1.default.get(configurationPath);
-            const configObject = (0, js_yaml_1.load)(response.data);
-            if (configObject === undefined) {
-                throw new Error(`failed to load yaml\n${configurationPath}`);
-            }
-            return configObject;
-        }
-        const githubClient = (0, github_1.getOctokit)(repoToken);
-        const response = await githubClient.rest.repos.getContent({
-            owner,
-            repo,
-            path: configurationPath,
-            ref: sha,
-        });
-        if (!("content" in response.data)) {
-            throw new Error(["Unexpected response", JSON.stringify({ response }, null, 2)].join("\n"));
-        }
-        const configurationContent = Buffer.from(response.data.content, "base64").toString();
-        const configObject = (0, js_yaml_1.load)(configurationContent);
-        if (configObject === undefined) {
-            throw new Error([
-                "failed to load yaml",
-                JSON.stringify({ configurationContent }, null, 2),
-            ].join("\n"));
-        }
-        return configObject;
-    },
-};
 
 
 /***/ }),
@@ -14807,6 +14775,57 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
   },
   defaultStyle: 'lowercase'
 });
+
+
+/***/ }),
+
+/***/ 884:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MappingConfigRepositoryImpl = exports.isUrl = void 0;
+const axios_1 = __importDefault(__webpack_require__(53));
+const js_yaml_1 = __webpack_require__(414);
+const github_1 = __webpack_require__(469);
+const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
+const isUrl = (text) => pattern.test(text);
+exports.isUrl = isUrl;
+exports.MappingConfigRepositoryImpl = {
+    downloadFromUrl: async (url) => {
+        const response = await axios_1.default.get(url);
+        return response.data;
+    },
+    loadYaml: (data) => {
+        const configObject = (0, js_yaml_1.load)(data);
+        if (configObject === undefined) {
+            throw new Error(["failed to load yaml", JSON.stringify({ data }, null, 2)].join("\n"));
+        }
+        return configObject;
+    },
+    loadFromUrl: async (url) => {
+        const data = await exports.MappingConfigRepositoryImpl.downloadFromUrl(url);
+        return exports.MappingConfigRepositoryImpl.loadYaml(data);
+    },
+    loadFromGithubPath: async (repoToken, owner, repo, configurationPath, sha) => {
+        const githubClient = (0, github_1.getOctokit)(repoToken);
+        const response = await githubClient.rest.repos.getContent({
+            owner,
+            repo,
+            path: configurationPath,
+            ref: sha,
+        });
+        if (!("content" in response.data)) {
+            throw new Error(["Unexpected response", JSON.stringify({ response }, null, 2)].join("\n"));
+        }
+        const data = Buffer.from(response.data.content, "base64").toString();
+        return exports.MappingConfigRepositoryImpl.loadYaml(data);
+    },
+};
 
 
 /***/ }),
