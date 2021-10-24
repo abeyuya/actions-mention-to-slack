@@ -20,18 +20,33 @@ describe("mappingConfig", () => {
     });
   });
 
-  describe("loadFromUrl", () => {
-    it("should return yaml", async () => {
-      const spy = jest
-        .spyOn(axios, "get")
-        .mockResolvedValueOnce({ data: 'github_user_id: "XXXXXXX"' });
+  describe("MappingConfigRepositoryImpl", () => {
+    describe("loadFromUrl", () => {
+      it("should return yaml", async () => {
+        const spy = jest
+          .spyOn(axios, "get")
+          .mockResolvedValueOnce({ data: 'github_user_id: "XXXXXXX"' });
 
-      const result = await MappingConfigRepositoryImpl.loadFromUrl(
-        "https://example.com"
-      );
+        const result = await MappingConfigRepositoryImpl.loadFromUrl(
+          "https://example.com"
+        );
 
-      expect(spy).toHaveBeenCalledTimes(1);
-      expect({ github_user_id: "XXXXXXX" }).toEqual(result);
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect({ github_user_id: "XXXXXXX" }).toEqual(result);
+      });
+    });
+
+    describe("loadFromGithubPath", () => {
+      //   it("real test", async () => {
+      //     const result = await MappingConfigRepositoryImpl.loadFromGithubPath(
+      //       process.env.GITHUB_TOKEN || "",
+      //       "abeyuya",
+      //       "github-actions-test",
+      //       ".github/mention-to-slack.yml",
+      //       "783a58d010c23f10e80f0177e406cde78d1ea894"
+      //     );
+      //     console.log(result);
+      //   });
     });
   });
 });
