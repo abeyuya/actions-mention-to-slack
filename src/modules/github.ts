@@ -2,7 +2,7 @@ import { getOctokit } from "@actions/github";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 import { load } from "js-yaml";
 
-import { MappingConfigRepositoryImpl } from "./mappingConfig";
+import { MappingConfigRepositoryImpl, MappingFile } from "./mappingConfig";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -113,10 +113,6 @@ export const pickupInfoFromGithubPayload = (
   throw buildError(payload);
 };
 
-type MappingFile = {
-  [githugUsername: string]: string | undefined;
-};
-
 export const GithubRepositoryImpl = {
   loadNameMappingConfig: async (
     repoToken: string,
@@ -127,16 +123,7 @@ export const GithubRepositoryImpl = {
   ): Promise<MappingFile> => {
     const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
     if (pattern.test(configurationPath)) {
-      const response = await MappingConfigRepositoryImpl.downloadFromUrl(
-        configurationPath
-      );
-      const configObject = load(response);
-
-      if (configObject === undefined) {
-        throw new Error(`failed to load yaml\n${configurationPath}`);
-      }
-
-      return configObject as MappingFile;
+      return MappingConfigRepositoryImpl.loadFromUrl(configurationPath);
     }
 
     const githubClient = getOctokit(repoToken);
