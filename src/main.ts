@@ -27,6 +27,9 @@ export type AllInputs = {
   runId?: string;
 };
 
+export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
+  arr1.filter((i) => arr2.indexOf(i) === -1);
+
 export const convertToSlackUsername = (
   githubUsernames: string[],
   mapping: MappingFile
@@ -79,7 +82,8 @@ export const execNormalMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
+  ignoreSlackIds: string[]
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -95,14 +99,15 @@ export const execNormalMention = async (
   }
 
   const slackIds = convertToSlackUsername(githubUsernames, mapping);
+  const slackIdsWithoutIgnore = arrayDiff(slackIds, ignoreSlackIds);
 
-  if (slackIds.length === 0) {
+  if (slackIdsWithoutIgnore.length === 0) {
     core.debug("finish execNormalMention because slackIds.length === 0");
     return;
   }
 
   const message = buildSlackPostMessage(
-    slackIds,
+    slackIdsWithoutIgnore,
     info.title,
     info.url,
     info.body,
@@ -258,6 +263,8 @@ export const main = async (): Promise<void> => {
       return;
     }
 
+    const ignoreSlackIds: string[] = [];
+
     if (needToSendApproveMention(payload)) {
       const sentSlackUserId = await execApproveMention(
         payload,
@@ -265,6 +272,10 @@ export const main = async (): Promise<void> => {
         mapping,
         SlackRepositoryImpl
       );
+
+      if (sentSlackUserId) {
+        ignoreSlackIds.push(sentSlackUserId);
+      }
 
       core.debug(
         [
@@ -274,7 +285,13 @@ export const main = async (): Promise<void> => {
       );
     }
 
-    await execNormalMention(payload, allInputs, mapping, SlackRepositoryImpl);
+    await execNormalMention(
+      payload,
+      allInputs,
+      mapping,
+      SlackRepositoryImpl,
+      ignoreSlackIds
+    );
     core.debug("finish execNormalMention()");
   } catch (error: any) {
     await execPostError(error, allInputs, SlackRepositoryImpl);

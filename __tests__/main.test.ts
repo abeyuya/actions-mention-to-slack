@@ -4,11 +4,32 @@ import {
   execNormalMention,
   execApproveMention,
   AllInputs,
+  arrayDiff,
 } from "../src/main";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve";
 
 describe("src/main", () => {
+  describe("arrayDiff", () => {
+    it("should return empty array when the same array is given", () => {
+      const a = [1, 2, 3];
+      const b = [1, 2, 3];
+      expect(arrayDiff(a, b)).toEqual([]);
+    });
+
+    it("should return empty array when b is big", () => {
+      const a = [1, 2, 3];
+      const b = [1, 2, 3, 4];
+      expect(arrayDiff(a, b)).toEqual([]);
+    });
+
+    it("should return diff array when a is big", () => {
+      const a = [1, 2, 3, 4];
+      const b = [1, 2, 3];
+      expect(arrayDiff(a, b)).toEqual([4]);
+    });
+  });
+
   describe("convertToSlackUsername", () => {
     const mapping = {
       github_user_1: "slack_user_1",
@@ -175,7 +196,8 @@ describe("src/main", () => {
         dummyPayload as any,
         dummyInputs,
         dummyMapping,
-        slackMock
+        slackMock,
+        []
       );
 
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
@@ -213,7 +235,8 @@ describe("src/main", () => {
         {
           some_github_user: "some_slack_user_id",
         },
-        slackMock
+        slackMock,
+        []
       );
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
@@ -232,7 +255,8 @@ describe("src/main", () => {
             {
               "abeyuya-bot": "pr_owner_slack_user_id",
             },
-            slackMock
+            slackMock,
+            []
           );
 
           expect(slackMock.postToSlack).not.toHaveBeenCalled();
@@ -256,7 +280,8 @@ describe("src/main", () => {
               "abeyuya-bot": "pr_owner_slack_user_id",
               github_user: "slack_user_id_1",
             },
-            slackMock
+            slackMock,
+            []
           );
 
           expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
@@ -279,7 +304,8 @@ describe("src/main", () => {
             {
               "abeyuya-bot": "pr_owner_slack_user_id",
             },
-            slackMock
+            slackMock,
+            ["pr_owner_slack_user_id"]
           );
 
           expect(slackMock.postToSlack).not.toHaveBeenCalled();
