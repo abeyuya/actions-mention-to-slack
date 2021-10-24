@@ -1287,7 +1287,7 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
 };
 exports.execNormalMention = execNormalMention;
 const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c;
     if (!(0, github_2.needToSendApproveMention)(payload)) {
         throw new Error("failed to parse payload");
     }
@@ -1300,11 +1300,14 @@ const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
         core.debug("finish execApproveMention because slackIds.length === 0");
         return null;
     }
-    const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
-    const url = (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.html_url;
+    const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     const prOwnerSlackUserId = slackIds[0];
-    const approveOwner = (_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login;
-    const message = `<@${prOwnerSlackUserId}> has been approved <${url}|${title}> by ${approveOwner}.`;
+    const approveOwner = (_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login;
+    const blockquotesApproveMessage = (0, slack_1.convertGithubTextToBlockquotesText)(info.body || "");
+    const message = [
+        `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`,
+        blockquotesApproveMessage,
+    ].join("\n");
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
     core.debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
@@ -16601,11 +16604,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SlackRepositoryImpl = exports.buildSlackErrorMessage = exports.buildSlackPostMessage = void 0;
+exports.SlackRepositoryImpl = exports.buildSlackErrorMessage = exports.buildSlackPostMessage = exports.convertGithubTextToBlockquotesText = void 0;
 const axios_1 = __importDefault(__webpack_require__(53));
-const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
-    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-    const body = githubBody
+const convertGithubTextToBlockquotesText = (githubText) => {
+    const t = githubText
         .split("\n")
         .map((line, i) => {
         // fix slack layout collapse problem when first line starts with blockquotes.
@@ -16615,6 +16617,12 @@ const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, gith
         return `> ${line}`;
     })
         .join("\n");
+    return t;
+};
+exports.convertGithubTextToBlockquotesText = convertGithubTextToBlockquotesText;
+const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
+    const body = (0, exports.convertGithubTextToBlockquotesText)(githubBody);
     const message = [
         mentionBlock,
         `${slackIdsForMention.length === 1 ? "has" : "have"}`,

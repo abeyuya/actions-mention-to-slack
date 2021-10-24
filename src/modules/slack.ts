@@ -1,14 +1,7 @@
 import axios from "axios";
 
-export const buildSlackPostMessage = (
-  slackIdsForMention: string[],
-  issueTitle: string,
-  commentLink: string,
-  githubBody: string,
-  senderName: string
-): string => {
-  const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-  const body = githubBody
+export const convertGithubTextToBlockquotesText = (githubText: string) => {
+  const t = githubText
     .split("\n")
     .map((line, i) => {
       // fix slack layout collapse problem when first line starts with blockquotes.
@@ -19,6 +12,19 @@ export const buildSlackPostMessage = (
       return `> ${line}`;
     })
     .join("\n");
+
+  return t;
+};
+
+export const buildSlackPostMessage = (
+  slackIdsForMention: string[],
+  issueTitle: string,
+  commentLink: string,
+  githubBody: string,
+  senderName: string
+): string => {
+  const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
+  const body = convertGithubTextToBlockquotesText(githubBody);
 
   const message = [
     mentionBlock,
