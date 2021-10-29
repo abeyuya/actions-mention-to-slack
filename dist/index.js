@@ -1878,7 +1878,7 @@ exports.debug = debug; // for test
 /***/ (function(module) {
 
 module.exports = {
-  "version": "0.23.0"
+  "version": "0.24.0"
 };
 
 /***/ }),
