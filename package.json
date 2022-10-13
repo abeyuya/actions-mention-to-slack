@@ -17,7 +17,7 @@
     "@typescript-eslint/eslint-plugin": "5.23.0",
     "@typescript-eslint/parser": "5.23.0",
     "@zeit/ncc": "0.22.3",
-    "eslint": "8.2.0",
+    "eslint": "8.25.0",
     "jest": "27.5.1",
     "ts-jest": "27.0.7",
     "ts-node": "10.4.0",
