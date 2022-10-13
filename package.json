@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/jest": "27.5.2",
-    "@types/js-yaml": "4.0.4",
+    "@types/js-yaml": "4.0.5",
     "@types/lodash": "4.14.185",
     "@typescript-eslint/eslint-plugin": "5.23.0",
     "@typescript-eslint/parser": "5.23.0",
