@@ -46,34 +46,43 @@ export const convertToSlackUsername = (
   return slackIds;
 };
 
+const getSlackMention = (requestedSlackUserId: string, requestedSlackUserGroupId: string): string => {
+  if (requestedSlackUserId) {
+    return `<@${requestedSlackUserId}>`;
+  }
+
+  return `<!subteam^${requestedSlackUserGroupId}>`
+}
+
 export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<void> => {
-  const requestedGithubUsername =
-    payload.requested_reviewer?.login || payload.requested_team?.name;
+  const requestedGithubUsername = payload.requested_reviewer?.login;
+  const requestedGithubTeam = payload.requested_team?.name;
 
-  if (!requestedGithubUsername) {
-    throw new Error("Can not find review requested user.");
+  if (!requestedGithubUsername && !requestedGithubTeam) {
+    throw new Error("Can not find review requested user or team.");
   }
+  
+  const slackUserIds = convertToSlackUsername([requestedGithubUsername], mapping);
+  const slackUserGroupIds = convertToSlackUsername([requestedGithubTeam], mapping);
 
-  const slackIds = convertToSlackUsername([requestedGithubUsername], mapping);
-
-  if (slackIds.length === 0) {
+  if (slackUserIds.length === 0 && slackUserGroupIds.length === 0) {
     core.debug(
-      "finish execPrReviewRequestedMention because slackIds.length === 0"
+      "finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0"
     );
     return;
   }
 
   const title = payload.pull_request?.title;
   const url = payload.pull_request?.html_url;
-  const requestedSlackUserId = slackIds[0];
   const requestUsername = payload.sender?.login;
 
-  const message = `<@${requestedSlackUserId}> has been requested to review <${url}|${title}> by ${requestUsername}.`;
+  const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
+  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername}.`
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
