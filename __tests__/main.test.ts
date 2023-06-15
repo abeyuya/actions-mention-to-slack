@@ -68,7 +68,7 @@ describe("src/main", () => {
 
     const dummyMapping = {
       github_user_1: "slack_user_1",
-      github_team_1: "slack_user_2",
+      github_team_1: "slack_usergroup_1",
     };
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
@@ -159,6 +159,12 @@ describe("src/main", () => {
       );
 
       expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+
+      const call = slackMock.postToSlack.mock.calls[0];
+      expect(call[0]).toEqual("dummy_url");
+      expect(call[1].includes("<!subteam^slack_usergroup_1>")).toEqual(true);
+      expect(call[1].includes("<pr_url|pr_title>")).toEqual(true);
+      expect(call[1].includes("by sender_github_username")).toEqual(true);
     });
   });
 
