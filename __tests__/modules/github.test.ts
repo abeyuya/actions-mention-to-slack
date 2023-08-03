@@ -1,3 +1,4 @@
+import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
@@ -41,23 +42,25 @@ describe("modules/github", () => {
 
   describe("pickupInfoFromGithubPayload", () => {
     describe("issue event", () => {
-      const buildIssuePayload = (action: string) => {
+      const buildIssuePayload = (action: string): Partial<WebhookPayload> => {
         return {
           action,
           issue: {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
+            number: 1,
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
       };
 
       it("should return when issue opend", () => {
         const dummyPayload = buildIssuePayload("opened");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "issue body",
@@ -69,7 +72,7 @@ describe("modules/github", () => {
 
       it("should return when issue edited", () => {
         const dummyPayload = buildIssuePayload("edited");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "issue body",
@@ -83,37 +86,44 @@ describe("modules/github", () => {
         const dummyPayload = buildIssuePayload("deleted");
 
         try {
-          pickupInfoFromGithubPayload(dummyPayload as any);
+          pickupInfoFromGithubPayload(dummyPayload);
           fail();
-        } catch (e: any) {
-          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        } catch (e: unknown) {
+          expect((e as Error).message.includes("unknown event hook:")).toEqual(
+            true
+          );
         }
       });
     });
 
     describe("issue comment event", () => {
-      const buildIssueCommentPayload = (action: string) => {
+      const buildIssueCommentPayload = (
+        action: string
+      ): Partial<WebhookPayload> => {
         return {
           action,
           issue: {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
+            number: 1,
           },
           comment: {
+            id: 1,
             body: "comment body",
             title: "comment title",
             html_url: "comment url",
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
       };
 
       it("should return when issue commented", () => {
         const dummyPayload = buildIssueCommentPayload("created");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "comment body",
@@ -124,23 +134,26 @@ describe("modules/github", () => {
       });
 
       it("should return when issue commented with blockquotes", () => {
-        const dummyPayload = {
+        const dummyPayload: Partial<WebhookPayload> = {
           action: "created",
           issue: {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
+            number: 1,
           },
           comment: {
+            id: 1,
             body: "> comment body \nhello",
             title: "comment title",
             html_url: "comment url",
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "> comment body \nhello",
@@ -152,7 +165,7 @@ describe("modules/github", () => {
 
       it("should return when issue comment edited", () => {
         const dummyPayload = buildIssueCommentPayload("edited");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "comment body",
@@ -166,32 +179,36 @@ describe("modules/github", () => {
         const dummyPayload = buildIssueCommentPayload("deleted");
 
         try {
-          pickupInfoFromGithubPayload(dummyPayload as any);
+          pickupInfoFromGithubPayload(dummyPayload);
           fail();
-        } catch (e: any) {
-          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        } catch (e: unknown) {
+          expect((e as Error).message.includes("unknown event hook:")).toEqual(
+            true
+          );
         }
       });
     });
 
     describe("pr event", () => {
-      const buildPrPayload = (action: string) => {
+      const buildPrPayload = (action: string): Partial<WebhookPayload> => {
         return {
           action,
           pull_request: {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
+            number: 1,
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
       };
 
       it("should return when pr opend", () => {
         const dummyPayload = buildPrPayload("opened");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "pr body",
@@ -203,7 +220,7 @@ describe("modules/github", () => {
 
       it("should return when pr edited", () => {
         const dummyPayload = buildPrPayload("edited");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "pr body",
@@ -217,37 +234,44 @@ describe("modules/github", () => {
         const dummyPayload = buildPrPayload("deleted");
 
         try {
-          pickupInfoFromGithubPayload(dummyPayload as any);
+          pickupInfoFromGithubPayload(dummyPayload);
           fail();
-        } catch (e: any) {
-          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        } catch (e: unknown) {
+          expect((e as Error).message.includes("unknown event hook:")).toEqual(
+            true
+          );
         }
       });
     });
 
     describe("pr comment event", () => {
-      const buildPrCommentPayload = (action: string) => {
+      const buildPrCommentPayload = (
+        action: string
+      ): Partial<WebhookPayload> => {
         return {
           action,
           pull_request: {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
+            number: 1,
           },
           comment: {
+            id: 1,
             body: "comment body",
             title: "comment title",
             html_url: "comment url",
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
       };
 
       it("should return when pull_request commented", () => {
         const dummyPayload = buildPrCommentPayload("created");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "comment body",
@@ -259,7 +283,7 @@ describe("modules/github", () => {
 
       it("should return when pull_request comment edited", () => {
         const dummyPayload = buildPrCommentPayload("edited");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "comment body",
@@ -273,22 +297,27 @@ describe("modules/github", () => {
         const dummyPayload = buildPrCommentPayload("deleted");
 
         try {
-          pickupInfoFromGithubPayload(dummyPayload as any);
+          pickupInfoFromGithubPayload(dummyPayload);
           fail();
-        } catch (e: any) {
-          expect(e.message.includes("unknown event hook:")).toEqual(true);
+        } catch (e: unknown) {
+          expect((e as Error).message.includes("unknown event hook:")).toEqual(
+            true
+          );
         }
       });
     });
 
     describe("pr review event", () => {
-      const buildPrReviewPayload = (action: string) => {
+      const buildPrReviewPayload = (
+        action: string
+      ): Partial<WebhookPayload> => {
         return {
           action,
           pull_request: {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
+            number: 1,
           },
           review: {
             body: "review body",
@@ -297,13 +326,14 @@ describe("modules/github", () => {
           },
           sender: {
             login: "sender_github_username",
+            type: "sender_type",
           },
         };
       };
 
       it("should return when review submitted", () => {
         const dummyPayload = buildPrReviewPayload("submitted");
-        const result = pickupInfoFromGithubPayload(dummyPayload as any);
+        const result = pickupInfoFromGithubPayload(dummyPayload);
 
         expect(result).toEqual({
           body: "review body",
@@ -324,6 +354,7 @@ describe("modules/github", () => {
 
     describe("real payloat test 20211024 pr approve", () => {
       it("should return correct info", () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = pickupInfoFromGithubPayload(prApprovePayload as any);
         expect(result.title).toEqual("Update mention-to-slack.yml");
         expect(result.senderName).toEqual("abeyuya");
