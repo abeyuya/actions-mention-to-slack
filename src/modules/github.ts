@@ -36,7 +36,7 @@ export const needToSendApproveMention = (payload: WebhookPayload): boolean => {
 };
 
 export const pickupInfoFromGithubPayload = (
-  payload: WebhookPayload
+  payload: Partial<WebhookPayload>
 ): {
   body: string | null;
   title: string;

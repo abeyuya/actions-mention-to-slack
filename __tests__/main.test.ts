@@ -1,4 +1,5 @@
 import { cloneDeep } from "lodash";
+import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
   convertToSlackUsername,
@@ -76,21 +77,23 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload = {
+      const dummyPayload: Partial<WebhookPayload> = {
         requested_reviewer: {
           login: "github_user_1",
         },
         pull_request: {
           title: "pr_title",
           html_url: "pr_url",
+          number: 1,
         },
         sender: {
           login: "sender_github_username",
+          type: "sender_type",
         },
       };
 
       await execPrReviewRequestedMention(
-        dummyPayload as any,
+        dummyPayload,
         dummyInputs,
         dummyMapping,
         slackMock
@@ -110,21 +113,23 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload = {
+      const dummyPayload: Partial<WebhookPayload> = {
         requested_reviewer: {
           login: "github_user_not_linsted",
         },
         pull_request: {
           title: "pr_title",
           html_url: "pr_url",
+          number: 1,
         },
         sender: {
           login: "sender_github_username",
+          type: "sender_type",
         },
       };
 
       await execPrReviewRequestedMention(
-        dummyPayload as any,
+        dummyPayload,
         dummyInputs,
         dummyMapping,
         slackMock
@@ -138,21 +143,23 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload = {
+      const dummyPayload: Partial<WebhookPayload> = {
         pull_request: {
           title: "pr_title",
           html_url: "pr_url",
+          number: 1,
         },
         requested_team: {
           name: "github_team_1",
         },
         sender: {
           login: "sender_github_username",
+          type: "sender_type",
         },
       };
 
       await execPrReviewRequestedMention(
-        dummyPayload as any,
+        dummyPayload,
         dummyInputs,
         dummyMapping,
         slackMock
@@ -186,7 +193,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload = {
+      const dummyPayload: Partial<WebhookPayload> = {
         action: "submitted",
         review: {
           body: "@github_user_1 LGTM!",
@@ -194,14 +201,16 @@ describe("src/main", () => {
         },
         pull_request: {
           title: "pr_title",
+          number: 1,
         },
         sender: {
           login: "sender_github_username",
+          type: "sender_type",
         },
       };
 
       await execNormalMention(
-        dummyPayload as any,
+        dummyPayload,
         dummyInputs,
         dummyMapping,
         slackMock,
@@ -223,7 +232,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload = {
+      const dummyPayload: Partial<WebhookPayload> = {
         action: "submitted",
         review: {
           body: "@github_user_1 LGTM!",
@@ -231,14 +240,16 @@ describe("src/main", () => {
         },
         pull_request: {
           title: "pr_title",
+          number: 1,
         },
         sender: {
           login: "sender_github_username",
+          type: "sender_type",
         },
       };
 
       await execNormalMention(
-        dummyPayload as any,
+        dummyPayload,
         dummyInputs,
         {
           some_github_user: "some_slack_user_id",
@@ -258,6 +269,7 @@ describe("src/main", () => {
           };
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             prApprovePayload as any,
             dummyInputs,
             {
@@ -282,6 +294,7 @@ describe("src/main", () => {
             "this is approve comment. @github_user hello";
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -307,6 +320,7 @@ describe("src/main", () => {
             "this is approve comment. @abeyuya-bot hello";
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -342,6 +356,7 @@ describe("src/main", () => {
         };
 
         const result = await execApproveMention(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           prApprovePayload as any,
           dummyInputs,
           dummyMapping,
