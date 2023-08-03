@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: 18
       - name: Checkout release
         run: |
           git config --local user.email "action@github.com"
