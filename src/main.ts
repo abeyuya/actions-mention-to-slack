@@ -46,13 +46,16 @@ export const convertToSlackUsername = (
   return slackIds;
 };
 
-const getSlackMention = (requestedSlackUserId: string, requestedSlackUserGroupId: string): string => {
+const getSlackMention = (
+  requestedSlackUserId: string,
+  requestedSlackUserGroupId: string
+): string => {
   if (requestedSlackUserId) {
     return `<@${requestedSlackUserId}>`;
   }
 
-  return `<!subteam^${requestedSlackUserGroupId}>`
-}
+  return `<!subteam^${requestedSlackUserGroupId}>`;
+};
 
 export const execPrReviewRequestedMention = async (
   payload: WebhookPayload,
@@ -66,9 +69,15 @@ export const execPrReviewRequestedMention = async (
   if (!requestedGithubUsername && !requestedGithubTeam) {
     throw new Error("Can not find review requested user or team.");
   }
-  
-  const slackUserIds = convertToSlackUsername([requestedGithubUsername], mapping);
-  const slackUserGroupIds = convertToSlackUsername([requestedGithubTeam], mapping);
+
+  const slackUserIds = convertToSlackUsername(
+    [requestedGithubUsername],
+    mapping
+  );
+  const slackUserGroupIds = convertToSlackUsername(
+    [requestedGithubTeam],
+    mapping
+  );
 
   if (slackUserIds.length === 0 && slackUserGroupIds.length === 0) {
     core.debug(
@@ -82,7 +91,7 @@ export const execPrReviewRequestedMention = async (
   const requestUsername = payload.sender?.login;
 
   const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
-  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername}.`
+  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername}.`;
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
@@ -309,8 +318,8 @@ export const main = async (): Promise<void> => {
       ignoreSlackIds
     );
     core.debug("finish execNormalMention()");
-  } catch (error: any) {
-    await execPostError(error, allInputs, SlackRepositoryImpl);
+  } catch (error: unknown) {
+    await execPostError(error as Error, allInputs, SlackRepositoryImpl);
     core.warning(JSON.stringify({ payload }, null, 2));
   }
 };
