@@ -20,6 +20,11 @@ jobs:
             hey @abeyuya!
             This is a test issue comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
             [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
+
+            ```
+            github.event_name: ${{ github.event_name }}
+            github.event: ${{ github.event }}
+            ```
   comment-to-pull-request:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -34,3 +39,8 @@ jobs:
             hey @abeyuya!
             This is a test pull-request comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
             [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
+
+            ```
+            github.event_name: ${{ github.event_name }}
+            github.event: ${{ github.event }}
+            ```
