@@ -13,23 +13,18 @@ jobs:
       - name: Create issue comment with user_name mention
         uses: peter-evans/create-or-update-comment@v3
         with:
-          repository: actions-mention-to-slack/github-actions-test
+          repository: abeyuya/github-actions-test
           token: ${{ secrets.MY_GITHUB_TOKEN }}
           issue-number: 7
           body: |
             hey @abeyuya!
             This is a test issue comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
             [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
-      - name: Create issue comment with team_name mention
-        uses: peter-evans/create-or-update-comment@v3
-        with:
-          repository: actions-mention-to-slack/github-actions-test
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
-          issue-number: 7
-          body: |
-            hey @developer!
-            This is a test issue comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
-            [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
+
+            ```
+            github.event_name: ${{ github.event_name }}
+            github.event: ${{ github.event }}
+            ```
   comment-to-pull-request:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -37,20 +32,15 @@ jobs:
       - name: Create pull request comment with user_name mention
         uses: peter-evans/create-or-update-comment@v3
         with:
-          repository: actions-mention-to-slack/github-actions-test
+          repository: abeyuya/github-actions-test
           token: ${{ secrets.MY_GITHUB_TOKEN }}
           issue-number: 11
           body: |
             hey @abeyuya!
             This is a test pull-request comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
             [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
-      - name: Create pull request comment with team_name mention
-        uses: peter-evans/create-or-update-comment@v3
-        with:
-          repository: actions-mention-to-slack/github-actions-test
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
-          issue-number: 11
-          body: |
-            hey @developer!
-            This is a test pull-request comment from [ci](https://github.com/abeyuya/actions-mention-to-slack/actions/runs/${{ github.run_id }}) to test abeyuya/actions-mention-to-slack.
-            [${{ github.event.head_commit.message }}](https://github.com/abeyuya/actions-mention-to-slack/commit/${{ github.sha }})
+
+            ```
+            github.event_name: ${{ github.event_name }}
+            github.event: ${{ github.event }}
+            ```
