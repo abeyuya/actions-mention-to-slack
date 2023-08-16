@@ -19857,36 +19857,13 @@ function wrappy (fn, cb) {
 /***/ }),
 
 /***/ 399:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.main = exports.execPostError = exports.execApproveMention = exports.execNormalMention = exports.execPrReviewRequestedMention = exports.convertToSlackUsername = exports.arrayDiff = void 0;
-const core = __importStar(__nccwpck_require__(2186));
+const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 const github_2 = __nccwpck_require__(7993);
 const slack_1 = __nccwpck_require__(9778);
@@ -19894,11 +19871,11 @@ const mappingConfig_1 = __nccwpck_require__(7419);
 const arrayDiff = (arr1, arr2) => arr1.filter((i) => arr2.indexOf(i) === -1);
 exports.arrayDiff = arrayDiff;
 const convertToSlackUsername = (githubUsernames, mapping) => {
-    core.debug(JSON.stringify({ githubUsernames }, null, 2));
+    (0, core_1.debug)(JSON.stringify({ githubUsernames }, null, 2));
     const slackIds = githubUsernames
         .map((githubUsername) => mapping[githubUsername])
         .filter((slackId) => slackId !== undefined);
-    core.debug(JSON.stringify({ slackIds }, null, 2));
+    (0, core_1.debug)(JSON.stringify({ slackIds }, null, 2));
     return slackIds;
 };
 exports.convertToSlackUsername = convertToSlackUsername;
@@ -19918,7 +19895,7 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
     const slackUserIds = (0, exports.convertToSlackUsername)([requestedGithubUsername], mapping);
     const slackUserGroupIds = (0, exports.convertToSlackUsername)([requestedGithubTeam], mapping);
     if (slackUserIds.length === 0 && slackUserGroupIds.length === 0) {
-        core.debug("finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0");
+        (0, core_1.debug)("finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0");
         return;
     }
     const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
@@ -19933,18 +19910,18 @@ exports.execPrReviewRequestedMention = execPrReviewRequestedMention;
 const execNormalMention = async (payload, allInputs, mapping, slackClient, ignoreSlackIds) => {
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     if (info.body === null) {
-        core.debug("finish execNormalMention because info.body === null");
+        (0, core_1.debug)("finish execNormalMention because info.body === null");
         return;
     }
     const githubUsernames = (0, github_2.pickupUsername)(info.body);
     if (githubUsernames.length === 0) {
-        core.debug("finish execNormalMention because githubUsernames.length === 0");
+        (0, core_1.debug)("finish execNormalMention because githubUsernames.length === 0");
         return;
     }
     const slackIds = (0, exports.convertToSlackUsername)(githubUsernames, mapping);
     const slackIdsWithoutIgnore = (0, exports.arrayDiff)(slackIds, ignoreSlackIds);
     if (slackIdsWithoutIgnore.length === 0) {
-        core.debug("finish execNormalMention because slackIds.length === 0");
+        (0, core_1.debug)("finish execNormalMention because slackIds.length === 0");
         return;
     }
     const message = (0, slack_1.buildSlackPostMessage)(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
@@ -19953,7 +19930,7 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
         iconUrl,
         botName,
     });
-    core.debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
+    (0, core_1.debug)(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 exports.execNormalMention = execNormalMention;
 const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
@@ -19967,7 +19944,7 @@ const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
     }
     const slackIds = (0, exports.convertToSlackUsername)([prOwnerGithubUsername], mapping);
     if (slackIds.length === 0) {
-        core.debug("finish execApproveMention because slackIds.length === 0");
+        (0, core_1.debug)("finish execApproveMention because slackIds.length === 0");
         return null;
     }
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
@@ -19980,7 +19957,7 @@ const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
     ].join("\n");
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
-    core.debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
+    (0, core_1.debug)(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
     return prOwnerSlackUserId;
 };
 exports.execApproveMention = execApproveMention;
@@ -19992,28 +19969,28 @@ const execPostError = async (error, allInputs, slackClient) => {
     const { runId } = allInputs;
     const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
     const message = (0, slack_1.buildSlackErrorMessage)(error, currentJobUrl);
-    core.warning(message);
+    (0, core_1.warning)(message);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 exports.execPostError = execPostError;
 const getAllInputs = () => {
-    const slackWebhookUrl = core.getInput("slack-webhook-url", {
+    const slackWebhookUrl = (0, core_1.getInput)("slack-webhook-url", {
         required: true,
     });
     if (!slackWebhookUrl) {
-        core.setFailed("Error! Need to set `slack-webhook-url`.");
+        (0, core_1.setFailed)("Error! Need to set `slack-webhook-url`.");
     }
-    const repoToken = core.getInput("repo-token", { required: true });
+    const repoToken = (0, core_1.getInput)("repo-token", { required: true });
     if (!repoToken) {
-        core.setFailed("Error! Need to set `repo-token`.");
+        (0, core_1.setFailed)("Error! Need to set `repo-token`.");
     }
-    const iconUrl = core.getInput("icon-url", { required: false });
-    const botName = core.getInput("bot-name", { required: false });
-    const configurationPath = core.getInput("configuration-path", {
+    const iconUrl = (0, core_1.getInput)("icon-url", { required: false });
+    const botName = (0, core_1.getInput)("bot-name", { required: false });
+    const configurationPath = (0, core_1.getInput)("configuration-path", {
         required: true,
     });
-    const runId = core.getInput("run-id", { required: false });
+    const runId = (0, core_1.getInput)("run-id", { required: false });
     return {
         repoToken,
         configurationPath,
@@ -20024,11 +20001,11 @@ const getAllInputs = () => {
     };
 };
 const main = async () => {
-    core.debug("start main()");
+    (0, core_1.debug)("start main()");
     const { payload } = github_1.context;
-    core.debug(JSON.stringify({ payload }, null, 2));
+    (0, core_1.debug)(JSON.stringify({ payload }, null, 2));
     const allInputs = getAllInputs();
-    core.debug(JSON.stringify({ allInputs }, null, 2));
+    (0, core_1.debug)(JSON.stringify({ allInputs }, null, 2));
     const { repoToken, configurationPath } = allInputs;
     try {
         const mapping = await (async () => {
@@ -20037,10 +20014,10 @@ const main = async () => {
             }
             return mappingConfig_1.MappingConfigRepositoryImpl.loadFromGithubPath(repoToken, github_1.context.repo.owner, github_1.context.repo.repo, configurationPath, github_1.context.sha);
         })();
-        core.debug(JSON.stringify({ mapping }, null, 2));
+        (0, core_1.debug)(JSON.stringify({ mapping }, null, 2));
         if (payload.action === "review_requested") {
             await (0, exports.execPrReviewRequestedMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl);
-            core.debug("finish execPrReviewRequestedMention()");
+            (0, core_1.debug)("finish execPrReviewRequestedMention()");
             return;
         }
         const ignoreSlackIds = [];
@@ -20049,17 +20026,17 @@ const main = async () => {
             if (sentSlackUserId) {
                 ignoreSlackIds.push(sentSlackUserId);
             }
-            core.debug([
+            (0, core_1.debug)([
                 "execApproveMention()",
                 JSON.stringify({ sentSlackUserId }, null, 2),
             ].join("\n"));
         }
         await (0, exports.execNormalMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl, ignoreSlackIds);
-        core.debug("finish execNormalMention()");
+        (0, core_1.debug)("finish execNormalMention()");
     }
     catch (error) {
         await (0, exports.execPostError)(error, allInputs, slack_1.SlackRepositoryImpl);
-        core.warning(JSON.stringify({ payload }, null, 2));
+        (0, core_1.warning)(JSON.stringify({ payload }, null, 2));
     }
 };
 exports.main = main;
