@@ -88,10 +88,11 @@ export const execPrReviewRequestedMention = async (
 
   const title = payload.pull_request?.title;
   const url = payload.pull_request?.html_url;
+  const repoName = payload.repository?.full_name;
   const requestUsername = payload.sender?.login;
 
   const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
-  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername}.`;
+  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername} on ${repoName}.`;
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });

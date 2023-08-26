@@ -19886,7 +19886,7 @@ const getSlackMention = (requestedSlackUserId, requestedSlackUserGroupId) => {
     return `<!subteam^${requestedSlackUserGroupId}>`;
 };
 const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackClient) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const requestedGithubUsername = (_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login;
     const requestedGithubTeam = (_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name;
     if (!requestedGithubUsername && !requestedGithubTeam) {
@@ -19900,9 +19900,10 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
     }
     const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
     const url = (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.html_url;
-    const requestUsername = (_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login;
+    const repoName = (_e = payload.repository) === null || _e === void 0 ? void 0 : _e.full_name;
+    const requestUsername = (_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login;
     const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
-    const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername}.`;
+    const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername} on ${repoName}.`;
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
