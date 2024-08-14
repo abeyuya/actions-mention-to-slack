@@ -19,6 +19,8 @@ const acceptActionTypes = {
   pull_request: ["opened", "edited", "review_requested"],
   pull_request_review: ["submitted"],
   pull_request_review_comment: ["created", "edited"],
+  discussion: ["created"],
+  discussion_comment: ["created"],
 };
 
 const buildError = (payload: unknown): Error => {
@@ -110,6 +112,32 @@ export const pickupInfoFromGithubPayload = (
       body: payload.pull_request.body || "",
       title: payload.pull_request.title,
       url: payload.pull_request.html_url || "",
+      senderName: payload.sender?.login || "",
+    };
+  }
+
+  if (payload.discussion) {
+    if (payload.comment) {
+      if (!acceptActionTypes.discussion_comment.includes(action)) {
+        throw buildError(payload);
+      }
+
+      return {
+        body: payload.comment.body,
+        title: payload.discussion.title,
+        url: payload.comment.html_url,
+        senderName: payload.sender?.login || "",
+      };
+    }
+
+    if (!acceptActionTypes.discussion.includes(action)) {
+      throw buildError(payload);
+    }
+
+    return {
+      body: payload.discussion.body || "",
+      title: payload.discussion.title,
+      url: payload.discussion.html_url || "",
       senderName: payload.sender?.login || "",
     };
   }
