@@ -6,6 +6,7 @@ import {
   pickupUsername,
   pickupInfoFromGithubPayload,
   needToSendApproveMention,
+  isSelfReviewOnOwnPr,
 } from "./modules/github";
 import {
   buildSlackPostMessage,
@@ -260,6 +261,11 @@ export const main = async (): Promise<void> => {
   const { repoToken, configurationPath } = allInputs;
 
   try {
+    if (isSelfReviewOnOwnPr(payload)) {
+      debug("skip notification because the reviewer is the PR author");
+      return;
+    }
+
     const mapping = await (async () => {
       if (isUrl(configurationPath)) {
         return MappingConfigRepositoryImpl.loadFromUrl(configurationPath);

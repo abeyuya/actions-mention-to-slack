@@ -35,6 +35,21 @@ export const needToSendApproveMention = (payload: WebhookPayload): boolean => {
   return false;
 };
 
+export const isSelfReviewOnOwnPr = (payload: WebhookPayload): boolean => {
+  const senderLogin = payload.sender?.login;
+  const prOwnerLogin = payload.pull_request?.user?.login;
+
+  if (!senderLogin || !prOwnerLogin) {
+    return false;
+  }
+
+  if (senderLogin !== prOwnerLogin) {
+    return false;
+  }
+
+  return Boolean(payload.review) || Boolean(payload.comment);
+};
+
 export const pickupInfoFromGithubPayload = (
   payload: Partial<WebhookPayload>
 ): {
