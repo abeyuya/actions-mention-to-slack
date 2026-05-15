@@ -20,6 +20,11 @@ describe("mappingConfig", () => {
 
   describe("MappingConfigRepositoryImpl", () => {
     describe("loadFromUrl", () => {
+      const originalFetch = globalThis.fetch;
+      afterEach(() => {
+        globalThis.fetch = originalFetch;
+      });
+
       it("should return yaml", async () => {
         const fetchMock = jest.fn().mockResolvedValueOnce({
           ok: true,

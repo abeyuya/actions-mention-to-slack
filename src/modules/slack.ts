@@ -80,14 +80,12 @@ type SlackPostParam = {
 const defaultBotName = "Github Mention To Slack";
 const defaultIconEmoji = ":bell:";
 
-type SlackPostResult = Record<string, unknown>;
-
 export const SlackRepositoryImpl = {
   postToSlack: async (
     webhookUrl: string,
     message: string,
     options?: SlackOption
-  ): Promise<SlackPostResult> => {
+  ): Promise<string> => {
     const botName = (() => {
       const n = options?.botName;
       if (n && n !== "") {
@@ -121,6 +119,6 @@ export const SlackRepositoryImpl = {
       );
     }
 
-    return { body: await response.text() };
+    return response.text();
   },
 };
