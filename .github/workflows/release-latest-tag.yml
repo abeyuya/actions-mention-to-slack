@@ -9,14 +9,15 @@ jobs:
   push-latest-tag:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
         with:
-          persist-credentials: false
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 24
       - name: Checkout release
         run: |
           git config --local user.email "action@github.com"
@@ -40,8 +41,4 @@ jobs:
           git diff-index --quiet HEAD || (git commit -m"update build ${{ github.run_number }}" && git tag latest -f)
       - name: Push changes
         run: |
-          git push \
-            "https://${{ github.actor }}:${{ secrets.MY_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
-            HEAD:release \
-            -f \
-            --tags
+          git push origin HEAD:release -f --tags
