@@ -1,5 +1,3 @@
-import axios from "axios";
-
 import {
   isUrl,
   MappingConfigRepositoryImpl,
@@ -22,16 +20,23 @@ describe("mappingConfig", () => {
 
   describe("MappingConfigRepositoryImpl", () => {
     describe("loadFromUrl", () => {
+      const originalFetch = globalThis.fetch;
+      afterEach(() => {
+        globalThis.fetch = originalFetch;
+      });
+
       it("should return yaml", async () => {
-        const spy = jest
-          .spyOn(axios, "get")
-          .mockResolvedValueOnce({ data: 'github_user_id: "XXXXXXX"' });
+        const fetchMock = jest.fn().mockResolvedValueOnce({
+          ok: true,
+          text: () => Promise.resolve('github_user_id: "XXXXXXX"'),
+        } as Response);
+        globalThis.fetch = fetchMock;
 
         const result = await MappingConfigRepositoryImpl.loadFromUrl(
           "https://example.com"
         );
 
-        expect(spy).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
         expect({ github_user_id: "XXXXXXX" }).toEqual(result);
       });
     });
