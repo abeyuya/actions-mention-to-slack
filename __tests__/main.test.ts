@@ -1,4 +1,3 @@
-import { cloneDeep } from "lodash";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -312,7 +311,7 @@ describe("src/main", () => {
             postToSlack: jest.fn(),
           };
 
-          const overwritePayload = cloneDeep(prApprovePayload);
+          const overwritePayload = structuredClone(prApprovePayload);
           overwritePayload.review.body =
             "this is approve comment. @github_user hello";
 
@@ -338,7 +337,7 @@ describe("src/main", () => {
             postToSlack: jest.fn(),
           };
 
-          const overwritePayload = cloneDeep(prApprovePayload);
+          const overwritePayload = structuredClone(prApprovePayload);
           overwritePayload.review.body =
             "this is approve comment. @abeyuya-bot hello";
 
