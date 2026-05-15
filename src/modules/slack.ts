@@ -1,5 +1,3 @@
-import axios from "axios";
-
 export const convertGithubTextToBlockquotesText = (githubText: string) => {
   const t = githubText
     .split("\n")
@@ -111,14 +109,18 @@ export const SlackRepositoryImpl = {
       slackPostParam.icon_emoji = defaultIconEmoji;
     }
 
-    const result = await axios.post<SlackPostResult>(
-      webhookUrl,
-      JSON.stringify(slackPostParam),
-      {
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(slackPostParam),
+    });
 
-    return result.data;
+    if (!response.ok) {
+      throw new Error(
+        `Failed to post to Slack: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return { body: await response.text() };
   },
 };

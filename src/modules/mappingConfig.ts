@@ -1,4 +1,3 @@
-import axios from "axios";
 import { load } from "js-yaml";
 import { getOctokit } from "@actions/github";
 
@@ -11,8 +10,13 @@ export type MappingFile = {
 
 export const MappingConfigRepositoryImpl = {
   downloadFromUrl: async (url: string) => {
-    const response = await axios.get<string>(url);
-    return response.data;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download mapping config: ${response.status} ${response.statusText}`
+      );
+    }
+    return response.text();
   },
 
   loadYaml: (data: string) => {
