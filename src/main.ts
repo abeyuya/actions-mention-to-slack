@@ -5,7 +5,7 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  needToSendApproveMention,
+  needToSendReviewSubmittedMention,
 } from "./modules/github";
 import {
   buildSlackPostMessage,
@@ -144,13 +144,13 @@ export const execNormalMention = async (
   debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 
-export const execApproveMention = async (
+export const execReviewSubmittedMention = async (
   payload: WebhookPayload,
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
 ): Promise<string | null> => {
-  if (!needToSendApproveMention(payload)) {
+  if (!needToSendReviewSubmittedMention(payload)) {
     throw new Error("failed to parse payload");
   }
 
@@ -163,22 +163,38 @@ export const execApproveMention = async (
   const slackIds = convertToSlackUsername([prOwnerGithubUsername], mapping);
 
   if (slackIds.length === 0) {
-    debug("finish execApproveMention because slackIds.length === 0");
+    debug("finish execReviewSubmittedMention because slackIds.length === 0");
     return null;
   }
 
   const info = pickupInfoFromGithubPayload(payload);
   const prOwnerSlackUserId = slackIds[0];
-  const approveOwner = payload.sender?.login;
+  const reviewer = payload.sender?.login;
+  const reviewState = payload.review?.state;
 
-  const blockquotesApproveMessage = convertGithubTextToBlockquotesText(
+  if (reviewer === prOwnerGithubUsername) {
+    debug("skip slack post because the reviewer is the PR author");
+    return null;
+  }
+
+  const blockquotesReviewBody = convertGithubTextToBlockquotesText(
     info.body || ""
   );
 
-  const message = [
-    `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`,
-    blockquotesApproveMessage,
-  ].join("\n");
+  const prLink = `<${info.url}|${info.title}>`;
+  const userMention = `<@${prOwnerSlackUserId}>`;
+  const headline = (() => {
+    switch (reviewState) {
+      case "approved":
+        return `${userMention} has been approved ${prLink} by ${reviewer}.`;
+      case "changes_requested":
+        return `${userMention} has been requested changes on ${prLink} by ${reviewer}.`;
+      default:
+        return `${userMention} has received a review comment on ${prLink} by ${reviewer}.`;
+    }
+  })();
+
+  const message = [headline, blockquotesReviewBody].join("\n");
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   const postSlackResult = await slackClient.postToSlack(
@@ -289,8 +305,8 @@ export const main = async (): Promise<void> => {
 
     const ignoreSlackIds: string[] = [];
 
-    if (needToSendApproveMention(payload)) {
-      const sentSlackUserId = await execApproveMention(
+    if (needToSendReviewSubmittedMention(payload)) {
+      const sentSlackUserId = await execReviewSubmittedMention(
         payload,
         allInputs,
         mapping,
@@ -303,7 +319,7 @@ export const main = async (): Promise<void> => {
 
       debug(
         [
-          "execApproveMention()",
+          "execReviewSubmittedMention()",
           JSON.stringify({ sentSlackUserId }, null, 2),
         ].join("\n")
       );
