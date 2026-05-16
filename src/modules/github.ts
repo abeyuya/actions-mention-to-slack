@@ -1,4 +1,4 @@
-import type { WebhookPayload } from "../types.js";
+import type { context } from "@actions/github";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 
@@ -28,13 +28,13 @@ const buildError = (payload: unknown): Error => {
 };
 
 export const needToSendReviewSubmittedMention = (
-  payload: WebhookPayload
+  payload: typeof context.payload
 ): boolean => {
   return Boolean(payload.review);
 };
 
 export const pickupInfoFromGithubPayload = (
-  payload: Partial<WebhookPayload>
+  payload: Partial<typeof context.payload>
 ): {
   body: string | null;
   title: string;

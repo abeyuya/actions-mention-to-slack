@@ -1,6 +1,5 @@
 import { debug, warning, getInput, setFailed } from "@actions/core";
 import { context } from "@actions/github";
-import type { WebhookPayload } from "./types.js";
 
 import {
   pickupUsername,
@@ -58,7 +57,7 @@ const getSlackMention = (
 };
 
 export const execPrReviewRequestedMention = async (
-  payload: WebhookPayload,
+  payload: typeof context.payload,
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
@@ -99,7 +98,7 @@ export const execPrReviewRequestedMention = async (
 };
 
 export const execNormalMention = async (
-  payload: WebhookPayload,
+  payload: typeof context.payload,
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
@@ -145,7 +144,7 @@ export const execNormalMention = async (
 };
 
 export const execReviewSubmittedMention = async (
-  payload: WebhookPayload,
+  payload: typeof context.payload,
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
