@@ -1,4 +1,4 @@
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { WebhookPayload } from "./githubContext";
 
 const uniq = <T>(arr: T[]): T[] => [...new Set(arr)];
 

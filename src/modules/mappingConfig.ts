@@ -1,5 +1,4 @@
 import { load } from "js-yaml";
-import { getOctokit } from "@actions/github";
 
 const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
 export const isUrl = (text: string) => pattern.test(text);
@@ -43,23 +42,34 @@ export const MappingConfigRepositoryImpl = {
     configurationPath: string,
     sha: string
   ) => {
-    const githubClient = getOctokit(repoToken);
-    const response = await githubClient.rest.repos.getContent({
-      owner,
-      repo,
-      path: configurationPath,
-      ref: sha,
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${configurationPath}?ref=${encodeURIComponent(sha)}`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${repoToken}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "actions-mention-to-slack",
+      },
     });
 
-    if (!("content" in response.data)) {
+    if (!response.ok) {
       throw new Error(
-        ["Unexpected response", JSON.stringify({ response }, null, 2)].join(
-          "\n"
-        )
+        `Failed to fetch mapping config from GitHub: ${response.status} ${response.statusText}`
       );
     }
 
-    const data = Buffer.from(response.data.content, "base64").toString();
+    const body = (await response.json()) as {
+      content?: string;
+      encoding?: string;
+    };
+
+    if (typeof body.content !== "string") {
+      throw new Error(
+        ["Unexpected response", JSON.stringify({ body }, null, 2)].join("\n")
+      );
+    }
+
+    const data = Buffer.from(body.content, "base64").toString();
 
     return MappingConfigRepositoryImpl.loadYaml(data);
   },

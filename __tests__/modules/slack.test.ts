@@ -1,6 +1,6 @@
 import {
-  buildSlackPostMessage,
   buildSlackErrorMessage,
+  buildSlackPostMessage,
 } from "../../src/modules/slack";
 
 describe("modules/slack", () => {

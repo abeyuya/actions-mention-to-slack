@@ -1,8 +1,8 @@
-import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
-  pickupUsername,
   pickupInfoFromGithubPayload,
+  pickupUsername,
 } from "../../src/modules/github";
+import type { WebhookPayload } from "../../src/modules/githubContext";
 
 import { realPayload } from "../fixture/real-payload-20211017";
 import { prApprovePayload } from "../fixture/real-payload-20211024-pr-approve";
@@ -87,7 +87,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail();
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -180,7 +180,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail();
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -235,7 +235,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail();
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -298,7 +298,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail();
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -354,8 +354,9 @@ describe("modules/github", () => {
 
     describe("real payloat test 20211024 pr approve", () => {
       it("should return correct info", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = pickupInfoFromGithubPayload(prApprovePayload as any);
+        const result = pickupInfoFromGithubPayload(
+          prApprovePayload as unknown as WebhookPayload
+        );
         expect(result.title).toEqual("Update mention-to-slack.yml");
         expect(result.senderName).toEqual("abeyuya");
         expect(result.body).toEqual("approve comment");

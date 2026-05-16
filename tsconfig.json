@@ -10,7 +10,7 @@
     "noUnusedParameters": true,
     "noEmitOnError": true,
     "strictNullChecks": true,
-    "target": "es2019",
+    "target": "es2023",
     "sourceMap": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -22,6 +22,7 @@
     "strictPropertyInitialization": true,
     "alwaysStrict": true,
     "noFallthroughCasesInSwitch": true,
+    "types": ["node", "vitest/globals"],
     "outDir": "dist"
   },
   "files": ["src/index.ts"]

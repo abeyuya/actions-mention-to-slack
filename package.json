@@ -4,33 +4,24 @@
   "description": "",
   "main": "src/index.ts",
   "dependencies": {
-    "@actions/core": "^1.10.0",
-    "@actions/github": "^5.1.1",
-    "@vercel/ncc": "^0.36.1",
+    "@actions/core": "^1.11.1",
+    "@vercel/ncc": "^0.38.4",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@types/jest": "30.0.0",
-    "@types/js-yaml": "^4.0.5",
-    "@typescript-eslint/eslint-plugin": "8.59.3",
-    "@typescript-eslint/parser": "8.59.3",
-    "eslint": "8.57.1",
-    "jest": "30.4.2",
-    "ts-jest": "29.4.9",
-    "ts-node": "10.9.1",
-    "typescript": "5.2.2"
+    "@biomejs/biome": "^2.3.6",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
   },
   "overrides": {
-    "minimatch": "^3.1.3",
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "^9.0.7"
-    },
-    "picomatch": "^4.0.0"
+    "undici": "^6.22.0"
   },
   "scripts": {
-    "test": "jest",
+    "test": "vitest run",
     "build": "ncc build --source-map",
-    "lint": "tsc --noEmit && eslint --ext .js,.ts ./"
+    "lint": "tsc --noEmit && biome check ./"
   },
   "repository": {
     "type": "git",

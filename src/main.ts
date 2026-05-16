@@ -1,23 +1,21 @@
-import { debug, warning, getInput, setFailed } from "@actions/core";
-import { context } from "@actions/github";
-import { WebhookPayload } from "@actions/github/lib/interfaces";
-
+import { debug, getInput, setFailed, warning } from "@actions/core";
 import {
-  pickupUsername,
-  pickupInfoFromGithubPayload,
   needToSendReviewSubmittedMention,
+  pickupInfoFromGithubPayload,
+  pickupUsername,
 } from "./modules/github";
+import { context, type WebhookPayload } from "./modules/githubContext";
 import {
-  buildSlackPostMessage,
-  buildSlackErrorMessage,
-  SlackRepositoryImpl,
-  convertGithubTextToBlockquotesText,
-} from "./modules/slack";
-import {
-  MappingConfigRepositoryImpl,
   isUrl,
-  MappingFile,
+  MappingConfigRepositoryImpl,
+  type MappingFile,
 } from "./modules/mappingConfig";
+import {
+  buildSlackErrorMessage,
+  buildSlackPostMessage,
+  convertGithubTextToBlockquotesText,
+  SlackRepositoryImpl,
+} from "./modules/slack";
 
 export type AllInputs = {
   repoToken: string;
@@ -71,11 +69,11 @@ export const execPrReviewRequestedMention = async (
   }
 
   const slackUserIds = convertToSlackUsername(
-    [requestedGithubUsername],
+    [requestedGithubUsername ?? ""],
     mapping
   );
   const slackUserGroupIds = convertToSlackUsername(
-    [requestedGithubTeam],
+    [requestedGithubTeam ?? ""],
     mapping
   );
 

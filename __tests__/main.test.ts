@@ -1,13 +1,12 @@
-import { WebhookPayload } from "@actions/github/lib/interfaces";
-
 import {
-  convertToSlackUsername,
-  execPrReviewRequestedMention,
-  execNormalMention,
-  execReviewSubmittedMention,
-  AllInputs,
+  type AllInputs,
   arrayDiff,
+  convertToSlackUsername,
+  execNormalMention,
+  execPrReviewRequestedMention,
+  execReviewSubmittedMention,
 } from "../src/main";
+import type { WebhookPayload } from "../src/modules/githubContext";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve";
 
@@ -73,7 +72,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -86,11 +85,11 @@ describe("src/main", () => {
           number: 1,
         },
         repository: {
-          full_name: 'abeyuya/github-actions-test',
-          name: 'github-actions-test',
+          full_name: "abeyuya/github-actions-test",
+          name: "github-actions-test",
           owner: {
-            login: 'abeyuya'
-          }
+            login: "abeyuya",
+          },
         },
         sender: {
           login: "sender_github_username",
@@ -117,7 +116,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -130,11 +129,11 @@ describe("src/main", () => {
           number: 1,
         },
         repository: {
-          full_name: 'abeyuya/github-actions-test',
-          name: 'github-actions-test',
+          full_name: "abeyuya/github-actions-test",
+          name: "github-actions-test",
           owner: {
-            login: 'abeyuya'
-          }
+            login: "abeyuya",
+          },
         },
         sender: {
           login: "sender_github_username",
@@ -154,7 +153,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is team account", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -164,11 +163,11 @@ describe("src/main", () => {
           number: 1,
         },
         repository: {
-          full_name: 'abeyuya/github-actions-test',
-          name: 'github-actions-test',
+          full_name: "abeyuya/github-actions-test",
+          name: "github-actions-test",
           owner: {
-            login: 'abeyuya'
-          }
+            login: "abeyuya",
+          },
         },
         requested_team: {
           name: "github_team_1",
@@ -212,7 +211,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -251,7 +250,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -287,12 +286,11 @@ describe("src/main", () => {
       describe("no mention in body", () => {
         it("should not call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            prApprovePayload as any,
+            prApprovePayload as unknown as WebhookPayload,
             dummyInputs,
             {
               "abeyuya-bot": "pr_owner_slack_user_id",
@@ -308,7 +306,7 @@ describe("src/main", () => {
       describe("another user mention in body", () => {
         it("should call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -316,8 +314,7 @@ describe("src/main", () => {
             "this is approve comment. @github_user hello";
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            overwritePayload as any,
+            overwritePayload as unknown as WebhookPayload,
             dummyInputs,
             {
               "abeyuya-bot": "pr_owner_slack_user_id",
@@ -334,7 +331,7 @@ describe("src/main", () => {
       describe("pr-owner-user mention in body", () => {
         it("should not call slack post. (because pr-owner-user already mention by execReviewSubmittedMention)", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -342,8 +339,7 @@ describe("src/main", () => {
             "this is approve comment. @abeyuya-bot hello";
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            overwritePayload as any,
+            overwritePayload as unknown as WebhookPayload,
             dummyInputs,
             {
               "abeyuya-bot": "pr_owner_slack_user_id",
@@ -355,7 +351,6 @@ describe("src/main", () => {
           expect(slackMock.postToSlack).not.toHaveBeenCalled();
         });
       });
-
     });
   });
 
@@ -388,52 +383,51 @@ describe("src/main", () => {
         body: "just a comment",
         expectedPhrase: "has received a review comment",
       },
-    ])(
-      "should send slack mention with $state wording",
-      async ({ state, body, expectedPhrase }) => {
-        const slackMock = {
-          postToSlack: jest.fn(),
-        };
+    ])("should send slack mention with $state wording", async ({
+      state,
+      body,
+      expectedPhrase,
+    }) => {
+      const slackMock = {
+        postToSlack: vi.fn(),
+      };
 
-        const overwritePayload = structuredClone(prApprovePayload);
-        overwritePayload.review.state = state;
-        overwritePayload.review.body = body;
+      const overwritePayload = structuredClone(prApprovePayload);
+      overwritePayload.review.state = state;
+      overwritePayload.review.body = body;
 
-        const result = await execReviewSubmittedMention(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          overwritePayload as any,
-          dummyInputs,
-          dummyMapping,
-          slackMock
-        );
+      const result = await execReviewSubmittedMention(
+        overwritePayload as unknown as WebhookPayload,
+        dummyInputs,
+        dummyMapping,
+        slackMock
+      );
 
-        expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
-        expect(result).toEqual("pr_owner_slack_user");
+      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+      expect(result).toEqual("pr_owner_slack_user");
 
-        const call = slackMock.postToSlack.mock.calls[0];
-        expect(call[0]).toEqual("dummy_url");
-        expect(call[1]).toMatch("<@pr_owner_slack_user>");
-        expect(call[1]).toMatch(expectedPhrase);
-        expect(call[1]).toMatch(
-          "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>"
-        );
-        expect(call[1]).toMatch("by abeyuya");
-        expect(call[1]).toMatch(`> ${body}`);
-      }
-    );
+      const call = slackMock.postToSlack.mock.calls[0];
+      expect(call[0]).toEqual("dummy_url");
+      expect(call[1]).toMatch("<@pr_owner_slack_user>");
+      expect(call[1]).toMatch(expectedPhrase);
+      expect(call[1]).toMatch(
+        "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>"
+      );
+      expect(call[1]).toMatch("by abeyuya");
+      expect(call[1]).toMatch(`> ${body}`);
+    });
 
     describe("when the reviewer is the PR author (self-review)", () => {
       it("should not post to slack and return null", async () => {
         const slackMock = {
-          postToSlack: jest.fn(),
+          postToSlack: vi.fn(),
         };
 
         const overwritePayload = structuredClone(prApprovePayload);
         overwritePayload.sender.login = "abeyuya-bot";
 
         const result = await execReviewSubmittedMention(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          overwritePayload as any,
+          overwritePayload as unknown as WebhookPayload,
           dummyInputs,
           dummyMapping,
           slackMock
