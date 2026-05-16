@@ -23,7 +23,9 @@
     "strictPropertyInitialization": true,
     "alwaysStrict": true,
     "noFallthroughCasesInSwitch": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "./src",
+    "types": ["jest", "node"]
   },
   "files": ["src/index.ts"]
 }
