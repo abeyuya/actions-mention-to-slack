@@ -1,5 +1,5 @@
-import { load } from "js-yaml";
 import { getOctokit } from "@actions/github";
+import { load } from "js-yaml";
 
 const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
 export const isUrl = (text: string) => pattern.test(text);
@@ -13,7 +13,7 @@ export const MappingConfigRepositoryImpl = {
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(
-        `Failed to download mapping config: ${response.status} ${response.statusText}`
+        `Failed to download mapping config: ${response.status} ${response.statusText}`,
       );
     }
     return response.text();
@@ -24,7 +24,7 @@ export const MappingConfigRepositoryImpl = {
 
     if (configObject === undefined) {
       throw new Error(
-        ["failed to load yaml", JSON.stringify({ data }, null, 2)].join("\n")
+        ["failed to load yaml", JSON.stringify({ data }, null, 2)].join("\n"),
       );
     }
 
@@ -41,7 +41,7 @@ export const MappingConfigRepositoryImpl = {
     owner: string,
     repo: string,
     configurationPath: string,
-    sha: string
+    sha: string,
   ) => {
     const githubClient = getOctokit(repoToken);
     const response = await githubClient.rest.repos.getContent({
@@ -54,8 +54,8 @@ export const MappingConfigRepositoryImpl = {
     if (!("content" in response.data)) {
       throw new Error(
         ["Unexpected response", JSON.stringify({ response }, null, 2)].join(
-          "\n"
-        )
+          "\n",
+        ),
       );
     }
 

@@ -36344,85 +36344,6 @@ const pickupInfoFromGithubPayload = (payload) => {
     throw buildError(payload);
 };
 
-;// CONCATENATED MODULE: ./src/modules/slack.ts
-const convertGithubTextToBlockquotesText = (githubText) => {
-    const t = githubText
-        .split("\n")
-        .map((line, i) => {
-        // fix slack layout collapse problem when first line starts with blockquotes.
-        if (i === 0 && line.startsWith(">")) {
-            return `>\n> ${line}`;
-        }
-        return `> ${line}`;
-    })
-        .join("\n");
-    return t;
-};
-const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
-    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-    const body = convertGithubTextToBlockquotesText(githubBody);
-    const message = [
-        mentionBlock,
-        `${slackIdsForMention.length === 1 ? "has" : "have"}`,
-        `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-    ].join(" ");
-    return `${message}\n${body}`;
-};
-const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
-const buildSlackErrorMessage = (error, currentJobUrl) => {
-    const jobTitle = "mention-to-slack action";
-    const jobLinkMessage = currentJobUrl
-        ? `<${currentJobUrl}|${jobTitle}>`
-        : jobTitle;
-    const issueBody = error.stack
-        ? encodeURI(["```", error.stack, "```"].join("\n"))
-        : "";
-    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
-    return [
-        `❗ An internal error occurred in ${jobLinkMessage}`,
-        "(but action didn't fail as this action is not critical).",
-        `To solve the problem, please <${link}|open an issue>`,
-        "",
-        "```",
-        error.stack || error.message,
-        "```",
-    ].join("\n");
-};
-const defaultBotName = "Github Mention To Slack";
-const defaultIconEmoji = ":bell:";
-const SlackRepositoryImpl = {
-    postToSlack: async (webhookUrl, message, options) => {
-        const botName = (() => {
-            const n = options === null || options === void 0 ? void 0 : options.botName;
-            if (n && n !== "") {
-                return n;
-            }
-            return defaultBotName;
-        })();
-        const slackPostParam = {
-            text: message,
-            link_names: 0,
-            username: botName,
-        };
-        const u = options === null || options === void 0 ? void 0 : options.iconUrl;
-        if (u && u !== "") {
-            slackPostParam.icon_url = u;
-        }
-        else {
-            slackPostParam.icon_emoji = defaultIconEmoji;
-        }
-        const response = await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(slackPostParam),
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to post to Slack: ${response.status} ${response.statusText}`);
-        }
-        return response.text();
-    },
-};
-
 ;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
 
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -40318,6 +40239,85 @@ const MappingConfigRepositoryImpl = {
         }
         const data = Buffer.from(response.data.content, "base64").toString();
         return MappingConfigRepositoryImpl.loadYaml(data);
+    },
+};
+
+;// CONCATENATED MODULE: ./src/modules/slack.ts
+const convertGithubTextToBlockquotesText = (githubText) => {
+    const t = githubText
+        .split("\n")
+        .map((line, i) => {
+        // fix slack layout collapse problem when first line starts with blockquotes.
+        if (i === 0 && line.startsWith(">")) {
+            return `>\n> ${line}`;
+        }
+        return `> ${line}`;
+    })
+        .join("\n");
+    return t;
+};
+const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
+    const body = convertGithubTextToBlockquotesText(githubBody);
+    const message = [
+        mentionBlock,
+        `${slackIdsForMention.length === 1 ? "has" : "have"}`,
+        `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
+    ].join(" ");
+    return `${message}\n${body}`;
+};
+const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
+const buildSlackErrorMessage = (error, currentJobUrl) => {
+    const jobTitle = "mention-to-slack action";
+    const jobLinkMessage = currentJobUrl
+        ? `<${currentJobUrl}|${jobTitle}>`
+        : jobTitle;
+    const issueBody = error.stack
+        ? encodeURI(["```", error.stack, "```"].join("\n"))
+        : "";
+    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
+    return [
+        `❗ An internal error occurred in ${jobLinkMessage}`,
+        "(but action didn't fail as this action is not critical).",
+        `To solve the problem, please <${link}|open an issue>`,
+        "",
+        "```",
+        error.stack || error.message,
+        "```",
+    ].join("\n");
+};
+const defaultBotName = "Github Mention To Slack";
+const defaultIconEmoji = ":bell:";
+const SlackRepositoryImpl = {
+    postToSlack: async (webhookUrl, message, options) => {
+        const botName = (() => {
+            const n = options === null || options === void 0 ? void 0 : options.botName;
+            if (n && n !== "") {
+                return n;
+            }
+            return defaultBotName;
+        })();
+        const slackPostParam = {
+            text: message,
+            link_names: 0,
+            username: botName,
+        };
+        const u = options === null || options === void 0 ? void 0 : options.iconUrl;
+        if (u && u !== "") {
+            slackPostParam.icon_url = u;
+        }
+        else {
+            slackPostParam.icon_emoji = defaultIconEmoji;
+        }
+        const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(slackPostParam),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to post to Slack: ${response.status} ${response.statusText}`);
+        }
+        return response.text();
     },
 };
 
