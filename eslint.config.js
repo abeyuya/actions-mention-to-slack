@@ -12,7 +12,7 @@ export default [
     files: ["**/*.ts"],
     languageOptions: {
       parser: tsParser,
-      globals: { ...globals.node, ...globals.jest, ...globals.es2021 },
+      globals: { ...globals.node, ...globals.vitest, ...globals.es2021 },
     },
     plugins: { "@typescript-eslint": tsPlugin },
     rules: {

@@ -25,7 +25,7 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "dist",
     "rootDir": "./src",
-    "types": ["jest", "node"]
+    "types": ["node"]
   },
   "files": ["src/index.ts"]
 }
