@@ -355,6 +355,35 @@ describe("src/main", () => {
           expect(slackMock.postToSlack).not.toHaveBeenCalled();
         });
       });
+
+      describe("self-review on own PR with mention to another user", () => {
+        it("should still notify the mentioned other user", async () => {
+          const slackMock = {
+            postToSlack: jest.fn(),
+          };
+
+          const overwritePayload = structuredClone(prApprovePayload);
+          overwritePayload.sender.login = "abeyuya-bot";
+          overwritePayload.review.body =
+            "self review note. @github_user can you check this?";
+
+          await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            overwritePayload as any,
+            dummyInputs,
+            {
+              "abeyuya-bot": "pr_owner_slack_user_id",
+              github_user: "slack_user_id_1",
+            },
+            slackMock,
+            ["pr_owner_slack_user_id"]
+          );
+
+          expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+          const call = slackMock.postToSlack.mock.calls[0];
+          expect(call[1]).toMatch("<@slack_user_id_1>");
+        });
+      });
     });
   });
 

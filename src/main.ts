@@ -272,11 +272,6 @@ export const main = async (): Promise<void> => {
   const { repoToken, configurationPath } = allInputs;
 
   try {
-    if (isSelfReviewOnOwnPr(payload)) {
-      debug("skip notification because the reviewer is the PR author");
-      return;
-    }
-
     const mapping = await (async () => {
       if (isUrl(configurationPath)) {
         return MappingConfigRepositoryImpl.loadFromUrl(configurationPath);
@@ -305,8 +300,19 @@ export const main = async (): Promise<void> => {
     }
 
     const ignoreSlackIds: string[] = [];
+    const selfReviewOnOwnPr = isSelfReviewOnOwnPr(payload);
 
-    if (needToSendReviewSubmittedMention(payload)) {
+    if (selfReviewOnOwnPr) {
+      debug(
+        "skip execReviewSubmittedMention because the reviewer is the PR author"
+      );
+      const prOwnerGithubUsername = payload.pull_request?.user?.login;
+      if (prOwnerGithubUsername) {
+        ignoreSlackIds.push(
+          ...convertToSlackUsername([prOwnerGithubUsername], mapping)
+        );
+      }
+    } else if (needToSendReviewSubmittedMention(payload)) {
       const sentSlackUserId = await execReviewSubmittedMention(
         payload,
         allInputs,
