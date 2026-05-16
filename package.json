@@ -25,7 +25,7 @@
     "@typescript-eslint/typescript-estree": {
       "minimatch": "^9.0.7"
     },
-    "picomatch": "^2.3.2"
+    "picomatch": "^4.0.0"
   },
   "scripts": {
     "test": "jest",
