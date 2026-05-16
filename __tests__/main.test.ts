@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -74,7 +74,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -118,7 +118,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -155,7 +155,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is team account", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -213,7 +213,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -252,7 +252,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<WebhookPayload> = {
@@ -288,7 +288,7 @@ describe("src/main", () => {
       describe("no mention in body", () => {
         it("should not call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           await execNormalMention(
@@ -309,7 +309,7 @@ describe("src/main", () => {
       describe("another user mention in body", () => {
         it("should call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -335,7 +335,7 @@ describe("src/main", () => {
       describe("pr-owner-user mention in body", () => {
         it("should not call slack post. (because pr-owner-user already mention by execReviewSubmittedMention)", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -393,7 +393,7 @@ describe("src/main", () => {
       "should send slack mention with $state wording",
       async ({ state, body, expectedPhrase }) => {
         const slackMock = {
-          postToSlack: jest.fn(),
+          postToSlack: vi.fn(),
         };
 
         const overwritePayload = structuredClone(prApprovePayload);
@@ -426,7 +426,7 @@ describe("src/main", () => {
     describe("when the reviewer is the PR author (self-review)", () => {
       it("should not post to slack and return null", async () => {
         const slackMock = {
-          postToSlack: jest.fn(),
+          postToSlack: vi.fn(),
         };
 
         const overwritePayload = structuredClone(prApprovePayload);
