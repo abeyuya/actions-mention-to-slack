@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { WebhookPayload } from "@actions/github/lib/interfaces";
 
 import {
@@ -7,9 +8,9 @@ import {
   execReviewSubmittedMention,
   AllInputs,
   arrayDiff,
-} from "../src/main";
+} from "../src/main.js";
 
-import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve";
+import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve.js";
 
 describe("src/main", () => {
   describe("arrayDiff", () => {

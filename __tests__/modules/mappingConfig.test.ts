@@ -1,7 +1,9 @@
+import { jest } from "@jest/globals";
+
 import {
   isUrl,
   MappingConfigRepositoryImpl,
-} from "../../src/modules/mappingConfig";
+} from "../../src/modules/mappingConfig.js";
 
 describe("mappingConfig", () => {
   describe("isUrl", () => {
