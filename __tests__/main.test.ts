@@ -292,7 +292,6 @@ describe("src/main", () => {
           };
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             prApprovePayload as any,
             dummyInputs,
             {
@@ -317,7 +316,6 @@ describe("src/main", () => {
             "this is approve comment. @github_user hello";
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -343,7 +341,6 @@ describe("src/main", () => {
             "this is approve comment. @abeyuya-bot hello";
 
           await execNormalMention(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -402,7 +399,6 @@ describe("src/main", () => {
       overwritePayload.review.body = body;
 
       const result = await execReviewSubmittedMention(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         overwritePayload as any,
         dummyInputs,
         dummyMapping,
@@ -433,7 +429,6 @@ describe("src/main", () => {
         overwritePayload.sender.login = "abeyuya-bot";
 
         const result = await execReviewSubmittedMention(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           overwritePayload as any,
           dummyInputs,
           dummyMapping,

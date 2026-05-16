@@ -358,7 +358,6 @@ describe("modules/github", () => {
 
     describe("real payloat test 20211024 pr approve", () => {
       it("should return correct info", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = pickupInfoFromGithubPayload(prApprovePayload as any);
         expect(result.title).toEqual("Update mention-to-slack.yml");
         expect(result.senderName).toEqual("abeyuya");
