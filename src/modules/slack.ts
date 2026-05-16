@@ -19,7 +19,7 @@ export const buildSlackPostMessage = (
   issueTitle: string,
   commentLink: string,
   githubBody: string,
-  senderName: string
+  senderName: string,
 ): string => {
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
   const body = convertGithubTextToBlockquotesText(githubBody);
@@ -38,7 +38,7 @@ const openIssueLink =
 
 export const buildSlackErrorMessage = (
   error: Error,
-  currentJobUrl?: string
+  currentJobUrl?: string,
 ): string => {
   const jobTitle = "mention-to-slack action";
   const jobLinkMessage = currentJobUrl
@@ -50,7 +50,7 @@ export const buildSlackErrorMessage = (
     : "";
 
   const link = encodeURI(
-    `${openIssueLink}?title=${error.message}&body=${issueBody}`
+    `${openIssueLink}?title=${error.message}&body=${issueBody}`,
   );
 
   return [
@@ -84,7 +84,7 @@ export const SlackRepositoryImpl = {
   postToSlack: async (
     webhookUrl: string,
     message: string,
-    options?: SlackOption
+    options?: SlackOption,
   ): Promise<string> => {
     const botName = (() => {
       const n = options?.botName;
@@ -115,7 +115,7 @@ export const SlackRepositoryImpl = {
 
     if (!response.ok) {
       throw new Error(
-        `Failed to post to Slack: ${response.status} ${response.statusText}`
+        `Failed to post to Slack: ${response.status} ${response.statusText}`,
       );
     }
 

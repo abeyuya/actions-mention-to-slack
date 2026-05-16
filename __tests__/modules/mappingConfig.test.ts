@@ -9,7 +9,7 @@ describe("mappingConfig", () => {
   describe("isUrl", () => {
     it("true https://github.com/abeyuya/actions-mention-to-slack", () => {
       const result = isUrl(
-        "https://github.com/abeyuya/actions-mention-to-slack"
+        "https://github.com/abeyuya/actions-mention-to-slack",
       );
       expect(result).toEqual(true);
     });
@@ -35,7 +35,7 @@ describe("mappingConfig", () => {
         globalThis.fetch = fetchMock;
 
         const result = await MappingConfigRepositoryImpl.loadFromUrl(
-          "https://example.com"
+          "https://example.com",
         );
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
