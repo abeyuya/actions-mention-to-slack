@@ -1,5 +1,5 @@
 import { debug, warning, getInput, setFailed } from "@actions/core";
-import { context } from "@actions/github";
+import { context, getOctokit } from "@actions/github";
 
 import {
   pickupUsername,
@@ -17,6 +17,11 @@ import {
   isUrl,
   MappingFile,
 } from "./modules/mappingConfig.js";
+import {
+  fetchOpenReviewRequests,
+  buildReviewReminderMessage,
+  ReminderEntry,
+} from "./modules/reviewReminder.js";
 
 export type AllInputs = {
   repoToken: string;
@@ -25,6 +30,7 @@ export type AllInputs = {
   iconUrl?: string;
   botName?: string;
   runId?: string;
+  type?: string;
 };
 
 export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
@@ -211,6 +217,31 @@ export const execReviewSubmittedMention = async (
   return prOwnerSlackUserId;
 };
 
+export const execReviewReminder = async (
+  allInputs: AllInputs,
+  mapping: MappingFile,
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
+  octokit: ReturnType<typeof getOctokit>,
+  owner: string,
+  repo: string
+): Promise<void> => {
+  const raw = await fetchOpenReviewRequests(octokit, owner, repo);
+
+  const entries: ReminderEntry[] = raw.map((r) => ({
+    ...r,
+    slackId: mapping[r.githubName],
+  }));
+
+  const message = buildReviewReminderMessage(entries, `${owner}/${repo}`);
+  if (!message) {
+    debug("finish execReviewReminder because no pending reviews");
+    return;
+  }
+
+  const { slackWebhookUrl, iconUrl, botName } = allInputs;
+  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+};
+
 const buildCurrentJobUrl = (runId: string) => {
   const { owner, repo } = context.repo;
   return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
@@ -252,6 +283,7 @@ const getAllInputs = (): AllInputs => {
     required: true,
   });
   const runId = getInput("run-id", { required: false });
+  const type = getInput("type", { required: false });
 
   return {
     repoToken,
@@ -260,6 +292,7 @@ const getAllInputs = (): AllInputs => {
     iconUrl,
     botName,
     runId,
+    type,
   };
 };
 
@@ -290,6 +323,19 @@ export const main = async (): Promise<void> => {
     })();
 
     debug(JSON.stringify({ mapping }, null, 2));
+
+    if (allInputs.type === "reminder") {
+      await execReviewReminder(
+        allInputs,
+        mapping,
+        SlackRepositoryImpl,
+        getOctokit(repoToken),
+        context.repo.owner,
+        context.repo.repo
+      );
+      debug("finish execReviewReminder()");
+      return;
+    }
 
     if (payload.action === "review_requested") {
       await execPrReviewRequestedMention(

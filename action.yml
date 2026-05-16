@@ -20,6 +20,9 @@ inputs:
   run-id:
     description: "Used for the link in the error message when an error occurs."
     required: false
+  type:
+    description: "Action mode. Set to 'reminder' to send a pending-review reminder for open pull requests. Leave empty for the default mention/notification behavior."
+    required: false
 runs:
   using: "node24"
   main: "dist/index.js"

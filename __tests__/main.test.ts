@@ -6,6 +6,7 @@ import {
   execPrReviewRequestedMention,
   execNormalMention,
   execReviewSubmittedMention,
+  execReviewReminder,
   AllInputs,
   arrayDiff,
 } from "../src/main.js";
@@ -443,6 +444,76 @@ describe("src/main", () => {
         expect(slackMock.postToSlack).not.toHaveBeenCalled();
         expect(result).toBeNull();
       });
+    });
+  });
+
+  describe("execReviewReminder", () => {
+    const dummyInputs: AllInputs = {
+      repoToken: "",
+      configurationPath: "",
+      slackWebhookUrl: "dummy_url",
+      iconUrl: "",
+      botName: "",
+    };
+
+    const buildOctokit = (prs: unknown[]) =>
+      ({
+        paginate: jest.fn(async () => prs),
+        rest: { pulls: { list: jest.fn() } },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+    it("posts an aggregated message including mapped and unmapped reviewers", async () => {
+      const slackMock = { postToSlack: jest.fn() };
+      const octokit = buildOctokit([
+        {
+          title: "PR1",
+          html_url: "https://example.com/pr/1",
+          draft: false,
+          requested_reviewers: [{ login: "github_user_1" }, { login: "ghost" }],
+          requested_teams: [],
+        },
+      ]);
+
+      await execReviewReminder(
+        dummyInputs,
+        { github_user_1: "slack_user_1" },
+        slackMock,
+        octokit,
+        "owner",
+        "repo"
+      );
+
+      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+      const call = slackMock.postToSlack.mock.calls[0];
+      expect(call[0]).toEqual("dummy_url");
+      expect(call[1]).toMatch("<@slack_user_1>");
+      expect(call[1]).toMatch("`ghost`");
+      expect(call[1]).toMatch("<https://example.com/pr/1|PR1>");
+    });
+
+    it("does not post when there are no pending reviews", async () => {
+      const slackMock = { postToSlack: jest.fn() };
+      const octokit = buildOctokit([
+        {
+          title: "Draft",
+          html_url: "https://example.com/pr/9",
+          draft: true,
+          requested_reviewers: [{ login: "alice" }],
+          requested_teams: [],
+        },
+      ]);
+
+      await execReviewReminder(
+        dummyInputs,
+        {},
+        slackMock,
+        octokit,
+        "owner",
+        "repo"
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
     });
   });
 });
