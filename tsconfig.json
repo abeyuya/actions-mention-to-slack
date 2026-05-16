@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
     "preserveConstEnums": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -22,7 +23,9 @@
     "strictPropertyInitialization": true,
     "alwaysStrict": true,
     "noFallthroughCasesInSwitch": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "./src",
+    "types": ["jest", "node"]
   },
   "files": ["src/index.ts"]
 }
