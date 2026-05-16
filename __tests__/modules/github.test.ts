@@ -2,7 +2,6 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-  isSelfReviewOnOwnPr,
 } from "../../src/modules/github";
 
 import { realPayload } from "../fixture/real-payload-20211017";
@@ -361,95 +360,6 @@ describe("modules/github", () => {
         expect(result.senderName).toEqual("abeyuya");
         expect(result.body).toEqual("approve comment");
       });
-    });
-  });
-
-  describe("isSelfReviewOnOwnPr", () => {
-    it("should return true when reviewer is the PR author (pull_request_review)", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "submitted",
-        sender: { login: "abeyuya", type: "User" },
-        pull_request: {
-          number: 1,
-          title: "pr title",
-          user: { login: "abeyuya" },
-        },
-        review: { body: "self review", state: "commented" },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(true);
-    });
-
-    it("should return true when commenter is the PR author (pull_request_review_comment)", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "created",
-        sender: { login: "abeyuya", type: "User" },
-        pull_request: {
-          number: 1,
-          title: "pr title",
-          user: { login: "abeyuya" },
-        },
-        comment: { id: 1, body: "self comment" },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(true);
-    });
-
-    it("should return false when reviewer is different from the PR author", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "submitted",
-        sender: { login: "another_user", type: "User" },
-        pull_request: {
-          number: 1,
-          title: "pr title",
-          user: { login: "abeyuya" },
-        },
-        review: { body: "review", state: "commented" },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(false);
-    });
-
-    it("should return false when payload has no pull_request", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "opened",
-        sender: { login: "abeyuya", type: "User" },
-        issue: {
-          number: 1,
-          title: "issue title",
-          user: { login: "abeyuya" },
-        },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(false);
-    });
-
-    it("should return false on pull_request opened event (no review/comment)", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "opened",
-        sender: { login: "abeyuya", type: "User" },
-        pull_request: {
-          number: 1,
-          title: "pr title",
-          user: { login: "abeyuya" },
-        },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(false);
-    });
-
-    it("should return false when sender is missing", () => {
-      const payload: Partial<WebhookPayload> = {
-        action: "submitted",
-        pull_request: {
-          number: 1,
-          title: "pr title",
-          user: { login: "abeyuya" },
-        },
-        review: { body: "review", state: "commented" },
-      };
-
-      expect(isSelfReviewOnOwnPr(payload as WebhookPayload)).toBe(false);
     });
   });
 });

@@ -6,7 +6,6 @@ import {
   pickupUsername,
   pickupInfoFromGithubPayload,
   needToSendReviewSubmittedMention,
-  isSelfReviewOnOwnPr,
 } from "./modules/github";
 import {
   buildSlackPostMessage,
@@ -173,6 +172,11 @@ export const execReviewSubmittedMention = async (
   const reviewer = payload.sender?.login;
   const reviewState = payload.review?.state;
 
+  if (reviewer === prOwnerGithubUsername) {
+    debug("skip slack post because the reviewer is the PR author");
+    return null;
+  }
+
   const blockquotesReviewBody = convertGithubTextToBlockquotesText(
     info.body || ""
   );
@@ -300,19 +304,8 @@ export const main = async (): Promise<void> => {
     }
 
     const ignoreSlackIds: string[] = [];
-    const selfReviewOnOwnPr = isSelfReviewOnOwnPr(payload);
 
-    if (selfReviewOnOwnPr) {
-      debug(
-        "skip execReviewSubmittedMention because the reviewer is the PR author"
-      );
-      const prOwnerGithubUsername = payload.pull_request?.user?.login;
-      if (prOwnerGithubUsername) {
-        ignoreSlackIds.push(
-          ...convertToSlackUsername([prOwnerGithubUsername], mapping)
-        );
-      }
-    } else if (needToSendReviewSubmittedMention(payload)) {
+    if (needToSendReviewSubmittedMention(payload)) {
       const sentSlackUserId = await execReviewSubmittedMention(
         payload,
         allInputs,
