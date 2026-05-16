@@ -27,12 +27,10 @@ const buildError = (payload: unknown): Error => {
   );
 };
 
-export const needToSendApproveMention = (payload: WebhookPayload): boolean => {
-  if (payload.review?.state === "approved") {
-    return true;
-  }
-
-  return false;
+export const needToSendReviewSubmittedMention = (
+  payload: WebhookPayload
+): boolean => {
+  return Boolean(payload.review);
 };
 
 export const isSelfReviewOnOwnPr = (payload: WebhookPayload): boolean => {
