@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { context } from "@actions/github";
 
 import {
   convertToSlackUsername,
@@ -77,7 +77,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload: Partial<WebhookPayload> = {
+      const dummyPayload: Partial<typeof context.payload> = {
         requested_reviewer: {
           login: "github_user_1",
         },
@@ -121,7 +121,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload: Partial<WebhookPayload> = {
+      const dummyPayload: Partial<typeof context.payload> = {
         requested_reviewer: {
           login: "github_user_not_linsted",
         },
@@ -158,7 +158,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload: Partial<WebhookPayload> = {
+      const dummyPayload: Partial<typeof context.payload> = {
         pull_request: {
           title: "pr_title",
           html_url: "pr_url",
@@ -216,7 +216,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload: Partial<WebhookPayload> = {
+      const dummyPayload: Partial<typeof context.payload> = {
         action: "submitted",
         review: {
           body: "@github_user_1 LGTM!",
@@ -255,7 +255,7 @@ describe("src/main", () => {
         postToSlack: jest.fn(),
       };
 
-      const dummyPayload: Partial<WebhookPayload> = {
+      const dummyPayload: Partial<typeof context.payload> = {
         action: "submitted",
         review: {
           body: "@github_user_1 LGTM!",
