@@ -1,5 +1,5 @@
 import { jest } from "@jest/globals";
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { WebhookPayload } from "../src/types.js";
 
 import {
   convertToSlackUsername,

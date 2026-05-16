@@ -1,4 +1,4 @@
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { WebhookPayload } from "../../src/types.js";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,

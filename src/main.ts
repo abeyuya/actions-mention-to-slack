@@ -1,6 +1,6 @@
 import { debug, warning, getInput, setFailed } from "@actions/core";
 import { context } from "@actions/github";
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { WebhookPayload } from "./types.js";
 
 import {
   pickupUsername,
