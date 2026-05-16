@@ -4,7 +4,7 @@ import {
   convertToSlackUsername,
   execPrReviewRequestedMention,
   execNormalMention,
-  execApproveMention,
+  execReviewSubmittedMention,
   AllInputs,
   arrayDiff,
 } from "../src/main";
@@ -283,7 +283,7 @@ describe("src/main", () => {
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
     });
 
-    describe("with execApproveMention", () => {
+    describe("with execReviewSubmittedMention", () => {
       describe("no mention in body", () => {
         it("should not call slack post", async () => {
           const slackMock = {
@@ -332,7 +332,7 @@ describe("src/main", () => {
       });
 
       describe("pr-owner-user mention in body", () => {
-        it("should not call slack post. (because pr-owner-user already mention by execApproveMention)", async () => {
+        it("should not call slack post. (because pr-owner-user already mention by execReviewSubmittedMention)", async () => {
           const slackMock = {
             postToSlack: jest.fn(),
           };
@@ -355,10 +355,11 @@ describe("src/main", () => {
           expect(slackMock.postToSlack).not.toHaveBeenCalled();
         });
       });
+
     });
   });
 
-  describe("execApproveMention", () => {
+  describe("execReviewSubmittedMention", () => {
     const dummyInputs: AllInputs = {
       repoToken: "",
       configurationPath: "",
@@ -371,15 +372,36 @@ describe("src/main", () => {
       "abeyuya-bot": "pr_owner_slack_user",
     };
 
-    describe("real payload test", () => {
-      it("should send slack mention", async () => {
+    it.each([
+      {
+        state: "approved",
+        body: "approve comment",
+        expectedPhrase: "has been approved",
+      },
+      {
+        state: "changes_requested",
+        body: "please fix this",
+        expectedPhrase: "has been requested changes",
+      },
+      {
+        state: "commented",
+        body: "just a comment",
+        expectedPhrase: "has received a review comment",
+      },
+    ])(
+      "should send slack mention with $state wording",
+      async ({ state, body, expectedPhrase }) => {
         const slackMock = {
           postToSlack: jest.fn(),
         };
 
-        const result = await execApproveMention(
+        const overwritePayload = structuredClone(prApprovePayload);
+        overwritePayload.review.state = state;
+        overwritePayload.review.body = body;
+
+        const result = await execReviewSubmittedMention(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          prApprovePayload as any,
+          overwritePayload as any,
           dummyInputs,
           dummyMapping,
           slackMock
@@ -391,11 +413,34 @@ describe("src/main", () => {
         const call = slackMock.postToSlack.mock.calls[0];
         expect(call[0]).toEqual("dummy_url");
         expect(call[1]).toMatch("<@pr_owner_slack_user>");
+        expect(call[1]).toMatch(expectedPhrase);
         expect(call[1]).toMatch(
           "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>"
         );
         expect(call[1]).toMatch("by abeyuya");
-        expect(call[1]).toMatch("> approve comment");
+        expect(call[1]).toMatch(`> ${body}`);
+      }
+    );
+
+    describe("when the reviewer is the PR author (self-review)", () => {
+      it("should not post to slack and return null", async () => {
+        const slackMock = {
+          postToSlack: jest.fn(),
+        };
+
+        const overwritePayload = structuredClone(prApprovePayload);
+        overwritePayload.sender.login = "abeyuya-bot";
+
+        const result = await execReviewSubmittedMention(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          overwritePayload as any,
+          dummyInputs,
+          dummyMapping,
+          slackMock
+        );
+
+        expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        expect(result).toBeNull();
       });
     });
   });

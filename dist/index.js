@@ -13729,7 +13729,7 @@ function wrappy (fn, cb) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.main = exports.execPostError = exports.execApproveMention = exports.execNormalMention = exports.execPrReviewRequestedMention = exports.convertToSlackUsername = exports.arrayDiff = void 0;
+exports.main = exports.execPostError = exports.execReviewSubmittedMention = exports.execNormalMention = exports.execPrReviewRequestedMention = exports.convertToSlackUsername = exports.arrayDiff = void 0;
 const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 const github_2 = __nccwpck_require__(7993);
@@ -13801,9 +13801,9 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
     (0, core_1.debug)(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 exports.execNormalMention = execNormalMention;
-const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
-    var _a, _b, _c;
-    if (!(0, github_2.needToSendApproveMention)(payload)) {
+const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClient) => {
+    var _a, _b, _c, _d;
+    if (!(0, github_2.needToSendReviewSubmittedMention)(payload)) {
         throw new Error("failed to parse payload");
     }
     const prOwnerGithubUsername = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.login;
@@ -13812,23 +13812,37 @@ const execApproveMention = async (payload, allInputs, mapping, slackClient) => {
     }
     const slackIds = (0, exports.convertToSlackUsername)([prOwnerGithubUsername], mapping);
     if (slackIds.length === 0) {
-        (0, core_1.debug)("finish execApproveMention because slackIds.length === 0");
+        (0, core_1.debug)("finish execReviewSubmittedMention because slackIds.length === 0");
         return null;
     }
     const info = (0, github_2.pickupInfoFromGithubPayload)(payload);
     const prOwnerSlackUserId = slackIds[0];
-    const approveOwner = (_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login;
-    const blockquotesApproveMessage = (0, slack_1.convertGithubTextToBlockquotesText)(info.body || "");
-    const message = [
-        `<@${prOwnerSlackUserId}> has been approved <${info.url}|${info.title}> by ${approveOwner}.`,
-        blockquotesApproveMessage,
-    ].join("\n");
+    const reviewer = (_c = payload.sender) === null || _c === void 0 ? void 0 : _c.login;
+    const reviewState = (_d = payload.review) === null || _d === void 0 ? void 0 : _d.state;
+    if (reviewer === prOwnerGithubUsername) {
+        (0, core_1.debug)("skip slack post because the reviewer is the PR author");
+        return null;
+    }
+    const blockquotesReviewBody = (0, slack_1.convertGithubTextToBlockquotesText)(info.body || "");
+    const prLink = `<${info.url}|${info.title}>`;
+    const userMention = `<@${prOwnerSlackUserId}>`;
+    const headline = (() => {
+        switch (reviewState) {
+            case "approved":
+                return `${userMention} has been approved ${prLink} by ${reviewer}.`;
+            case "changes_requested":
+                return `${userMention} has been requested changes on ${prLink} by ${reviewer}.`;
+            default:
+                return `${userMention} has received a review comment on ${prLink} by ${reviewer}.`;
+        }
+    })();
+    const message = [headline, blockquotesReviewBody].join("\n");
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
     (0, core_1.debug)(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
     return prOwnerSlackUserId;
 };
-exports.execApproveMention = execApproveMention;
+exports.execReviewSubmittedMention = execReviewSubmittedMention;
 const buildCurrentJobUrl = (runId) => {
     const { owner, repo } = github_1.context.repo;
     return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
@@ -13889,13 +13903,13 @@ const main = async () => {
             return;
         }
         const ignoreSlackIds = [];
-        if ((0, github_2.needToSendApproveMention)(payload)) {
-            const sentSlackUserId = await (0, exports.execApproveMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl);
+        if ((0, github_2.needToSendReviewSubmittedMention)(payload)) {
+            const sentSlackUserId = await (0, exports.execReviewSubmittedMention)(payload, allInputs, mapping, slack_1.SlackRepositoryImpl);
             if (sentSlackUserId) {
                 ignoreSlackIds.push(sentSlackUserId);
             }
             (0, core_1.debug)([
-                "execApproveMention()",
+                "execReviewSubmittedMention()",
                 JSON.stringify({ sentSlackUserId }, null, 2),
             ].join("\n"));
         }
@@ -13918,7 +13932,7 @@ exports.main = main;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.pickupInfoFromGithubPayload = exports.needToSendApproveMention = exports.pickupUsername = void 0;
+exports.pickupInfoFromGithubPayload = exports.needToSendReviewSubmittedMention = exports.pickupUsername = void 0;
 const uniq = (arr) => [...new Set(arr)];
 const pickupUsername = (text) => {
     const pattern = /\B@[a-z0-9_-]+/gi;
@@ -13939,14 +13953,10 @@ const acceptActionTypes = {
 const buildError = (payload) => {
     return new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
 };
-const needToSendApproveMention = (payload) => {
-    var _a;
-    if (((_a = payload.review) === null || _a === void 0 ? void 0 : _a.state) === "approved") {
-        return true;
-    }
-    return false;
+const needToSendReviewSubmittedMention = (payload) => {
+    return Boolean(payload.review);
 };
-exports.needToSendApproveMention = needToSendApproveMention;
+exports.needToSendReviewSubmittedMention = needToSendReviewSubmittedMention;
 const pickupInfoFromGithubPayload = (payload) => {
     var _a, _b, _c, _d, _e, _f;
     const { action } = payload;
