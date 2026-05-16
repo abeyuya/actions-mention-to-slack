@@ -23,18 +23,18 @@ const acceptActionTypes = {
 
 const buildError = (payload: unknown): Error => {
   return new Error(
-    `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`
+    `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`,
   );
 };
 
 export const needToSendReviewSubmittedMention = (
-  payload: typeof context.payload
+  payload: typeof context.payload,
 ): boolean => {
   return Boolean(payload.review);
 };
 
 export const pickupInfoFromGithubPayload = (
-  payload: Partial<typeof context.payload>
+  payload: Partial<typeof context.payload>,
 ): {
   body: string | null;
   title: string;
