@@ -85,14 +85,9 @@ describe("modules/github", () => {
       it("should throw error when issue deleted", () => {
         const dummyPayload = buildIssuePayload("deleted");
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail();
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
-          );
-        }
+        expect(() => pickupInfoFromGithubPayload(dummyPayload)).toThrow(
+          /unknown event hook:/
+        );
       });
     });
 
@@ -178,14 +173,9 @@ describe("modules/github", () => {
       it("should throw error when issue comment deleted", () => {
         const dummyPayload = buildIssueCommentPayload("deleted");
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail();
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
-          );
-        }
+        expect(() => pickupInfoFromGithubPayload(dummyPayload)).toThrow(
+          /unknown event hook:/
+        );
       });
     });
 
@@ -233,14 +223,9 @@ describe("modules/github", () => {
       it("should throw error when pr deleted", () => {
         const dummyPayload = buildPrPayload("deleted");
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail();
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
-          );
-        }
+        expect(() => pickupInfoFromGithubPayload(dummyPayload)).toThrow(
+          /unknown event hook:/
+        );
       });
     });
 
@@ -296,14 +281,9 @@ describe("modules/github", () => {
       it("should throw error when pull_request comment deleted", () => {
         const dummyPayload = buildPrCommentPayload("deleted");
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail();
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
-          );
-        }
+        expect(() => pickupInfoFromGithubPayload(dummyPayload)).toThrow(
+          /unknown event hook:/
+        );
       });
     });
 

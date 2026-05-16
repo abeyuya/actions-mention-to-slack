@@ -49,19 +49,16 @@ export type WebhookPayload = AnyRecord & {
   };
 };
 
-let cachedPayload: WebhookPayload | undefined;
-
 const readPayload = (): WebhookPayload => {
-  if (cachedPayload !== undefined) {
-    return cachedPayload;
-  }
   const path = process.env.GITHUB_EVENT_PATH;
-  if (!path || !fs.existsSync(path)) {
-    cachedPayload = {};
-    return cachedPayload;
+  if (!path) {
+    return {};
   }
-  cachedPayload = JSON.parse(fs.readFileSync(path, "utf-8")) as WebhookPayload;
-  return cachedPayload;
+  try {
+    return JSON.parse(fs.readFileSync(path, "utf-8")) as WebhookPayload;
+  } catch {
+    return {};
+  }
 };
 
 const parseRepo = (): { owner: string; repo: string } => {

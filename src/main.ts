@@ -68,14 +68,12 @@ export const execPrReviewRequestedMention = async (
     throw new Error("Can not find review requested user or team.");
   }
 
-  const slackUserIds = convertToSlackUsername(
-    [requestedGithubUsername ?? ""],
-    mapping
-  );
-  const slackUserGroupIds = convertToSlackUsername(
-    [requestedGithubTeam ?? ""],
-    mapping
-  );
+  const slackUserIds = requestedGithubUsername
+    ? convertToSlackUsername([requestedGithubUsername], mapping)
+    : [];
+  const slackUserGroupIds = requestedGithubTeam
+    ? convertToSlackUsername([requestedGithubTeam], mapping)
+    : [];
 
   if (slackUserIds.length === 0 && slackUserGroupIds.length === 0) {
     debug(
