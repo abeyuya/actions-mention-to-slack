@@ -6,18 +6,18 @@ import {
   pickupUsername,
   pickupInfoFromGithubPayload,
   needToSendReviewSubmittedMention,
-} from "./modules/github";
+} from "./modules/github.js";
 import {
   buildSlackPostMessage,
   buildSlackErrorMessage,
   SlackRepositoryImpl,
   convertGithubTextToBlockquotesText,
-} from "./modules/slack";
+} from "./modules/slack.js";
 import {
   MappingConfigRepositoryImpl,
   isUrl,
   MappingFile,
-} from "./modules/mappingConfig";
+} from "./modules/mappingConfig.js";
 
 export type AllInputs = {
   repoToken: string;

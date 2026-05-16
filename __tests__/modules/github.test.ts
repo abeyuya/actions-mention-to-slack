@@ -2,10 +2,10 @@ import { WebhookPayload } from "@actions/github/lib/interfaces";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
-} from "../../src/modules/github";
+} from "../../src/modules/github.js";
 
-import { realPayload } from "../fixture/real-payload-20211017";
-import { prApprovePayload } from "../fixture/real-payload-20211024-pr-approve";
+import { realPayload } from "../fixture/real-payload-20211017.js";
+import { prApprovePayload } from "../fixture/real-payload-20211024-pr-approve.js";
 
 describe("modules/github", () => {
   describe("pickupUsername", () => {
