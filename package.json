@@ -6,19 +6,19 @@
   "type": "module",
   "dependencies": {
     "@actions/core": "^3.0.0",
-    "@actions/github": "^5.1.1",
+    "@actions/github": "^9.0.0",
     "@vercel/ncc": "^0.36.1",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/js-yaml": "^4.0.5",
+    "@types/node": "^24.0.0",
     "@typescript-eslint/eslint-plugin": "8.59.3",
     "@typescript-eslint/parser": "8.59.3",
     "@vitest/coverage-v8": "^3.2.0",
     "eslint": "10.4.0",
     "globals": "^17.6.0",
-    "ts-node": "10.9.1",
     "typescript": "6.0.3",
     "vitest": "^3.2.0"
   },

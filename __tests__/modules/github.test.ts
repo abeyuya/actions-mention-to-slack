@@ -1,4 +1,4 @@
-import { WebhookPayload } from "@actions/github/lib/interfaces";
+import type { context } from "@actions/github";
 import {
   pickupUsername,
   pickupInfoFromGithubPayload,
@@ -42,7 +42,7 @@ describe("modules/github", () => {
 
   describe("pickupInfoFromGithubPayload", () => {
     describe("issue event", () => {
-      const buildIssuePayload = (action: string): Partial<WebhookPayload> => {
+      const buildIssuePayload = (action: string): Partial<typeof context.payload> => {
         return {
           action,
           issue: {
@@ -99,7 +99,7 @@ describe("modules/github", () => {
     describe("issue comment event", () => {
       const buildIssueCommentPayload = (
         action: string
-      ): Partial<WebhookPayload> => {
+      ): Partial<typeof context.payload> => {
         return {
           action,
           issue: {
@@ -134,7 +134,7 @@ describe("modules/github", () => {
       });
 
       it("should return when issue commented with blockquotes", () => {
-        const dummyPayload: Partial<WebhookPayload> = {
+        const dummyPayload: Partial<typeof context.payload> = {
           action: "created",
           issue: {
             body: "issue body",
@@ -190,7 +190,7 @@ describe("modules/github", () => {
     });
 
     describe("pr event", () => {
-      const buildPrPayload = (action: string): Partial<WebhookPayload> => {
+      const buildPrPayload = (action: string): Partial<typeof context.payload> => {
         return {
           action,
           pull_request: {
@@ -247,7 +247,7 @@ describe("modules/github", () => {
     describe("pr comment event", () => {
       const buildPrCommentPayload = (
         action: string
-      ): Partial<WebhookPayload> => {
+      ): Partial<typeof context.payload> => {
         return {
           action,
           pull_request: {
@@ -310,7 +310,7 @@ describe("modules/github", () => {
     describe("pr review event", () => {
       const buildPrReviewPayload = (
         action: string
-      ): Partial<WebhookPayload> => {
+      ): Partial<typeof context.payload> => {
         return {
           action,
           pull_request: {
