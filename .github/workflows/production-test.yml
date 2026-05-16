@@ -25,7 +25,7 @@ jobs:
           owner: abeyuya
           repositories: github-actions-test
       - name: Create ${{ matrix.target.kind }} comment with user_name mention
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           repository: abeyuya/github-actions-test
           token: ${{ steps.app-token.outputs.token }}
