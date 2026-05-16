@@ -87,7 +87,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -180,7 +180,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -235,7 +235,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
@@ -298,7 +298,7 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
             true
