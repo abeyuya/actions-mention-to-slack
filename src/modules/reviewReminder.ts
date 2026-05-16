@@ -30,23 +30,24 @@ export const fetchOpenReviewRequests = async (
   const userEntries = new Map<string, ReminderPr[]>();
   const teamEntries = new Map<string, ReminderPr[]>();
 
+  const addPr = (map: Map<string, ReminderPr[]>, key: string | undefined, pr: ReminderPr) => {
+    if (!key) return;
+    const list = map.get(key) ?? [];
+    list.push(pr);
+    map.set(key, list);
+  };
+
   for (const pr of prs) {
     if (pr.draft) continue;
 
     const item: ReminderPr = { title: pr.title, url: pr.html_url };
 
     for (const reviewer of pr.requested_reviewers ?? []) {
-      if (!reviewer?.login) continue;
-      const list = userEntries.get(reviewer.login) ?? [];
-      list.push(item);
-      userEntries.set(reviewer.login, list);
+      addPr(userEntries, reviewer?.login, item);
     }
 
     for (const team of pr.requested_teams ?? []) {
-      if (!team?.name) continue;
-      const list = teamEntries.get(team.name) ?? [];
-      list.push(item);
-      teamEntries.set(team.name, list);
+      addPr(teamEntries, team?.name, item);
     }
   }
 

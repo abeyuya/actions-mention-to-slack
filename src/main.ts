@@ -23,6 +23,8 @@ import {
   ReminderEntry,
 } from "./modules/reviewReminder.js";
 
+export type ActionType = "reminder";
+
 export type AllInputs = {
   repoToken: string;
   configurationPath: string;
@@ -30,7 +32,7 @@ export type AllInputs = {
   iconUrl?: string;
   botName?: string;
   runId?: string;
-  type?: string;
+  type?: ActionType;
 };
 
 export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
@@ -283,7 +285,8 @@ const getAllInputs = (): AllInputs => {
     required: true,
   });
   const runId = getInput("run-id", { required: false });
-  const type = getInput("type", { required: false });
+  const rawType = getInput("type", { required: false });
+  const type: ActionType | undefined = rawType === "reminder" ? rawType : undefined;
 
   return {
     repoToken,
