@@ -1,5 +1,5 @@
 import type { context } from "@actions/github";
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 import {
   type AllInputs,
@@ -74,7 +74,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<typeof context.payload> = {
@@ -118,7 +118,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<typeof context.payload> = {
@@ -155,7 +155,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is team account", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<typeof context.payload> = {
@@ -213,7 +213,7 @@ describe("src/main", () => {
 
     it("should call postToSlack if requested_user is listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<typeof context.payload> = {
@@ -252,7 +252,7 @@ describe("src/main", () => {
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const dummyPayload: Partial<typeof context.payload> = {
@@ -288,10 +288,11 @@ describe("src/main", () => {
       describe("no mention in body", () => {
         it("should not call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             prApprovePayload as any,
             dummyInputs,
             {
@@ -308,7 +309,7 @@ describe("src/main", () => {
       describe("another user mention in body", () => {
         it("should call slack post", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -316,6 +317,7 @@ describe("src/main", () => {
             "this is approve comment. @github_user hello";
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -333,7 +335,7 @@ describe("src/main", () => {
       describe("pr-owner-user mention in body", () => {
         it("should not call slack post. (because pr-owner-user already mention by execReviewSubmittedMention)", async () => {
           const slackMock = {
-            postToSlack: jest.fn(),
+            postToSlack: vi.fn(),
           };
 
           const overwritePayload = structuredClone(prApprovePayload);
@@ -341,6 +343,7 @@ describe("src/main", () => {
             "this is approve comment. @abeyuya-bot hello";
 
           await execNormalMention(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             overwritePayload as any,
             dummyInputs,
             {
@@ -391,7 +394,7 @@ describe("src/main", () => {
       expectedPhrase,
     }) => {
       const slackMock = {
-        postToSlack: jest.fn(),
+        postToSlack: vi.fn(),
       };
 
       const overwritePayload = structuredClone(prApprovePayload);
@@ -399,6 +402,7 @@ describe("src/main", () => {
       overwritePayload.review.body = body;
 
       const result = await execReviewSubmittedMention(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         overwritePayload as any,
         dummyInputs,
         dummyMapping,
@@ -422,13 +426,14 @@ describe("src/main", () => {
     describe("when the reviewer is the PR author (self-review)", () => {
       it("should not post to slack and return null", async () => {
         const slackMock = {
-          postToSlack: jest.fn(),
+          postToSlack: vi.fn(),
         };
 
         const overwritePayload = structuredClone(prApprovePayload);
         overwritePayload.sender.login = "abeyuya-bot";
 
         const result = await execReviewSubmittedMention(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           overwritePayload as any,
           dummyInputs,
           dummyMapping,
