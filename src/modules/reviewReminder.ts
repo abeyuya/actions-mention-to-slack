@@ -1,3 +1,4 @@
+import { warning } from "@actions/core";
 import type { getOctokit } from "@actions/github";
 
 export type ApprovalState =
@@ -36,6 +37,8 @@ type ReviewLike = {
 
 const APPROVAL_API_CONCURRENCY = 5;
 const LABEL_DISPLAY_LIMIT = 5;
+// Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
+const SECTION_TEXT_LIMIT = 2800;
 
 const mapWithConcurrency = async <T, R>(
   items: T[],
@@ -53,22 +56,29 @@ const mapWithConcurrency = async <T, R>(
 
 export const aggregateApprovalState = (
   reviews: ReviewLike[],
+  hasPendingRequest: boolean,
 ): ApprovalState => {
   const latestByReviewer = new Map<string, string>();
   for (const review of reviews) {
     const login = review.user?.login;
     const state = review.state;
     if (!login || !state) continue;
-    // COMMENTED / DISMISSED / PENDING はレビュアーの意思表示として扱わない
-    if (state !== "APPROVED" && state !== "CHANGES_REQUESTED") continue;
-    latestByReviewer.set(login, state);
+    if (state === "APPROVED" || state === "CHANGES_REQUESTED") {
+      latestByReviewer.set(login, state);
+    } else if (state === "DISMISSED") {
+      // DISMISSED は過去の APPROVED / CHANGES_REQUESTED を無効化する意思表示
+      latestByReviewer.delete(login);
+    }
+    // COMMENTED / PENDING は意思表示として扱わない
   }
 
   if (latestByReviewer.size === 0) return "review_required";
   for (const state of latestByReviewer.values()) {
     if (state === "CHANGES_REQUESTED") return "changes_requested";
   }
-  return "approved";
+  // 残りは全員 APPROVED。ただし pending reviewer が残っていれば、
+  // リマインダー対象者視点では「review_required」を優先する。
+  return hasPendingRequest ? "review_required" : "approved";
 };
 
 export const formatRelativeAge = (createdAt: Date, now: Date): string => {
@@ -85,7 +95,10 @@ export const formatRelativeAge = (createdAt: Date, now: Date): string => {
 
 export const formatLabels = (labels: string[]): string => {
   if (labels.length === 0) return "";
-  const shown = labels.slice(0, LABEL_DISPLAY_LIMIT).map((l) => `\`${l}\``);
+  // ラベル名内のバックティックは Slack mrkdwn の inline code を破壊するため除去
+  const shown = labels
+    .slice(0, LABEL_DISPLAY_LIMIT)
+    .map((l) => `\`${l.replace(/`/g, "")}\``);
   const overflow = labels.length - LABEL_DISPLAY_LIMIT;
   return overflow > 0
     ? `${shown.join(", ")}, +${overflow} more`
@@ -114,6 +127,22 @@ const buildPrLine = (pr: ReminderPr, now: Date): string => {
   return `• <${pr.url}|#${pr.number} ${pr.title}>\n${meta}`;
 };
 
+const splitSectionByLimit = (header: string, prLines: string[]): string[] => {
+  const sections: string[] = [];
+  let current = header;
+  for (const line of prLines) {
+    const candidate = `${current}\n${line}`;
+    if (candidate.length > SECTION_TEXT_LIMIT && current !== header) {
+      sections.push(current);
+      current = `${header} (cont.)\n${line}`;
+    } else {
+      current = candidate;
+    }
+  }
+  sections.push(current);
+  return sections;
+};
+
 export const fetchOpenReviewRequests = async (
   octokit: ReturnType<typeof getOctokit>,
   owner: string,
@@ -137,15 +166,25 @@ export const fetchOpenReviewRequests = async (
     pendingPrs,
     APPROVAL_API_CONCURRENCY,
     async (pr) => {
-      const { data } = await octokit.rest.pulls.listReviews({
-        owner,
-        repo,
-        pull_number: pr.number,
-      });
-      return {
-        pr,
-        approvalState: aggregateApprovalState(data as ReviewLike[]),
-      };
+      try {
+        const { data } = await octokit.rest.pulls.listReviews({
+          owner,
+          repo,
+          pull_number: pr.number,
+        });
+        return {
+          pr,
+          approvalState: aggregateApprovalState(data as ReviewLike[], true),
+        };
+      } catch (e) {
+        // 1 件の review 取得失敗でリマインダ全体を落とさず、
+        // フォールバックとして review_required 表示にする
+        const reason = e instanceof Error ? e.message : String(e);
+        warning(
+          `Failed to fetch reviews for PR #${pr.number}: ${reason}. Falling back to review_required.`,
+        );
+        return { pr, approvalState: "review_required" as const };
+      }
     },
   );
 
@@ -216,13 +255,17 @@ export const buildReviewReminderMessage = (
 
   const headerText = `:eyes: Pending review reminders for \`${repoFullName}\`:`;
 
-  const entrySections = entries.map((entry) => {
+  const entryBlockTexts: string[] = [];
+  const entryTextSections: string[] = [];
+
+  for (const entry of entries) {
     const header = buildEntryHeader(entry);
     const prLines = entry.prs.map((pr) => buildPrLine(pr, now));
-    return [header, ...prLines].join("\n");
-  });
+    entryTextSections.push([header, ...prLines].join("\n"));
+    entryBlockTexts.push(...splitSectionByLimit(header, prLines));
+  }
 
-  const text = [headerText, "", entrySections.join("\n\n")].join("\n");
+  const text = [headerText, "", entryTextSections.join("\n\n")].join("\n");
 
   const blocks: unknown[] = [
     {
@@ -231,7 +274,7 @@ export const buildReviewReminderMessage = (
     },
     { type: "divider" },
   ];
-  for (const section of entrySections) {
+  for (const section of entryBlockTexts) {
     blocks.push({
       type: "section",
       text: { type: "mrkdwn", text: section },

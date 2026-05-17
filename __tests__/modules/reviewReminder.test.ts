@@ -86,52 +86,102 @@ describe("reviewReminder", () => {
 
   describe("aggregateApprovalState", () => {
     it("returns review_required when there are no reviews", () => {
-      expect(aggregateApprovalState([])).toBe("review_required");
+      expect(aggregateApprovalState([], false)).toBe("review_required");
     });
 
-    it("returns approved when the only reviewer approved", () => {
+    it("returns approved when the only reviewer approved and nothing is pending", () => {
       expect(
-        aggregateApprovalState([{ user: { login: "a" }, state: "APPROVED" }]),
+        aggregateApprovalState(
+          [{ user: { login: "a" }, state: "APPROVED" }],
+          false,
+        ),
       ).toBe("approved");
+    });
+
+    it("downgrades approved to review_required when reviewers are still pending", () => {
+      expect(
+        aggregateApprovalState(
+          [{ user: { login: "a" }, state: "APPROVED" }],
+          true,
+        ),
+      ).toBe("review_required");
     });
 
     it("returns approved when all reviewers approved", () => {
       expect(
-        aggregateApprovalState([
-          { user: { login: "a" }, state: "APPROVED" },
-          { user: { login: "b" }, state: "APPROVED" },
-        ]),
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "APPROVED" },
+            { user: { login: "b" }, state: "APPROVED" },
+          ],
+          false,
+        ),
       ).toBe("approved");
     });
 
-    it("returns changes_requested when any reviewer requested changes", () => {
+    it("returns changes_requested when any reviewer requested changes, even with pending", () => {
       expect(
-        aggregateApprovalState([
-          { user: { login: "a" }, state: "APPROVED" },
-          { user: { login: "b" }, state: "CHANGES_REQUESTED" },
-        ]),
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "APPROVED" },
+            { user: { login: "b" }, state: "CHANGES_REQUESTED" },
+          ],
+          true,
+        ),
       ).toBe("changes_requested");
     });
 
     it("uses the latest state when a reviewer submitted multiple reviews", () => {
       expect(
-        aggregateApprovalState([
-          { user: { login: "a" }, state: "COMMENTED" },
-          { user: { login: "a" }, state: "APPROVED" },
-        ]),
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "COMMENTED" },
+            { user: { login: "a" }, state: "APPROVED" },
+          ],
+          false,
+        ),
       ).toBe("approved");
 
       expect(
-        aggregateApprovalState([
-          { user: { login: "a" }, state: "APPROVED" },
-          { user: { login: "a" }, state: "CHANGES_REQUESTED" },
-        ]),
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "APPROVED" },
+            { user: { login: "a" }, state: "CHANGES_REQUESTED" },
+          ],
+          false,
+        ),
       ).toBe("changes_requested");
+    });
+
+    it("treats DISMISSED as invalidating the prior decision", () => {
+      expect(
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "CHANGES_REQUESTED" },
+            { user: { login: "a" }, state: "DISMISSED" },
+          ],
+          false,
+        ),
+      ).toBe("review_required");
+
+      expect(
+        aggregateApprovalState(
+          [
+            { user: { login: "a" }, state: "APPROVED" },
+            { user: { login: "a" }, state: "DISMISSED" },
+            { user: { login: "b" }, state: "APPROVED" },
+          ],
+          false,
+        ),
+      ).toBe("approved");
     });
 
     it("ignores COMMENTED-only reviews as no decision", () => {
       expect(
-        aggregateApprovalState([{ user: { login: "a" }, state: "COMMENTED" }]),
+        aggregateApprovalState(
+          [{ user: { login: "a" }, state: "COMMENTED" }],
+          false,
+        ),
       ).toBe("review_required");
     });
   });
@@ -402,7 +452,8 @@ describe("reviewReminder", () => {
       expect(pr1.title).toBe("PR1");
       expect(pr1.url).toBe("https://example.com/pr/1");
       expect(pr1.createdAt).toBe("2026-05-14T12:00:00Z");
-      expect(pr1.approvalState).toBe("approved");
+      // alice / bob が pending として残るため、x の APPROVED だけでは approved にならない
+      expect(pr1.approvalState).toBe("review_required");
       expect(pr1.labels).toEqual(["bug", "ui"]);
 
       const pr2 = byName.alice.prs.find((p) => p.number === 2);
@@ -424,6 +475,78 @@ describe("reviewReminder", () => {
       const result = await fetchOpenReviewRequests(client, "owner", "repo");
       expect(result).toEqual([]);
       expect(listReviews).not.toHaveBeenCalled();
+    });
+
+    it("falls back to review_required when listReviews throws for a PR", async () => {
+      const listReviews = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("rate limit"))
+        .mockResolvedValueOnce({
+          data: [{ user: { login: "x" }, state: "APPROVED" }],
+        });
+      const client = {
+        paginate: vi.fn(async () => [
+          makePr({
+            number: 1,
+            requested_reviewers: [{ login: "alice" }],
+          }),
+          makePr({
+            number: 2,
+            requested_reviewers: [{ login: "alice" }],
+          }),
+        ]),
+        rest: { pulls: { list: vi.fn(), listReviews } },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any;
+
+      const result = await fetchOpenReviewRequests(client, "owner", "repo");
+      const alice = result.find((r) => r.githubName === "alice");
+      assert(alice);
+      // どちらの PR の listReviews が先に呼ばれるかは並列実行で順不同なため、
+      // 失敗側が review_required にフォールバックしていることだけを確認する
+      const states = alice.prs.map((p) => p.approvalState).sort();
+      expect(states).toEqual(["review_required", "review_required"]);
+    });
+  });
+
+  describe("buildReviewReminderMessage section splitting", () => {
+    it("splits a reviewer's section across multiple blocks when the text limit is exceeded", () => {
+      const longTitle = "x".repeat(200);
+      const prs = Array.from({ length: 60 }, (_, i) =>
+        makeEntryPr({
+          number: i + 1,
+          title: longTitle,
+          url: `https://example.com/pr/${i + 1}`,
+        }),
+      );
+      const entries: ReminderEntry[] = [
+        {
+          githubName: "alice",
+          slackId: "U_ALICE",
+          isTeam: false,
+          prs,
+        },
+      ];
+
+      const result = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      );
+      assert(result);
+      // header section + divider + 複数の reviewer section (分割される)
+      const reviewerBlocks = result.blocks.slice(2) as Array<{
+        type: string;
+        text: { type: string; text: string };
+      }>;
+      expect(reviewerBlocks.length).toBeGreaterThan(1);
+      for (const b of reviewerBlocks) {
+        expect(b.text.text.length).toBeLessThanOrEqual(3000);
+      }
+      // 2 つ目以降の section は "(cont.)" マーカーで始まる
+      expect(reviewerBlocks[1].text.text.startsWith("<@U_ALICE> (cont.)")).toBe(
+        true,
+      );
     });
   });
 });
