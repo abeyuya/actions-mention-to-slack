@@ -40242,6 +40242,63 @@ const MappingConfigRepositoryImpl = {
     },
 };
 
+;// CONCATENATED MODULE: ./src/modules/reviewReminder.ts
+const fetchOpenReviewRequests = async (octokit, owner, repo) => {
+    var _a, _b;
+    const prs = await octokit.paginate(octokit.rest.pulls.list, {
+        owner,
+        repo,
+        state: "open",
+        per_page: 100,
+    });
+    const userEntries = new Map();
+    const teamEntries = new Map();
+    const addPr = (map, key, pr) => {
+        var _a;
+        if (!key)
+            return;
+        const list = (_a = map.get(key)) !== null && _a !== void 0 ? _a : [];
+        list.push(pr);
+        map.set(key, list);
+    };
+    for (const pr of prs) {
+        if (pr.draft)
+            continue;
+        const item = { title: pr.title, url: pr.html_url };
+        for (const reviewer of (_a = pr.requested_reviewers) !== null && _a !== void 0 ? _a : []) {
+            addPr(userEntries, reviewer === null || reviewer === void 0 ? void 0 : reviewer.login, item);
+        }
+        for (const team of (_b = pr.requested_teams) !== null && _b !== void 0 ? _b : []) {
+            addPr(teamEntries, team === null || team === void 0 ? void 0 : team.name, item);
+        }
+    }
+    const toEntries = (map, isTeam) => [...map.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([githubName, prs]) => ({ githubName, isTeam, prs }));
+    return [...toEntries(userEntries, false), ...toEntries(teamEntries, true)];
+};
+const buildReviewReminderMessage = (entries, repoFullName) => {
+    if (entries.length === 0)
+        return null;
+    const sections = entries.map((entry) => {
+        const header = (() => {
+            if (entry.slackId) {
+                return entry.isTeam
+                    ? `<!subteam^${entry.slackId}>`
+                    : `<@${entry.slackId}>`;
+            }
+            return `\`${entry.githubName}\``;
+        })();
+        const lines = entry.prs.map((pr) => `  • <${pr.url}|${pr.title}>`);
+        return [header, ...lines].join("\n");
+    });
+    return [
+        `:eyes: Pending review reminders for \`${repoFullName}\`:`,
+        "",
+        sections.join("\n\n"),
+    ].join("\n");
+};
+
 ;// CONCATENATED MODULE: ./src/modules/slack.ts
 const convertGithubTextToBlockquotesText = (githubText) => {
     const t = githubText
@@ -40322,6 +40379,7 @@ const SlackRepositoryImpl = {
 };
 
 ;// CONCATENATED MODULE: ./src/main.ts
+
 
 
 
@@ -40430,6 +40488,20 @@ const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClie
     core_debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
     return prOwnerSlackUserId;
 };
+const execReviewReminder = async (allInputs, mapping, slackClient, octokit, owner, repo) => {
+    const raw = await fetchOpenReviewRequests(octokit, owner, repo);
+    const entries = raw.map((r) => ({
+        ...r,
+        slackId: mapping[r.githubName],
+    }));
+    const message = buildReviewReminderMessage(entries, `${owner}/${repo}`);
+    if (!message) {
+        core_debug("finish execReviewReminder because no pending reviews");
+        return;
+    }
+    const { slackWebhookUrl, iconUrl, botName } = allInputs;
+    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+};
 const buildCurrentJobUrl = (runId) => {
     const { owner, repo } = github_context.repo;
     return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
@@ -40459,6 +40531,10 @@ const getAllInputs = () => {
         required: true,
     });
     const runId = getInput("run-id", { required: false });
+    const rawType = getInput("type", { required: false });
+    const type = rawType === "realtime-alert" || rawType === "scheduled-reminder"
+        ? rawType
+        : undefined;
     return {
         repoToken,
         configurationPath,
@@ -40466,6 +40542,7 @@ const getAllInputs = () => {
         iconUrl,
         botName,
         runId,
+        type,
     };
 };
 const main = async () => {
@@ -40483,6 +40560,11 @@ const main = async () => {
             return MappingConfigRepositoryImpl.loadFromGithubPath(repoToken, github_context.repo.owner, github_context.repo.repo, configurationPath, github_context.sha);
         })();
         core_debug(JSON.stringify({ mapping }, null, 2));
+        if (allInputs.type === "scheduled-reminder") {
+            await execReviewReminder(allInputs, mapping, SlackRepositoryImpl, getOctokit(repoToken), github_context.repo.owner, github_context.repo.repo);
+            core_debug("finish execReviewReminder()");
+            return;
+        }
         if (payload.action === "review_requested") {
             await execPrReviewRequestedMention(payload, allInputs, mapping, SlackRepositoryImpl);
             core_debug("finish execPrReviewRequestedMention()");

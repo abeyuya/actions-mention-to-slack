@@ -20,6 +20,9 @@ inputs:
   run-id:
     description: "Used for the link in the error message when an error occurs."
     required: false
+  type:
+    description: "Action mode. 'realtime-alert' (default) sends mention/review notifications driven by GitHub webhook events. 'scheduled-reminder' posts an aggregated summary of open pull requests that have pending review requests. Leaving it empty behaves the same as 'realtime-alert'."
+    required: false
 runs:
   using: "node24"
   main: "dist/index.js"
