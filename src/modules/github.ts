@@ -21,10 +21,27 @@ const acceptActionTypes = {
   pull_request_review_comment: ["created", "edited"],
 };
 
-const buildError = (payload: unknown): Error => {
-  return new Error(
-    `unknown event hook: ${JSON.stringify(payload, undefined, 2)}`,
-  );
+const eventCategoryOf = (
+  payload: Partial<typeof context.payload>,
+): keyof typeof acceptActionTypes | null => {
+  if (payload.issue) {
+    return payload.comment ? "issue_comment" : "issues";
+  }
+  if (payload.pull_request) {
+    if (payload.review) return "pull_request_review";
+    if (payload.comment) return "issue_comment";
+    return "pull_request";
+  }
+  return null;
+};
+
+export const isSupportedEvent = (
+  payload: Partial<typeof context.payload>,
+): boolean => {
+  const category = eventCategoryOf(payload);
+  if (category === null) return false;
+  if (typeof payload.action !== "string") return false;
+  return acceptActionTypes[category].includes(payload.action);
 };
 
 export const needToSendReviewSubmittedMention = (
@@ -41,28 +58,14 @@ export const pickupInfoFromGithubPayload = (
   url: string;
   senderName: string;
 } => {
-  const { action } = payload;
-
-  if (action === undefined) {
-    throw buildError(payload);
-  }
-
   if (payload.issue) {
     if (payload.comment) {
-      if (!acceptActionTypes.issue_comment.includes(action)) {
-        throw buildError(payload);
-      }
-
       return {
         body: payload.comment.body,
         title: payload.issue.title,
         url: payload.comment.html_url,
         senderName: payload.sender?.login || "",
       };
-    }
-
-    if (!acceptActionTypes.issues.includes(action)) {
-      throw buildError(payload);
     }
 
     return {
@@ -75,10 +78,6 @@ export const pickupInfoFromGithubPayload = (
 
   if (payload.pull_request) {
     if (payload.review) {
-      if (!acceptActionTypes.pull_request_review.includes(action)) {
-        throw buildError(payload);
-      }
-
       return {
         body: payload.review.body,
         title: payload.pull_request?.title || "",
@@ -88,20 +87,12 @@ export const pickupInfoFromGithubPayload = (
     }
 
     if (payload.comment) {
-      if (!acceptActionTypes.issue_comment.includes(action)) {
-        throw buildError(payload);
-      }
-
       return {
         body: payload.comment.body,
         title: payload.pull_request.title,
         url: payload.comment.html_url,
         senderName: payload.sender?.login || "",
       };
-    }
-
-    if (!acceptActionTypes.pull_request.includes(action)) {
-      throw buildError(payload);
     }
 
     return {
@@ -112,5 +103,7 @@ export const pickupInfoFromGithubPayload = (
     };
   }
 
-  throw buildError(payload);
+  throw new Error(
+    "pickupInfoFromGithubPayload called with unsupported payload. Guard with isSupportedEvent() before calling.",
+  );
 };

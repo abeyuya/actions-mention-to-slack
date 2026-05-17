@@ -358,6 +358,41 @@ describe("src/main", () => {
         });
       });
     });
+
+    describe("unsupported event (issue #344)", () => {
+      it.each([
+        "closed",
+        "reopened",
+        "ready_for_review",
+        "synchronize",
+      ])("should not call postToSlack for pull_request.%s", async (action) => {
+        const slackMock = { postToSlack: vi.fn() };
+
+        const dummyPayload: Partial<typeof context.payload> = {
+          action,
+          pull_request: {
+            body: "@github_user_1 hi",
+            title: "pr_title",
+            html_url: "pr_url",
+            number: 1,
+          },
+          sender: {
+            login: "sender_github_username",
+            type: "User",
+          },
+        };
+
+        await execNormalMention(
+          dummyPayload,
+          dummyInputs,
+          dummyMapping,
+          slackMock,
+          [],
+        );
+
+        expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe("execReviewSubmittedMention", () => {

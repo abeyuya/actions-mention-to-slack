@@ -1,5 +1,6 @@
 import type { context } from "@actions/github";
 import {
+  isSupportedEvent,
   pickupInfoFromGithubPayload,
   pickupUsername,
 } from "../../src/modules/github.js";
@@ -84,17 +85,18 @@ describe("modules/github", () => {
         });
       });
 
-      it("should throw error when issue deleted", () => {
-        const dummyPayload = buildIssuePayload("deleted");
+      describe("isSupportedEvent", () => {
+        it.each(["opened", "edited"])("returns true for %s", (action) => {
+          expect(isSupportedEvent(buildIssuePayload(action))).toBe(true);
+        });
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail("expected pickupInfoFromGithubPayload to throw");
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true,
-          );
-        }
+        it.each([
+          "deleted",
+          "closed",
+          "reopened",
+        ])("returns false for %s", (action) => {
+          expect(isSupportedEvent(buildIssuePayload(action))).toBe(false);
+        });
       });
     });
 
@@ -177,17 +179,16 @@ describe("modules/github", () => {
         });
       });
 
-      it("should throw error when issue comment deleted", () => {
-        const dummyPayload = buildIssueCommentPayload("deleted");
+      describe("isSupportedEvent", () => {
+        it.each(["created", "edited"])("returns true for %s", (action) => {
+          expect(isSupportedEvent(buildIssueCommentPayload(action))).toBe(true);
+        });
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail("expected pickupInfoFromGithubPayload to throw");
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true,
+        it.each(["deleted"])("returns false for %s", (action) => {
+          expect(isSupportedEvent(buildIssueCommentPayload(action))).toBe(
+            false,
           );
-        }
+        });
       });
     });
 
@@ -234,17 +235,27 @@ describe("modules/github", () => {
         });
       });
 
-      it("should throw error when pr deleted", () => {
-        const dummyPayload = buildPrPayload("deleted");
+      describe("isSupportedEvent", () => {
+        it.each([
+          "opened",
+          "edited",
+          "review_requested",
+        ])("returns true for %s", (action) => {
+          expect(isSupportedEvent(buildPrPayload(action))).toBe(true);
+        });
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail("expected pickupInfoFromGithubPayload to throw");
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true,
-          );
-        }
+        it.each([
+          "closed",
+          "reopened",
+          "ready_for_review",
+          "synchronize",
+          "labeled",
+          "unlabeled",
+          "assigned",
+          "unassigned",
+        ])("returns false for %s (issue #344)", (action) => {
+          expect(isSupportedEvent(buildPrPayload(action))).toBe(false);
+        });
       });
     });
 
@@ -297,17 +308,14 @@ describe("modules/github", () => {
         });
       });
 
-      it("should throw error when pull_request comment deleted", () => {
-        const dummyPayload = buildPrCommentPayload("deleted");
+      describe("isSupportedEvent", () => {
+        it.each(["created", "edited"])("returns true for %s", (action) => {
+          expect(isSupportedEvent(buildPrCommentPayload(action))).toBe(true);
+        });
 
-        try {
-          pickupInfoFromGithubPayload(dummyPayload);
-          expect.fail("expected pickupInfoFromGithubPayload to throw");
-        } catch (e: unknown) {
-          expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true,
-          );
-        }
+        it.each(["deleted"])("returns false for %s", (action) => {
+          expect(isSupportedEvent(buildPrCommentPayload(action))).toBe(false);
+        });
       });
     });
 
@@ -346,6 +354,16 @@ describe("modules/github", () => {
           senderName: "sender_github_username",
         });
       });
+
+      describe("isSupportedEvent", () => {
+        it.each(["submitted"])("returns true for %s", (action) => {
+          expect(isSupportedEvent(buildPrReviewPayload(action))).toBe(true);
+        });
+
+        it.each(["edited", "dismissed"])("returns false for %s", (action) => {
+          expect(isSupportedEvent(buildPrReviewPayload(action))).toBe(false);
+        });
+      });
     });
 
     describe("real payloat test 20211017", () => {
@@ -363,6 +381,16 @@ describe("modules/github", () => {
         expect(result.senderName).toEqual("abeyuya");
         expect(result.body).toEqual("approve comment");
       });
+    });
+  });
+
+  describe("isSupportedEvent edge cases", () => {
+    it("returns false when action is missing", () => {
+      expect(isSupportedEvent({})).toBe(false);
+    });
+
+    it("returns false when neither issue nor pull_request is present", () => {
+      expect(isSupportedEvent({ action: "opened" })).toBe(false);
     });
   });
 });
