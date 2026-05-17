@@ -267,7 +267,8 @@ export const execPostError = async (
       botName,
     });
   } catch (e) {
-    warning(`Failed to post error to Slack: ${(e as Error).message}`);
+    const reason = e instanceof Error ? e.message : String(e);
+    warning(`Failed to post error to Slack: ${reason}`);
   }
 };
 

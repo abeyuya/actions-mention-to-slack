@@ -554,7 +554,7 @@ describe("src/main", () => {
       expect(slackMock.postToSlack.mock.calls[0][0]).toEqual("dummy_url");
     });
 
-    it("does not throw when postToSlack rejects", async () => {
+    it("does not throw and logs a warning when postToSlack rejects", async () => {
       const slackMock = {
         postToSlack: vi.fn().mockRejectedValue(new Error("slack down")),
       };
@@ -562,14 +562,6 @@ describe("src/main", () => {
       await expect(
         execPostError(new Error("boom"), dummyInputs, slackMock),
       ).resolves.toBeUndefined();
-    });
-
-    it("logs a warning containing 'Failed to post error to Slack' when postToSlack rejects", async () => {
-      const slackMock = {
-        postToSlack: vi.fn().mockRejectedValue(new Error("slack down")),
-      };
-
-      await execPostError(new Error("boom"), dummyInputs, slackMock);
 
       const failureWarnings = vi
         .mocked(warning)
