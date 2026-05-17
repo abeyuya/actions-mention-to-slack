@@ -2,6 +2,7 @@ import { debug, getInput, setFailed, warning } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 
 import {
+  isSupportedEvent,
   needToSendReviewSubmittedMention,
   pickupInfoFromGithubPayload,
   pickupUsername,
@@ -111,6 +112,11 @@ export const execNormalMention = async (
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
   ignoreSlackIds: string[],
 ): Promise<void> => {
+  if (!isSupportedEvent(payload)) {
+    debug("finish execNormalMention because event is not supported");
+    return;
+  }
+
   const info = pickupInfoFromGithubPayload(payload);
 
   if (info.body === null) {
@@ -158,6 +164,11 @@ export const execReviewSubmittedMention = async (
 ): Promise<string | null> => {
   if (!needToSendReviewSubmittedMention(payload)) {
     throw new Error("failed to parse payload");
+  }
+
+  if (!isSupportedEvent(payload)) {
+    debug("finish execReviewSubmittedMention because event is not supported");
+    return null;
   }
 
   const prOwnerGithubUsername = payload.pull_request?.user?.login;
