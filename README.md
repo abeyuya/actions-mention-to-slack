@@ -73,8 +73,30 @@ jobs:
 
 When invoked with `type: scheduled-reminder`, this action queries the open pull requests in the repository and posts a single aggregated Slack message listing each pending reviewer and the pull requests waiting on them. Users that appear in the mapping YAML are mentioned with `<@slack_id>` (or `<!subteam^id>` for teams); users not in the mapping are listed by their GitHub username.
 
+Each pull-request entry includes:
+
+- PR number and title (linked)
+- Time since the PR was opened (e.g. `3d`, `5h`)
+- Current approval state: `:white_check_mark: approved`, `:warning: changes requested`, or `:hourglass_flowing_sand: review required`
+- Labels attached to the PR (up to 5; the rest are summarized as `, +N more`)
+
+The notification is delivered as a Slack Block Kit message with a plain-text fallback, so it renders well in modern Slack clients and degrades gracefully where Block Kit is unavailable.
+
+Example rendering (text fallback):
+
+```
+:eyes: Pending review reminders for `owner/repo`:
+
+<@U_ALICE>
+• <https://github.com/owner/repo/pull/123|#123 Fix login bug>
+_3d • :warning: changes requested • `bug`, `priority-high`_
+• <https://github.com/owner/repo/pull/130|#130 Refactor auth>
+_5h • :hourglass_flowing_sand: review required_
+```
+
 - Draft pull requests are excluded.
 - If there are no pending review requests, nothing is posted.
+- Approval state is fetched via the `pulls.listReviews` API for each PR with pending reviewers. Calls are made in chunks of 5 to stay friendly to API rate limits.
 
 .github/workflows/review-reminder.yml
 
