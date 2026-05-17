@@ -1,5 +1,5 @@
 name: "Github mention to Slack"
-description: "Convert Github mention to Slack mention"
+description: "Convert Github mention to Slack mention. An alternative to GitHub Scheduled reminders for orgs without it enabled or for outside collaborators."
 inputs:
   configuration-path:
     description: "Path to config-yaml-file to convert Github username to Slack member ID."

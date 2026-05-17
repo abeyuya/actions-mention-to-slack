@@ -1,30 +1,29 @@
-import { debug, warning, getInput, setFailed } from "@actions/core";
+import { debug, getInput, setFailed, warning } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 
 import {
-  pickupUsername,
-  pickupInfoFromGithubPayload,
   needToSendReviewSubmittedMention,
+  pickupInfoFromGithubPayload,
+  pickupUsername,
 } from "./modules/github.js";
 import {
-  buildSlackPostMessage,
-  buildSlackErrorMessage,
-  SlackRepositoryImpl,
-  convertGithubTextToBlockquotesText,
-} from "./modules/slack.js";
-import {
-  MappingConfigRepositoryImpl,
   isUrl,
-  MappingFile,
+  MappingConfigRepositoryImpl,
+  type MappingFile,
 } from "./modules/mappingConfig.js";
 import {
-  fetchOpenReviewRequests,
   buildReviewReminderMessage,
-  ReminderEntry,
+  fetchOpenReviewRequests,
+  type ReminderEntry,
 } from "./modules/reviewReminder.js";
+import {
+  buildSlackErrorMessage,
+  buildSlackPostMessage,
+  convertGithubTextToBlockquotesText,
+  SlackRepositoryImpl,
+} from "./modules/slack.js";
 
 export type ActionType = "realtime-alert" | "scheduled-reminder";
-
 export type AllInputs = {
   repoToken: string;
   configurationPath: string;
@@ -40,7 +39,7 @@ export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
 
 export const convertToSlackUsername = (
   githubUsernames: string[],
-  mapping: MappingFile
+  mapping: MappingFile,
 ): string[] => {
   debug(JSON.stringify({ githubUsernames }, null, 2));
 
@@ -55,7 +54,7 @@ export const convertToSlackUsername = (
 
 const getSlackMention = (
   requestedSlackUserId: string,
-  requestedSlackUserGroupId: string
+  requestedSlackUserGroupId: string,
 ): string => {
   if (requestedSlackUserId) {
     return `<@${requestedSlackUserId}>`;
@@ -68,7 +67,7 @@ export const execPrReviewRequestedMention = async (
   payload: typeof context.payload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
 ): Promise<void> => {
   const requestedGithubUsername = payload.requested_reviewer?.login;
   const requestedGithubTeam = payload.requested_team?.name;
@@ -79,16 +78,16 @@ export const execPrReviewRequestedMention = async (
 
   const slackUserIds = convertToSlackUsername(
     [requestedGithubUsername],
-    mapping
+    mapping,
   );
   const slackUserGroupIds = convertToSlackUsername(
     [requestedGithubTeam],
-    mapping
+    mapping,
   );
 
   if (slackUserIds.length === 0 && slackUserGroupIds.length === 0) {
     debug(
-      "finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0"
+      "finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0",
     );
     return;
   }
@@ -110,7 +109,7 @@ export const execNormalMention = async (
   allInputs: AllInputs,
   mapping: MappingFile,
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
-  ignoreSlackIds: string[]
+  ignoreSlackIds: string[],
 ): Promise<void> => {
   const info = pickupInfoFromGithubPayload(payload);
 
@@ -138,7 +137,7 @@ export const execNormalMention = async (
     info.title,
     info.url,
     info.body,
-    info.senderName
+    info.senderName,
   );
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
@@ -155,7 +154,7 @@ export const execReviewSubmittedMention = async (
   payload: typeof context.payload,
   allInputs: AllInputs,
   mapping: MappingFile,
-  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
 ): Promise<string | null> => {
   if (!needToSendReviewSubmittedMention(payload)) {
     throw new Error("failed to parse payload");
@@ -185,7 +184,7 @@ export const execReviewSubmittedMention = async (
   }
 
   const blockquotesReviewBody = convertGithubTextToBlockquotesText(
-    info.body || ""
+    info.body || "",
   );
 
   const prLink = `<${info.url}|${info.title}>`;
@@ -207,13 +206,13 @@ export const execReviewSubmittedMention = async (
   const postSlackResult = await slackClient.postToSlack(
     slackWebhookUrl,
     message,
-    { iconUrl, botName }
+    { iconUrl, botName },
   );
 
   debug(
     ["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join(
-      "\n"
-    )
+      "\n",
+    ),
   );
 
   return prOwnerSlackUserId;
@@ -225,7 +224,7 @@ export const execReviewReminder = async (
   slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
   octokit: ReturnType<typeof getOctokit>,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<void> => {
   const raw = await fetchOpenReviewRequests(octokit, owner, repo);
 
@@ -252,7 +251,7 @@ const buildCurrentJobUrl = (runId: string) => {
 export const execPostError = async (
   error: Error,
   allInputs: AllInputs,
-  slackClient: typeof SlackRepositoryImpl
+  slackClient: typeof SlackRepositoryImpl,
 ): Promise<void> => {
   const { runId } = allInputs;
   const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
@@ -324,7 +323,7 @@ export const main = async (): Promise<void> => {
         context.repo.owner,
         context.repo.repo,
         configurationPath,
-        context.sha
+        context.sha,
       );
     })();
 
@@ -337,7 +336,7 @@ export const main = async (): Promise<void> => {
         SlackRepositoryImpl,
         getOctokit(repoToken),
         context.repo.owner,
-        context.repo.repo
+        context.repo.repo,
       );
       debug("finish execReviewReminder()");
       return;
@@ -348,7 +347,7 @@ export const main = async (): Promise<void> => {
         payload,
         allInputs,
         mapping,
-        SlackRepositoryImpl
+        SlackRepositoryImpl,
       );
       debug("finish execPrReviewRequestedMention()");
       return;
@@ -361,7 +360,7 @@ export const main = async (): Promise<void> => {
         payload,
         allInputs,
         mapping,
-        SlackRepositoryImpl
+        SlackRepositoryImpl,
       );
 
       if (sentSlackUserId) {
@@ -372,7 +371,7 @@ export const main = async (): Promise<void> => {
         [
           "execReviewSubmittedMention()",
           JSON.stringify({ sentSlackUserId }, null, 2),
-        ].join("\n")
+        ].join("\n"),
       );
     }
 
@@ -381,7 +380,7 @@ export const main = async (): Promise<void> => {
       allInputs,
       mapping,
       SlackRepositoryImpl,
-      ignoreSlackIds
+      ignoreSlackIds,
     );
     debug("finish execNormalMention()");
   } catch (error: unknown) {

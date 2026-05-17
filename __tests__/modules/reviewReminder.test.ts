@@ -1,9 +1,9 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 import {
   buildReviewReminderMessage,
   fetchOpenReviewRequests,
-  ReminderEntry,
+  type ReminderEntry,
 } from "../../src/modules/reviewReminder.js";
 
 describe("reviewReminder", () => {
@@ -79,10 +79,10 @@ describe("reviewReminder", () => {
   describe("fetchOpenReviewRequests", () => {
     const buildOctokit = (prs: unknown[]) =>
       ({
-        paginate: jest.fn(async () => prs),
-        rest: { pulls: { list: jest.fn() } },
+        paginate: vi.fn(async () => prs),
+        rest: { pulls: { list: vi.fn() } },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+      }) as any;
 
     it("groups reviewers across PRs and skips drafts", async () => {
       const octokit = buildOctokit([
@@ -111,16 +111,14 @@ describe("reviewReminder", () => {
 
       const result = await fetchOpenReviewRequests(octokit, "owner", "repo");
 
-      const byName = Object.fromEntries(
-        result.map((r) => [r.githubName, r])
-      );
+      const byName = Object.fromEntries(result.map((r) => [r.githubName, r]));
 
-      expect(byName["alice"].isTeam).toBe(false);
-      expect(byName["alice"].prs).toHaveLength(2);
-      expect(byName["bob"].prs).toHaveLength(1);
+      expect(byName.alice.isTeam).toBe(false);
+      expect(byName.alice.prs).toHaveLength(2);
+      expect(byName.bob.prs).toHaveLength(1);
       expect(byName["team-a"].isTeam).toBe(true);
       expect(byName["team-a"].prs).toHaveLength(1);
-      expect(byName["carol"]).toBeUndefined();
+      expect(byName.carol).toBeUndefined();
     });
 
     it("returns empty array when no PRs have reviewers", async () => {

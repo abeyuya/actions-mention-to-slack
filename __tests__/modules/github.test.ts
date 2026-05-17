@@ -1,7 +1,7 @@
 import type { context } from "@actions/github";
 import {
-  pickupUsername,
   pickupInfoFromGithubPayload,
+  pickupUsername,
 } from "../../src/modules/github.js";
 
 import { realPayload } from "../fixture/real-payload-20211017.js";
@@ -42,7 +42,9 @@ describe("modules/github", () => {
 
   describe("pickupInfoFromGithubPayload", () => {
     describe("issue event", () => {
-      const buildIssuePayload = (action: string): Partial<typeof context.payload> => {
+      const buildIssuePayload = (
+        action: string,
+      ): Partial<typeof context.payload> => {
         return {
           action,
           issue: {
@@ -87,10 +89,10 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
+            true,
           );
         }
       });
@@ -98,7 +100,7 @@ describe("modules/github", () => {
 
     describe("issue comment event", () => {
       const buildIssueCommentPayload = (
-        action: string
+        action: string,
       ): Partial<typeof context.payload> => {
         return {
           action,
@@ -180,17 +182,19 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
+            true,
           );
         }
       });
     });
 
     describe("pr event", () => {
-      const buildPrPayload = (action: string): Partial<typeof context.payload> => {
+      const buildPrPayload = (
+        action: string,
+      ): Partial<typeof context.payload> => {
         return {
           action,
           pull_request: {
@@ -235,10 +239,10 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
+            true,
           );
         }
       });
@@ -246,7 +250,7 @@ describe("modules/github", () => {
 
     describe("pr comment event", () => {
       const buildPrCommentPayload = (
-        action: string
+        action: string,
       ): Partial<typeof context.payload> => {
         return {
           action,
@@ -298,10 +302,10 @@ describe("modules/github", () => {
 
         try {
           pickupInfoFromGithubPayload(dummyPayload);
-          fail();
+          expect.fail("expected pickupInfoFromGithubPayload to throw");
         } catch (e: unknown) {
           expect((e as Error).message.includes("unknown event hook:")).toEqual(
-            true
+            true,
           );
         }
       });
@@ -309,7 +313,7 @@ describe("modules/github", () => {
 
     describe("pr review event", () => {
       const buildPrReviewPayload = (
-        action: string
+        action: string,
       ): Partial<typeof context.payload> => {
         return {
           action,
@@ -354,7 +358,6 @@ describe("modules/github", () => {
 
     describe("real payloat test 20211024 pr approve", () => {
       it("should return correct info", () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = pickupInfoFromGithubPayload(prApprovePayload as any);
         expect(result.title).toEqual("Update mention-to-slack.yml");
         expect(result.senderName).toEqual("abeyuya");

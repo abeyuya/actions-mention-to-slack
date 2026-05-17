@@ -1,6 +1,6 @@
 import {
-  buildSlackPostMessage,
   buildSlackErrorMessage,
+  buildSlackPostMessage,
 } from "../../src/modules/slack.js";
 
 describe("modules/slack", () => {
@@ -11,12 +11,12 @@ describe("modules/slack", () => {
         "title",
         "link",
         "message",
-        "sender_github_username"
+        "sender_github_username",
       );
 
       expect(result).toEqual(
         `<@slackUser1> has been mentioned at <link|title> by sender_github_username
-> message`
+> message`,
       );
     });
 
@@ -26,14 +26,14 @@ describe("modules/slack", () => {
         "title",
         "link",
         "> message\nhello",
-        "sender_github_username"
+        "sender_github_username",
       );
 
       expect(result).toEqual(
         `<@slackUser1> has been mentioned at <link|title> by sender_github_username
 >
 > > message
-> hello`
+> hello`,
       );
     });
 
@@ -43,13 +43,13 @@ describe("modules/slack", () => {
         "title",
         "link",
         "message\n> hello",
-        "sender_github_username"
+        "sender_github_username",
       );
 
       expect(result).toEqual(
         `<@slackUser1> has been mentioned at <link|title> by sender_github_username
 > message
-> > hello`
+> > hello`,
       );
     });
   });

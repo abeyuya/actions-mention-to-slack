@@ -1,4 +1,4 @@
-import { getOctokit } from "@actions/github";
+import type { getOctokit } from "@actions/github";
 
 export type ReminderPr = {
   title: string;
@@ -18,7 +18,7 @@ export type ReminderEntry = RawReminderEntry & {
 export const fetchOpenReviewRequests = async (
   octokit: ReturnType<typeof getOctokit>,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<RawReminderEntry[]> => {
   const prs = await octokit.paginate(octokit.rest.pulls.list, {
     owner,
@@ -30,7 +30,11 @@ export const fetchOpenReviewRequests = async (
   const userEntries = new Map<string, ReminderPr[]>();
   const teamEntries = new Map<string, ReminderPr[]>();
 
-  const addPr = (map: Map<string, ReminderPr[]>, key: string | undefined, pr: ReminderPr) => {
+  const addPr = (
+    map: Map<string, ReminderPr[]>,
+    key: string | undefined,
+    pr: ReminderPr,
+  ) => {
     if (!key) return;
     const list = map.get(key) ?? [];
     list.push(pr);
@@ -53,7 +57,7 @@ export const fetchOpenReviewRequests = async (
 
   const toEntries = (
     map: Map<string, ReminderPr[]>,
-    isTeam: boolean
+    isTeam: boolean,
   ): RawReminderEntry[] =>
     [...map.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
@@ -64,7 +68,7 @@ export const fetchOpenReviewRequests = async (
 
 export const buildReviewReminderMessage = (
   entries: ReminderEntry[],
-  repoFullName: string
+  repoFullName: string,
 ): string | null => {
   if (entries.length === 0) return null;
 
