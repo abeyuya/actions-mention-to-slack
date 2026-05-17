@@ -244,14 +244,18 @@ export const execReviewReminder = async (
     slackId: mapping[r.githubName],
   }));
 
-  const message = buildReviewReminderMessage(entries, `${owner}/${repo}`);
-  if (!message) {
+  const payload = buildReviewReminderMessage(entries, `${owner}/${repo}`);
+  if (!payload) {
     debug("finish execReviewReminder because no pending reviews");
     return;
   }
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
-  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  await slackClient.postToSlack(slackWebhookUrl, payload.text, {
+    iconUrl,
+    botName,
+    blocks: payload.blocks,
+  });
 };
 
 const buildCurrentJobUrl = (runId: string) => {

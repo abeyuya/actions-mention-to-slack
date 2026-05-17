@@ -529,10 +529,22 @@ describe("src/main", () => {
       botName: "",
     };
 
-    const buildOctokit = (prs: unknown[]) =>
+    const buildOctokit = (
+      prs: unknown[],
+      reviewsByPr: Record<number, unknown[]> = {},
+    ) =>
       ({
         paginate: vi.fn(async () => prs),
-        rest: { pulls: { list: vi.fn() } },
+        rest: {
+          pulls: {
+            list: vi.fn(),
+            listReviews: vi.fn(
+              async ({ pull_number }: { pull_number: number }) => ({
+                data: reviewsByPr[pull_number] ?? [],
+              }),
+            ),
+          },
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any;
 
@@ -540,9 +552,12 @@ describe("src/main", () => {
       const slackMock = { postToSlack: vi.fn() };
       const octokit = buildOctokit([
         {
+          number: 42,
           title: "PR1",
           html_url: "https://example.com/pr/1",
           draft: false,
+          created_at: "2026-05-14T12:00:00Z",
+          labels: [{ name: "bug" }],
           requested_reviewers: [{ login: "github_user_1" }, { login: "ghost" }],
           requested_teams: [],
         },
@@ -562,16 +577,23 @@ describe("src/main", () => {
       expect(call[0]).toEqual("dummy_url");
       expect(call[1]).toMatch("<@slack_user_1>");
       expect(call[1]).toMatch("`ghost`");
-      expect(call[1]).toMatch("<https://example.com/pr/1|PR1>");
+      expect(call[1]).toMatch("<https://example.com/pr/1|#42 PR1>");
+      expect(call[2]).toMatchObject({
+        blocks: expect.any(Array),
+      });
+      expect(call[2].blocks.length).toBeGreaterThan(0);
     });
 
     it("does not post when there are no pending reviews", async () => {
       const slackMock = { postToSlack: vi.fn() };
       const octokit = buildOctokit([
         {
+          number: 9,
           title: "PR without reviewers",
           html_url: "https://example.com/pr/9",
           draft: false,
+          created_at: "2026-05-17T12:00:00Z",
+          labels: [],
           requested_reviewers: [],
           requested_teams: [],
         },

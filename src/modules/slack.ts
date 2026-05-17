@@ -67,6 +67,7 @@ export const buildSlackErrorMessage = (
 export type SlackOption = {
   iconUrl?: string;
   botName?: string;
+  blocks?: unknown[];
 };
 
 type SlackPostParam = {
@@ -75,6 +76,7 @@ type SlackPostParam = {
   username: string;
   icon_url?: string;
   icon_emoji?: string;
+  blocks?: unknown[];
 };
 
 const defaultBotName = "Github Mention To Slack";
@@ -105,6 +107,10 @@ export const SlackRepositoryImpl = {
       slackPostParam.icon_url = u;
     } else {
       slackPostParam.icon_emoji = defaultIconEmoji;
+    }
+
+    if (options?.blocks && options.blocks.length > 0) {
+      slackPostParam.blocks = options.blocks;
     }
 
     const response = await fetch(webhookUrl, {
