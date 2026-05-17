@@ -32,7 +32,6 @@ export type ReminderSlackPayload = {
 type ReviewLike = {
   user?: { login?: string | null } | null;
   state?: string | null;
-  submitted_at?: string | null;
 };
 
 const APPROVAL_API_CONCURRENCY = 5;
