@@ -40592,7 +40592,12 @@ const main = async () => {
 
 ;// CONCATENATED MODULE: ./src/index.ts
 
-main();
+
+main().catch((error) => {
+    var _a;
+    const e = error instanceof Error ? error : undefined;
+    warning(`Unhandled error in main(): ${(_a = e === null || e === void 0 ? void 0 : e.stack) !== null && _a !== void 0 ? _a : String(error)}`);
+});
 
 })();
 
