@@ -253,7 +253,7 @@ describe("modules/github", () => {
           "unlabeled",
           "assigned",
           "unassigned",
-        ])("returns false for %s (issue #344)", (action) => {
+        ])("returns false for %s", (action) => {
           expect(isSupportedEvent(buildPrPayload(action))).toBe(false);
         });
       });

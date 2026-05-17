@@ -104,6 +104,6 @@ export const pickupInfoFromGithubPayload = (
   }
 
   throw new Error(
-    "pickupInfoFromGithubPayload called with unsupported payload. Guard with isSupportedEvent() before calling.",
+    `pickupInfoFromGithubPayload called with unsupported payload. Guard with isSupportedEvent() before calling. payload=${JSON.stringify(payload)}`,
   );
 };

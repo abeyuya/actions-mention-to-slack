@@ -480,6 +480,31 @@ describe("src/main", () => {
         expect(result).toBeNull();
       });
     });
+
+    describe("when review action is unsupported (e.g. edited / dismissed)", () => {
+      it.each([
+        "edited",
+        "dismissed",
+      ])("should not post to slack and return null for %s", async (action) => {
+        const slackMock = {
+          postToSlack: vi.fn(),
+        };
+
+        const overwritePayload = structuredClone(prApprovePayload);
+        overwritePayload.action = action;
+
+        const result = await execReviewSubmittedMention(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          overwritePayload as any,
+          dummyInputs,
+          dummyMapping,
+          slackMock,
+        );
+
+        expect(slackMock.postToSlack).not.toHaveBeenCalled();
+        expect(result).toBeNull();
+      });
+    });
   });
 
   describe("execReviewReminder", () => {
