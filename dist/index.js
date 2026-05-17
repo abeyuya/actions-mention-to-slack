@@ -36274,32 +36274,40 @@ const acceptActionTypes = {
     pull_request_review: ["submitted"],
     pull_request_review_comment: ["created", "edited"],
 };
-const buildError = (payload) => {
-    return new Error(`unknown event hook: ${JSON.stringify(payload, undefined, 2)}`);
+const eventCategoryOf = (payload) => {
+    if (payload.issue) {
+        return payload.comment ? "issue_comment" : "issues";
+    }
+    if (payload.pull_request) {
+        if (payload.review)
+            return "pull_request_review";
+        if (payload.comment)
+            return "pull_request_review_comment";
+        return "pull_request";
+    }
+    return null;
+};
+const isSupportedEvent = (payload) => {
+    const category = eventCategoryOf(payload);
+    if (category === null)
+        return false;
+    if (typeof payload.action !== "string")
+        return false;
+    return acceptActionTypes[category].includes(payload.action);
 };
 const needToSendReviewSubmittedMention = (payload) => {
     return Boolean(payload.review);
 };
 const pickupInfoFromGithubPayload = (payload) => {
     var _a, _b, _c, _d, _e, _f;
-    const { action } = payload;
-    if (action === undefined) {
-        throw buildError(payload);
-    }
     if (payload.issue) {
         if (payload.comment) {
-            if (!acceptActionTypes.issue_comment.includes(action)) {
-                throw buildError(payload);
-            }
             return {
                 body: payload.comment.body,
                 title: payload.issue.title,
                 url: payload.comment.html_url,
                 senderName: ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.login) || "",
             };
-        }
-        if (!acceptActionTypes.issues.includes(action)) {
-            throw buildError(payload);
         }
         return {
             body: payload.issue.body || "",
@@ -36310,9 +36318,6 @@ const pickupInfoFromGithubPayload = (payload) => {
     }
     if (payload.pull_request) {
         if (payload.review) {
-            if (!acceptActionTypes.pull_request_review.includes(action)) {
-                throw buildError(payload);
-            }
             return {
                 body: payload.review.body,
                 title: ((_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title) || "",
@@ -36321,18 +36326,12 @@ const pickupInfoFromGithubPayload = (payload) => {
             };
         }
         if (payload.comment) {
-            if (!acceptActionTypes.issue_comment.includes(action)) {
-                throw buildError(payload);
-            }
             return {
                 body: payload.comment.body,
                 title: payload.pull_request.title,
                 url: payload.comment.html_url,
                 senderName: ((_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login) || "",
             };
-        }
-        if (!acceptActionTypes.pull_request.includes(action)) {
-            throw buildError(payload);
         }
         return {
             body: payload.pull_request.body || "",
@@ -36341,7 +36340,7 @@ const pickupInfoFromGithubPayload = (payload) => {
             senderName: ((_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login) || "",
         };
     }
-    throw buildError(payload);
+    throw new Error(`pickupInfoFromGithubPayload called with unsupported payload. Guard with isSupportedEvent() before calling. payload=${JSON.stringify(payload)}`);
 };
 
 ;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
@@ -40423,6 +40422,10 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
     await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
 };
 const execNormalMention = async (payload, allInputs, mapping, slackClient, ignoreSlackIds) => {
+    if (!isSupportedEvent(payload)) {
+        core_debug("finish execNormalMention because event is not supported");
+        return;
+    }
     const info = pickupInfoFromGithubPayload(payload);
     if (info.body === null) {
         core_debug("finish execNormalMention because info.body === null");
@@ -40451,6 +40454,10 @@ const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClie
     var _a, _b, _c, _d;
     if (!needToSendReviewSubmittedMention(payload)) {
         throw new Error("failed to parse payload");
+    }
+    if (!isSupportedEvent(payload)) {
+        core_debug("finish execReviewSubmittedMention because event is not supported");
+        return null;
     }
     const prOwnerGithubUsername = (_b = (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.user) === null || _b === void 0 ? void 0 : _b.login;
     if (!prOwnerGithubUsername) {
