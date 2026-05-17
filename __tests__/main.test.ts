@@ -496,10 +496,10 @@ describe("src/main", () => {
       const slackMock = { postToSlack: jest.fn() };
       const octokit = buildOctokit([
         {
-          title: "Draft",
+          title: "PR without reviewers",
           html_url: "https://example.com/pr/9",
-          draft: true,
-          requested_reviewers: [{ login: "alice" }],
+          draft: false,
+          requested_reviewers: [],
           requested_teams: [],
         },
       ]);
