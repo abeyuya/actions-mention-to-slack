@@ -1,3 +1,4 @@
+import { warning } from "@actions/core";
 import type { context } from "@actions/github";
 import { vi } from "vitest";
 
@@ -6,12 +7,24 @@ import {
   arrayDiff,
   convertToSlackUsername,
   execNormalMention,
+  execPostError,
   execPrReviewRequestedMention,
   execReviewReminder,
   execReviewSubmittedMention,
 } from "../src/main.js";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve.js";
+
+vi.mock("@actions/core", async () => {
+  const actual =
+    await vi.importActual<typeof import("@actions/core")>("@actions/core");
+  return {
+    ...actual,
+    warning: vi.fn(),
+    debug: vi.fn(),
+    setFailed: vi.fn(),
+  };
+});
 
 describe("src/main", () => {
   describe("arrayDiff", () => {
@@ -514,6 +527,59 @@ describe("src/main", () => {
       );
 
       expect(slackMock.postToSlack).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("execPostError", () => {
+    const dummyInputs: AllInputs = {
+      repoToken: "",
+      configurationPath: "",
+      slackWebhookUrl: "dummy_url",
+      iconUrl: "",
+      botName: "",
+    };
+
+    beforeEach(() => {
+      vi.mocked(warning).mockClear();
+    });
+
+    it("posts the error message to Slack when postToSlack succeeds", async () => {
+      const slackMock = {
+        postToSlack: vi.fn().mockResolvedValue("ok"),
+      };
+
+      await execPostError(new Error("boom"), dummyInputs, slackMock);
+
+      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+      expect(slackMock.postToSlack.mock.calls[0][0]).toEqual("dummy_url");
+    });
+
+    it("does not throw when postToSlack rejects", async () => {
+      const slackMock = {
+        postToSlack: vi.fn().mockRejectedValue(new Error("slack down")),
+      };
+
+      await expect(
+        execPostError(new Error("boom"), dummyInputs, slackMock),
+      ).resolves.toBeUndefined();
+    });
+
+    it("logs a warning containing 'Failed to post error to Slack' when postToSlack rejects", async () => {
+      const slackMock = {
+        postToSlack: vi.fn().mockRejectedValue(new Error("slack down")),
+      };
+
+      await execPostError(new Error("boom"), dummyInputs, slackMock);
+
+      const failureWarnings = vi
+        .mocked(warning)
+        .mock.calls.filter(
+          (args) =>
+            typeof args[0] === "string" &&
+            args[0].includes("Failed to post error to Slack"),
+        );
+      expect(failureWarnings.length).toBeGreaterThanOrEqual(1);
+      expect(failureWarnings[0][0]).toMatch("slack down");
     });
   });
 });

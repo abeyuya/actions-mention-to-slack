@@ -261,7 +261,14 @@ export const execPostError = async (
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  try {
+    await slackClient.postToSlack(slackWebhookUrl, message, {
+      iconUrl,
+      botName,
+    });
+  } catch (e) {
+    warning(`Failed to post error to Slack: ${(e as Error).message}`);
+  }
 };
 
 const getAllInputs = (): AllInputs => {
