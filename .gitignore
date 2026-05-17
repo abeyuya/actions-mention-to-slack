@@ -2,6 +2,5 @@ node_modules
 coverage
 dist
 
-
 # APM dependencies
 apm_modules/
