@@ -359,7 +359,7 @@ describe("src/main", () => {
       });
     });
 
-    describe("unsupported event (issue #344)", () => {
+    describe("unsupported event", () => {
       it.each([
         "closed",
         "reopened",

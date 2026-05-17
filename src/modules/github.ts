@@ -29,7 +29,7 @@ const eventCategoryOf = (
   }
   if (payload.pull_request) {
     if (payload.review) return "pull_request_review";
-    if (payload.comment) return "issue_comment";
+    if (payload.comment) return "pull_request_review_comment";
     return "pull_request";
   }
   return null;
