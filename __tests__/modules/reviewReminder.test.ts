@@ -86,102 +86,69 @@ describe("reviewReminder", () => {
 
   describe("aggregateApprovalState", () => {
     it("returns review_required when there are no reviews", () => {
-      expect(aggregateApprovalState([], false)).toBe("review_required");
+      expect(aggregateApprovalState([])).toBe("review_required");
     });
 
-    it("returns approved when the only reviewer approved and nothing is pending", () => {
+    it("returns approved when the only reviewer approved", () => {
       expect(
-        aggregateApprovalState(
-          [{ user: { login: "a" }, state: "APPROVED" }],
-          false,
-        ),
+        aggregateApprovalState([{ user: { login: "a" }, state: "APPROVED" }]),
       ).toBe("approved");
-    });
-
-    it("downgrades approved to review_required when reviewers are still pending", () => {
-      expect(
-        aggregateApprovalState(
-          [{ user: { login: "a" }, state: "APPROVED" }],
-          true,
-        ),
-      ).toBe("review_required");
     });
 
     it("returns approved when all reviewers approved", () => {
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "APPROVED" },
-            { user: { login: "b" }, state: "APPROVED" },
-          ],
-          false,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "b" }, state: "APPROVED" },
+        ]),
       ).toBe("approved");
     });
 
-    it("returns changes_requested when any reviewer requested changes, even with pending", () => {
+    it("returns changes_requested when any reviewer requested changes", () => {
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "APPROVED" },
-            { user: { login: "b" }, state: "CHANGES_REQUESTED" },
-          ],
-          true,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "b" }, state: "CHANGES_REQUESTED" },
+        ]),
       ).toBe("changes_requested");
     });
 
     it("uses the latest state when a reviewer submitted multiple reviews", () => {
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "COMMENTED" },
-            { user: { login: "a" }, state: "APPROVED" },
-          ],
-          false,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "COMMENTED" },
+          { user: { login: "a" }, state: "APPROVED" },
+        ]),
       ).toBe("approved");
 
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "APPROVED" },
-            { user: { login: "a" }, state: "CHANGES_REQUESTED" },
-          ],
-          false,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "a" }, state: "CHANGES_REQUESTED" },
+        ]),
       ).toBe("changes_requested");
     });
 
     it("treats DISMISSED as invalidating the prior decision", () => {
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "CHANGES_REQUESTED" },
-            { user: { login: "a" }, state: "DISMISSED" },
-          ],
-          false,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "CHANGES_REQUESTED" },
+          { user: { login: "a" }, state: "DISMISSED" },
+        ]),
       ).toBe("review_required");
 
       expect(
-        aggregateApprovalState(
-          [
-            { user: { login: "a" }, state: "APPROVED" },
-            { user: { login: "a" }, state: "DISMISSED" },
-            { user: { login: "b" }, state: "APPROVED" },
-          ],
-          false,
-        ),
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "a" }, state: "DISMISSED" },
+          { user: { login: "b" }, state: "APPROVED" },
+        ]),
       ).toBe("approved");
     });
 
     it("ignores COMMENTED-only reviews as no decision", () => {
       expect(
-        aggregateApprovalState(
-          [{ user: { login: "a" }, state: "COMMENTED" }],
-          false,
-        ),
+        aggregateApprovalState([{ user: { login: "a" }, state: "COMMENTED" }]),
       ).toBe("review_required");
     });
   });
@@ -478,12 +445,14 @@ describe("reviewReminder", () => {
     });
 
     it("falls back to review_required when listReviews throws for a PR", async () => {
-      const listReviews = vi
-        .fn()
-        .mockRejectedValueOnce(new Error("rate limit"))
-        .mockResolvedValueOnce({
-          data: [{ user: { login: "x" }, state: "APPROVED" }],
-        });
+      const listReviews = vi.fn(
+        async ({ pull_number }: { pull_number: number }) => {
+          if (pull_number === 1) throw new Error("rate limit");
+          return {
+            data: [{ user: { login: "x" }, state: "CHANGES_REQUESTED" }],
+          };
+        },
+      );
       const client = {
         paginate: vi.fn(async () => [
           makePr({
@@ -502,10 +471,14 @@ describe("reviewReminder", () => {
       const result = await fetchOpenReviewRequests(client, "owner", "repo");
       const alice = result.find((r) => r.githubName === "alice");
       assert(alice);
-      // どちらの PR の listReviews が先に呼ばれるかは並列実行で順不同なため、
-      // 失敗側が review_required にフォールバックしていることだけを確認する
-      const states = alice.prs.map((p) => p.approvalState).sort();
-      expect(states).toEqual(["review_required", "review_required"]);
+
+      const pr1 = alice.prs.find((p) => p.number === 1);
+      assert(pr1);
+      expect(pr1.approvalState).toBe("review_required");
+
+      const pr2 = alice.prs.find((p) => p.number === 2);
+      assert(pr2);
+      expect(pr2.approvalState).toBe("changes_requested");
     });
   });
 

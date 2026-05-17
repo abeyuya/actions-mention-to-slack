@@ -39,6 +39,7 @@ const APPROVAL_API_CONCURRENCY = 5;
 const LABEL_DISPLAY_LIMIT = 5;
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 const SECTION_TEXT_LIMIT = 2800;
+const CONTINUATION_SUFFIX = " (cont.)";
 
 const mapWithConcurrency = async <T, R>(
   items: T[],
@@ -56,7 +57,6 @@ const mapWithConcurrency = async <T, R>(
 
 export const aggregateApprovalState = (
   reviews: ReviewLike[],
-  hasPendingRequest: boolean,
 ): ApprovalState => {
   const latestByReviewer = new Map<string, string>();
   for (const review of reviews) {
@@ -66,19 +66,16 @@ export const aggregateApprovalState = (
     if (state === "APPROVED" || state === "CHANGES_REQUESTED") {
       latestByReviewer.set(login, state);
     } else if (state === "DISMISSED") {
-      // DISMISSED は過去の APPROVED / CHANGES_REQUESTED を無効化する意思表示
+      // DISMISSED は過去の APPROVED / CHANGES_REQUESTED を無効化する
       latestByReviewer.delete(login);
     }
-    // COMMENTED / PENDING は意思表示として扱わない
   }
 
   if (latestByReviewer.size === 0) return "review_required";
   for (const state of latestByReviewer.values()) {
     if (state === "CHANGES_REQUESTED") return "changes_requested";
   }
-  // 残りは全員 APPROVED。ただし pending reviewer が残っていれば、
-  // リマインダー対象者視点では「review_required」を優先する。
-  return hasPendingRequest ? "review_required" : "approved";
+  return "approved";
 };
 
 export const formatRelativeAge = (createdAt: Date, now: Date): string => {
@@ -130,14 +127,16 @@ const buildPrLine = (pr: ReminderPr, now: Date): string => {
 const splitSectionByLimit = (header: string, prLines: string[]): string[] => {
   const sections: string[] = [];
   let current = header;
+  let hasContent = false;
   for (const line of prLines) {
     const candidate = `${current}\n${line}`;
-    if (candidate.length > SECTION_TEXT_LIMIT && current !== header) {
+    if (hasContent && candidate.length > SECTION_TEXT_LIMIT) {
       sections.push(current);
-      current = `${header} (cont.)\n${line}`;
+      current = `${header}${CONTINUATION_SUFFIX}\n${line}`;
     } else {
       current = candidate;
     }
+    hasContent = true;
   }
   sections.push(current);
   return sections;
@@ -172,13 +171,14 @@ export const fetchOpenReviewRequests = async (
           repo,
           pull_number: pr.number,
         });
-        return {
-          pr,
-          approvalState: aggregateApprovalState(data as ReviewLike[], true),
-        };
+        const base = aggregateApprovalState(data as ReviewLike[]);
+        // pendingPrs フィルタを通過した PR には必ず未レビューの reviewer が残るため、
+        // 「全員 APPROVED」だけで approved を出すと、リマインドを受ける本人視点では
+        // 自分の review がまだ残っているのに approved と表示されてしまう。
+        const approvalState: ApprovalState =
+          base === "approved" ? "review_required" : base;
+        return { pr, approvalState };
       } catch (e) {
-        // 1 件の review 取得失敗でリマインダ全体を落とさず、
-        // フォールバックとして review_required 表示にする
         const reason = e instanceof Error ? e.message : String(e);
         warning(
           `Failed to fetch reviews for PR #${pr.number}: ${reason}. Falling back to review_required.`,
