@@ -40512,7 +40512,16 @@ const execPostError = async (error, allInputs, slackClient) => {
     const message = buildSlackErrorMessage(error, currentJobUrl);
     warning(message);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    try {
+        await slackClient.postToSlack(slackWebhookUrl, message, {
+            iconUrl,
+            botName,
+        });
+    }
+    catch (e) {
+        const reason = e instanceof Error ? e.message : String(e);
+        warning(`Failed to post error to Slack: ${reason}`);
+    }
 };
 const getAllInputs = () => {
     const slackWebhookUrl = getInput("slack-webhook-url", {
