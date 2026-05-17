@@ -23,7 +23,7 @@ import {
   ReminderEntry,
 } from "./modules/reviewReminder.js";
 
-export type ActionType = "reminder";
+export type ActionType = "realtime-alert" | "scheduled-reminder";
 
 export type AllInputs = {
   repoToken: string;
@@ -286,7 +286,10 @@ const getAllInputs = (): AllInputs => {
   });
   const runId = getInput("run-id", { required: false });
   const rawType = getInput("type", { required: false });
-  const type: ActionType | undefined = rawType === "reminder" ? rawType : undefined;
+  const type: ActionType | undefined =
+    rawType === "realtime-alert" || rawType === "scheduled-reminder"
+      ? rawType
+      : undefined;
 
   return {
     repoToken,
@@ -327,7 +330,7 @@ export const main = async (): Promise<void> => {
 
     debug(JSON.stringify({ mapping }, null, 2));
 
-    if (allInputs.type === "reminder") {
+    if (allInputs.type === "scheduled-reminder") {
       await execReviewReminder(
         allInputs,
         mapping,

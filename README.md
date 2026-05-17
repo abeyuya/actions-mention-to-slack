@@ -4,12 +4,13 @@ This action sends mention to your slack account when you have been mentioned at 
 
 ## Feature
 
-- Send mention to slack if you have been mentioned
-  - issue
-  - pull request
-- Send notification to slack if you have been requested to review.
-- Send notification to slack if your pull request have been approved.
-- Send a scheduled reminder to slack listing open pull requests that have pending review requests (alternative to GitHub's Scheduled Reminders). See [Review reminder](#review-reminder) below.
+This action has two modes, controlled by the `type` input (aligned with GitHub's official Slack integration terminology):
+
+- **`realtime-alert`** (default) — event-driven notifications:
+  - Send mention to slack if you have been mentioned in an issue or pull request
+  - Send notification to slack if you have been requested to review
+  - Send notification to slack if your pull request has been approved
+- **`scheduled-reminder`** — an alternative to GitHub's Scheduled Reminders. On a cron schedule, posts an aggregated summary of open pull requests with pending review requests. See [Scheduled reminder](#scheduled-reminder) below.
 
 ## Inputs
 
@@ -21,9 +22,11 @@ This action sends mention to your slack account when you have been mentioned at 
 | bot-name           | No       | Github Mention To Slack      | Display name for this bot on Slack.                                                                                                                      |
 | icon-url           | No       | Null                         | Display icon url for this bot on Slack.                                                                                                                  |
 | run-id             | No       | Null                         | Used for the link in the error message when an error occurs.                                                                                             |
-| type               | No       | Null                         | Set to `reminder` to send a pending-review reminder for open pull requests. Leave empty for the default mention/notification behavior.                   |
+| type               | No       | realtime-alert               | Mode of operation. `realtime-alert` (default) sends event-driven mention/review notifications. `scheduled-reminder` posts an aggregated reminder of open pull requests with pending review requests. Leaving it empty is the same as `realtime-alert`. |
 
 ## Example usage
+
+### Realtime alert (event-driven mentions / review notifications)
 
 .github/workflows/mention-to-slack.yml
 
@@ -47,6 +50,7 @@ jobs:
       - name: Run
         uses: abeyuya/actions-mention-to-slack@v2
         with:
+          type: realtime-alert
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           icon-url: https://img.icons8.com/color/256/000000/github-2.png
@@ -54,26 +58,11 @@ jobs:
           run-id: ${{ github.run_id }}
 ```
 
-.github/mention-to-slack.yml
+`type` is optional and defaults to `realtime-alert`, so existing workflows without this field keep working unchanged.
 
-```yml
-# For Github User
-# github_username: "slack_member_id"
+### Scheduled reminder
 
-github_username_A: "slack_member_id_A"
-github_username_B: "slack_member_id_B"
-github_username_C: "slack_member_id_C"
-abeyuya: "XXXXXXXXX"
-
-# For Github Team
-# github_teamname: "slack_member_id"
-
-github_teamname_A: "slack_member_id_D"
-```
-
-## Review reminder
-
-This action can also be used as an alternative to GitHub's Scheduled Reminders. When invoked with `type: reminder`, it queries the open pull requests in the repository and posts a single aggregated Slack message listing each pending reviewer and the pull requests waiting on them. Users that appear in the mapping YAML are mentioned with `<@slack_id>` (or `<!subteam^id>` for teams); users not in the mapping are listed by their GitHub username.
+When invoked with `type: scheduled-reminder`, this action queries the open pull requests in the repository and posts a single aggregated Slack message listing each pending reviewer and the pull requests waiting on them. Users that appear in the mapping YAML are mentioned with `<@slack_id>` (or `<!subteam^id>` for teams); users not in the mapping are listed by their GitHub username.
 
 - Draft pull requests are excluded.
 - If there are no pending review requests, nothing is posted.
@@ -96,9 +85,30 @@ jobs:
       - name: Run
         uses: abeyuya/actions-mention-to-slack@v2
         with:
-          type: reminder
+          type: scheduled-reminder
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           configuration-path: .github/mention-to-slack.yml
           bot-name: "Review Reminder"
+```
+
+### Mapping configuration
+
+Both modes use the same GitHub-username-to-Slack-ID mapping YAML referenced by `configuration-path`.
+
+.github/mention-to-slack.yml
+
+```yml
+# For Github User
+# github_username: "slack_member_id"
+
+github_username_A: "slack_member_id_A"
+github_username_B: "slack_member_id_B"
+github_username_C: "slack_member_id_C"
+abeyuya: "XXXXXXXXX"
+
+# For Github Team
+# github_teamname: "slack_member_id"
+
+github_teamname_A: "slack_member_id_D"
 ```
