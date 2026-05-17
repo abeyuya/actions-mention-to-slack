@@ -2,6 +2,15 @@
 
 This action sends mention to your slack account when you have been mentioned at github.
 
+## About
+
+This action aims to be an alternative to GitHub's official [Scheduled reminders](https://docs.github.com/en/subscriptions-and-notifications/concepts/scheduled-reminders) (the real-time alerts part — review requests, mentions, etc.). If your organization has Scheduled reminders enabled and all the people you want to notify can use it, prefer the official feature.
+
+Use this action when Scheduled reminders are not available, for example:
+
+- Your organization has not enabled Scheduled reminders.
+- You want to notify outside collaborators, who cannot use Scheduled reminders even when the organization has it enabled.
+
 ## Feature
 
 - Send mention to slack if you have been mentioned
