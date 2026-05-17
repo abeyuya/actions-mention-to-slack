@@ -1,31 +1,192 @@
 import { vi } from "vitest";
 
 import {
+  aggregateApprovalState,
   buildReviewReminderMessage,
   fetchOpenReviewRequests,
+  formatLabels,
+  formatRelativeAge,
   type ReminderEntry,
 } from "../../src/modules/reviewReminder.js";
 
+const FIXED_NOW = new Date("2026-05-17T12:00:00Z");
+
+const makePr = (overrides: Record<string, unknown> = {}) => ({
+  number: 1,
+  title: "PR title",
+  html_url: "https://example.com/pr/1",
+  draft: false,
+  created_at: "2026-05-14T12:00:00Z",
+  labels: [],
+  requested_reviewers: [],
+  requested_teams: [],
+  ...overrides,
+});
+
+const makeEntryPr = (overrides: Record<string, unknown> = {}) => ({
+  number: 1,
+  title: "PR title",
+  url: "https://example.com/pr/1",
+  createdAt: "2026-05-14T12:00:00Z",
+  approvalState: "review_required" as const,
+  labels: [],
+  ...overrides,
+});
+
 describe("reviewReminder", () => {
-  describe("buildReviewReminderMessage", () => {
-    it("returns null when entries are empty", () => {
-      expect(buildReviewReminderMessage([], "owner/repo")).toBeNull();
+  describe("formatRelativeAge", () => {
+    it("returns 'just now' for very recent timestamps", () => {
+      expect(
+        formatRelativeAge(new Date("2026-05-17T11:59:30Z"), FIXED_NOW),
+      ).toBe("just now");
     });
 
-    it("renders mapped user with <@id>", () => {
+    it("returns minutes for sub-hour ages", () => {
+      expect(
+        formatRelativeAge(new Date("2026-05-17T11:57:00Z"), FIXED_NOW),
+      ).toBe("3m");
+    });
+
+    it("returns hours for sub-day ages", () => {
+      expect(
+        formatRelativeAge(new Date("2026-05-17T07:00:00Z"), FIXED_NOW),
+      ).toBe("5h");
+    });
+
+    it("returns days for multi-day ages", () => {
+      expect(
+        formatRelativeAge(new Date("2026-05-14T12:00:00Z"), FIXED_NOW),
+      ).toBe("3d");
+    });
+
+    it("returns 'just now' when createdAt is in the future", () => {
+      expect(
+        formatRelativeAge(new Date("2026-05-17T13:00:00Z"), FIXED_NOW),
+      ).toBe("just now");
+    });
+  });
+
+  describe("formatLabels", () => {
+    it("returns empty string for no labels", () => {
+      expect(formatLabels([])).toBe("");
+    });
+
+    it("renders all labels when at or below the display limit", () => {
+      expect(formatLabels(["bug", "ui", "priority-high"])).toBe(
+        "`bug`, `ui`, `priority-high`",
+      );
+    });
+
+    it("truncates extra labels with a +N more suffix", () => {
+      expect(formatLabels(["a", "b", "c", "d", "e", "f", "g"])).toBe(
+        "`a`, `b`, `c`, `d`, `e`, +2 more",
+      );
+    });
+  });
+
+  describe("aggregateApprovalState", () => {
+    it("returns review_required when there are no reviews", () => {
+      expect(aggregateApprovalState([])).toBe("review_required");
+    });
+
+    it("returns approved when the only reviewer approved", () => {
+      expect(
+        aggregateApprovalState([{ user: { login: "a" }, state: "APPROVED" }]),
+      ).toBe("approved");
+    });
+
+    it("returns approved when all reviewers approved", () => {
+      expect(
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "b" }, state: "APPROVED" },
+        ]),
+      ).toBe("approved");
+    });
+
+    it("returns changes_requested when any reviewer requested changes", () => {
+      expect(
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "b" }, state: "CHANGES_REQUESTED" },
+        ]),
+      ).toBe("changes_requested");
+    });
+
+    it("uses the latest state when a reviewer submitted multiple reviews", () => {
+      expect(
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "COMMENTED" },
+          { user: { login: "a" }, state: "APPROVED" },
+        ]),
+      ).toBe("approved");
+
+      expect(
+        aggregateApprovalState([
+          { user: { login: "a" }, state: "APPROVED" },
+          { user: { login: "a" }, state: "CHANGES_REQUESTED" },
+        ]),
+      ).toBe("changes_requested");
+    });
+
+    it("ignores COMMENTED-only reviews as no decision", () => {
+      expect(
+        aggregateApprovalState([{ user: { login: "a" }, state: "COMMENTED" }]),
+      ).toBe("review_required");
+    });
+  });
+
+  describe("buildReviewReminderMessage", () => {
+    it("returns null when entries are empty", () => {
+      expect(
+        buildReviewReminderMessage([], "owner/repo", FIXED_NOW),
+      ).toBeNull();
+    });
+
+    it("renders mapped user with <@id> and PR metadata", () => {
       const entries: ReminderEntry[] = [
         {
           githubName: "alice",
           slackId: "U_ALICE",
           isTeam: false,
-          prs: [{ title: "Fix bug", url: "https://example.com/pr/1" }],
+          prs: [
+            makeEntryPr({
+              number: 123,
+              title: "Fix bug",
+              url: "https://example.com/pr/123",
+              approvalState: "approved",
+              labels: ["bug", "priority-high"],
+            }),
+          ],
         },
       ];
 
-      const msg = buildReviewReminderMessage(entries, "owner/repo");
-      expect(msg).toContain("owner/repo");
-      expect(msg).toContain("<@U_ALICE>");
-      expect(msg).toContain("• <https://example.com/pr/1|Fix bug>");
+      const result = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      );
+      expect(result).not.toBeNull();
+      const { text, blocks } = result!;
+
+      expect(text).toContain("owner/repo");
+      expect(text).toContain("<@U_ALICE>");
+      expect(text).toContain("<https://example.com/pr/123|#123 Fix bug>");
+      expect(text).toContain("3d");
+      expect(text).toContain(":white_check_mark:");
+      expect(text).toContain("approved");
+      expect(text).toContain("`bug`");
+      expect(text).toContain("`priority-high`");
+
+      expect(blocks[0]).toEqual({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: ":eyes: Pending review reminders for `owner/repo`:",
+        },
+      });
+      expect(blocks[1]).toEqual({ type: "divider" });
+      expect(blocks).toHaveLength(3);
     });
 
     it("renders mapped team with <!subteam^id>", () => {
@@ -34,13 +195,23 @@ describe("reviewReminder", () => {
           githubName: "team-a",
           slackId: "S_TEAM",
           isTeam: true,
-          prs: [{ title: "Feature X", url: "https://example.com/pr/2" }],
+          prs: [
+            makeEntryPr({
+              number: 2,
+              title: "Feature X",
+              url: "https://example.com/pr/2",
+            }),
+          ],
         },
       ];
 
-      const msg = buildReviewReminderMessage(entries, "owner/repo");
-      expect(msg).toContain("<!subteam^S_TEAM>");
-      expect(msg).toContain("• <https://example.com/pr/2|Feature X>");
+      const result = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      );
+      expect(result!.text).toContain("<!subteam^S_TEAM>");
+      expect(result!.text).toContain("<https://example.com/pr/2|#2 Feature X>");
     });
 
     it("renders unmapped user with backticked github name", () => {
@@ -48,73 +219,191 @@ describe("reviewReminder", () => {
         {
           githubName: "bob",
           isTeam: false,
-          prs: [{ title: "Tweak", url: "https://example.com/pr/3" }],
+          prs: [makeEntryPr({ number: 3, title: "Tweak" })],
         },
       ];
 
-      const msg = buildReviewReminderMessage(entries, "owner/repo");
-      expect(msg).toContain("`bob`");
-      expect(msg).not.toContain("<@");
+      const result = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      );
+      expect(result!.text).toContain("`bob`");
+      expect(result!.text).not.toContain("<@");
     });
 
-    it("aggregates multiple PRs per reviewer", () => {
+    it("renders distinct approval state emoji and label", () => {
       const entries: ReminderEntry[] = [
         {
           githubName: "alice",
           slackId: "U_ALICE",
           isTeam: false,
           prs: [
-            { title: "Fix 1", url: "https://example.com/pr/1" },
-            { title: "Fix 2", url: "https://example.com/pr/2" },
+            makeEntryPr({
+              number: 10,
+              approvalState: "approved",
+              url: "https://example.com/pr/10",
+            }),
+            makeEntryPr({
+              number: 11,
+              approvalState: "changes_requested",
+              url: "https://example.com/pr/11",
+            }),
+            makeEntryPr({
+              number: 12,
+              approvalState: "review_required",
+              url: "https://example.com/pr/12",
+            }),
           ],
         },
       ];
 
-      const msg = buildReviewReminderMessage(entries, "owner/repo") ?? "";
-      expect(msg).toContain("<https://example.com/pr/1|Fix 1>");
-      expect(msg).toContain("<https://example.com/pr/2|Fix 2>");
+      const { text } = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      )!;
+
+      expect(text).toContain(":white_check_mark: approved");
+      expect(text).toContain(":warning: changes requested");
+      expect(text).toContain(":hourglass_flowing_sand: review required");
+    });
+
+    it("truncates long label lists with +N more", () => {
+      const entries: ReminderEntry[] = [
+        {
+          githubName: "alice",
+          isTeam: false,
+          prs: [
+            makeEntryPr({
+              labels: ["a", "b", "c", "d", "e", "f", "g"],
+            }),
+          ],
+        },
+      ];
+
+      const { text } = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      )!;
+      expect(text).toContain("+2 more");
+    });
+
+    it("emits one section block per reviewer entry plus header and divider", () => {
+      const entries: ReminderEntry[] = [
+        {
+          githubName: "alice",
+          slackId: "U_ALICE",
+          isTeam: false,
+          prs: [makeEntryPr({ number: 1 })],
+        },
+        {
+          githubName: "bob",
+          isTeam: false,
+          prs: [makeEntryPr({ number: 2, url: "https://example.com/pr/2" })],
+        },
+      ];
+
+      const { blocks } = buildReviewReminderMessage(
+        entries,
+        "owner/repo",
+        FIXED_NOW,
+      )!;
+      expect(blocks).toHaveLength(4);
+      expect(blocks[2]).toMatchObject({
+        type: "section",
+        text: { type: "mrkdwn" },
+      });
+      expect(blocks[3]).toMatchObject({
+        type: "section",
+        text: { type: "mrkdwn" },
+      });
     });
   });
 
   describe("fetchOpenReviewRequests", () => {
-    const buildOctokit = (prs: unknown[]) =>
-      ({
-        paginate: vi.fn(async () => prs),
-        rest: { pulls: { list: vi.fn() } },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any;
+    const buildOctokit = (
+      prs: unknown[],
+      reviewsByPr: Record<number, unknown[]> = {},
+    ) => {
+      const listReviews = vi.fn(
+        async ({ pull_number }: { pull_number: number }) => ({
+          data: reviewsByPr[pull_number] ?? [],
+        }),
+      );
+      return {
+        client: {
+          paginate: vi.fn(async () => prs),
+          rest: { pulls: { list: vi.fn(), listReviews } },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        listReviews,
+      };
+    };
 
-    it("groups reviewers across PRs and skips drafts", async () => {
-      const octokit = buildOctokit([
+    it("groups reviewers across PRs, skips drafts, and attaches approval state", async () => {
+      const { client, listReviews } = buildOctokit(
+        [
+          makePr({
+            number: 1,
+            title: "PR1",
+            html_url: "https://example.com/pr/1",
+            created_at: "2026-05-14T12:00:00Z",
+            labels: [{ name: "bug" }, { name: "ui" }],
+            requested_reviewers: [{ login: "alice" }, { login: "bob" }],
+          }),
+          makePr({
+            number: 2,
+            title: "PR2",
+            html_url: "https://example.com/pr/2",
+            created_at: "2026-05-17T07:00:00Z",
+            labels: [],
+            requested_reviewers: [{ login: "alice" }],
+            requested_teams: [{ name: "team-a" }],
+          }),
+          makePr({
+            number: 3,
+            title: "Draft PR",
+            html_url: "https://example.com/pr/3",
+            draft: true,
+            requested_reviewers: [{ login: "carol" }],
+          }),
+          makePr({
+            number: 4,
+            title: "No reviewers",
+            html_url: "https://example.com/pr/4",
+            requested_reviewers: [],
+            requested_teams: [],
+          }),
+        ],
         {
-          title: "PR1",
-          html_url: "https://example.com/pr/1",
-          draft: false,
-          requested_reviewers: [{ login: "alice" }, { login: "bob" }],
-          requested_teams: [],
+          1: [{ user: { login: "x" }, state: "APPROVED" }],
+          2: [{ user: { login: "y" }, state: "CHANGES_REQUESTED" }],
         },
-        {
-          title: "PR2",
-          html_url: "https://example.com/pr/2",
-          draft: false,
-          requested_reviewers: [{ login: "alice" }],
-          requested_teams: [{ name: "team-a" }],
-        },
-        {
-          title: "Draft PR",
-          html_url: "https://example.com/pr/3",
-          draft: true,
-          requested_reviewers: [{ login: "carol" }],
-          requested_teams: [],
-        },
-      ]);
+      );
 
-      const result = await fetchOpenReviewRequests(octokit, "owner", "repo");
+      const result = await fetchOpenReviewRequests(client, "owner", "repo");
+
+      // draft / レビュアーなし PR は listReviews を呼ばない
+      expect(listReviews).toHaveBeenCalledTimes(2);
 
       const byName = Object.fromEntries(result.map((r) => [r.githubName, r]));
 
       expect(byName.alice.isTeam).toBe(false);
       expect(byName.alice.prs).toHaveLength(2);
+
+      const pr1 = byName.alice.prs.find((p) => p.number === 1)!;
+      expect(pr1.title).toBe("PR1");
+      expect(pr1.url).toBe("https://example.com/pr/1");
+      expect(pr1.createdAt).toBe("2026-05-14T12:00:00Z");
+      expect(pr1.approvalState).toBe("approved");
+      expect(pr1.labels).toEqual(["bug", "ui"]);
+
+      const pr2 = byName.alice.prs.find((p) => p.number === 2)!;
+      expect(pr2.approvalState).toBe("changes_requested");
+      expect(pr2.labels).toEqual([]);
+
       expect(byName.bob.prs).toHaveLength(1);
       expect(byName["team-a"].isTeam).toBe(true);
       expect(byName["team-a"].prs).toHaveLength(1);
@@ -122,18 +411,13 @@ describe("reviewReminder", () => {
     });
 
     it("returns empty array when no PRs have reviewers", async () => {
-      const octokit = buildOctokit([
-        {
-          title: "PR1",
-          html_url: "https://example.com/pr/1",
-          draft: false,
-          requested_reviewers: [],
-          requested_teams: [],
-        },
+      const { client, listReviews } = buildOctokit([
+        makePr({ requested_reviewers: [], requested_teams: [] }),
       ]);
 
-      const result = await fetchOpenReviewRequests(octokit, "owner", "repo");
+      const result = await fetchOpenReviewRequests(client, "owner", "repo");
       expect(result).toEqual([]);
+      expect(listReviews).not.toHaveBeenCalled();
     });
   });
 });
