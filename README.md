@@ -121,3 +121,12 @@ abeyuya: "XXXXXXXXX"
 
 github_teamname_A: "slack_member_id_D"
 ```
+
+## Local AI PR review (optional)
+
+This repo bundles the [abeyuya/skills](https://github.com/abeyuya/skills) `pr-review` plugin under `.claude/` via [apm](https://github.com/microsoft/apm). Open Claude Code in this repo and invoke the skill, e.g.:
+
+- `run-local-review skill を呼んで` — review the current local branch before pushing.
+- `run-pr-review skill を呼んで OWNER=abeyuya REPO=actions-mention-to-slack PR_NUMBER=<n>` — post a review to an existing PR.
+
+To update the skill: install [apm](https://github.com/microsoft/apm), run `apm install` at the repo root to refresh `.claude/` and `apm.lock.yaml`, then commit the resulting diff.

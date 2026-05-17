@@ -1,0 +1,19 @@
+lockfile_version: '1'
+generated_at: '2026-05-17T15:24:07.042308+00:00'
+apm_version: 0.13.0
+dependencies:
+- repo_url: abeyuya/skills
+  host: github.com
+  resolved_commit: aaba914ffef08f51df28741cb9c7035a8b8ad2c1
+  virtual_path: plugins/pr-review
+  is_virtual: true
+  package_type: marketplace_plugin
+  deployed_files:
+  - .claude/commands/pr-review-style-reference.md
+  - .claude/skills/post-pr-review
+  - .claude/skills/resolve-pr-threads
+  - .claude/skills/run-local-review
+  - .claude/skills/run-pr-review
+  deployed_file_hashes:
+    .claude/commands/pr-review-style-reference.md: sha256:b15fab8cfcb370a0ba591b812b9fed18df1f7503ea910c6bcece76b32456d613
+  content_hash: sha256:e2ce6d622d11ca2ad9d94d7da81061dc36cf36ed8cb381f6c15bf5472d45ca1e

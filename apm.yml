@@ -1,0 +1,9 @@
+name: actions-mention-to-slack
+version: 1.0.0
+description: GitHub Action that converts GitHub mentions to Slack mentions
+target: claude
+includes: auto
+dependencies:
+  apm:
+    - abeyuya/skills/plugins/pr-review
+  mcp: []
