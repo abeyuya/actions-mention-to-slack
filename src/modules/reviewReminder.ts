@@ -134,7 +134,7 @@ export const fetchOpenReviewRequests = async (
     return reviewerCount > 0 || teamCount > 0;
   });
 
-  const approvalStates = await mapWithConcurrency(
+  const enriched = await mapWithConcurrency(
     pendingPrs,
     APPROVAL_API_CONCURRENCY,
     async (pr) => {
@@ -143,7 +143,10 @@ export const fetchOpenReviewRequests = async (
         repo,
         pull_number: pr.number,
       });
-      return aggregateApprovalState(data as ReviewLike[]);
+      return {
+        pr,
+        approvalState: aggregateApprovalState(data as ReviewLike[]),
+      };
     },
   );
 
@@ -161,23 +164,21 @@ export const fetchOpenReviewRequests = async (
     map.set(key, list);
   };
 
-  pendingPrs.forEach((pr, idx) => {
+  for (const { pr, approvalState } of enriched) {
     const item: ReminderPr = {
       number: pr.number,
       title: pr.title,
       url: pr.html_url,
       createdAt: pr.created_at,
-      approvalState: approvalStates[idx],
-      labels: (pr.labels ?? [])
-        .map((l: unknown) => {
-          if (typeof l === "string") return l;
-          if (l && typeof l === "object" && "name" in l) {
-            const name = (l as { name?: unknown }).name;
-            return typeof name === "string" ? name : "";
-          }
-          return "";
-        })
-        .filter((name: string) => name.length > 0),
+      approvalState,
+      labels: (pr.labels ?? []).flatMap((l: unknown) => {
+        if (typeof l === "string") return [l];
+        if (l && typeof l === "object" && "name" in l) {
+          const name = (l as { name?: unknown }).name;
+          if (typeof name === "string" && name.length > 0) return [name];
+        }
+        return [];
+      }),
     };
 
     for (const reviewer of pr.requested_reviewers ?? []) {
@@ -187,7 +188,7 @@ export const fetchOpenReviewRequests = async (
     for (const team of pr.requested_teams ?? []) {
       addPr(teamEntries, team?.name, item);
     }
-  });
+  }
 
   const toEntries = (
     map: Map<string, ReminderPr[]>,

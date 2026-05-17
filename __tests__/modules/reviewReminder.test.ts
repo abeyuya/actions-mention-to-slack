@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { assert, vi } from "vitest";
 
 import {
   aggregateApprovalState,
@@ -166,8 +166,8 @@ describe("reviewReminder", () => {
         "owner/repo",
         FIXED_NOW,
       );
-      expect(result).not.toBeNull();
-      const { text, blocks } = result!;
+      assert(result, "expected a non-null payload");
+      const { text, blocks } = result;
 
       expect(text).toContain("owner/repo");
       expect(text).toContain("<@U_ALICE>");
@@ -210,8 +210,9 @@ describe("reviewReminder", () => {
         "owner/repo",
         FIXED_NOW,
       );
-      expect(result!.text).toContain("<!subteam^S_TEAM>");
-      expect(result!.text).toContain("<https://example.com/pr/2|#2 Feature X>");
+      assert(result);
+      expect(result.text).toContain("<!subteam^S_TEAM>");
+      expect(result.text).toContain("<https://example.com/pr/2|#2 Feature X>");
     });
 
     it("renders unmapped user with backticked github name", () => {
@@ -228,8 +229,9 @@ describe("reviewReminder", () => {
         "owner/repo",
         FIXED_NOW,
       );
-      expect(result!.text).toContain("`bob`");
-      expect(result!.text).not.toContain("<@");
+      assert(result);
+      expect(result.text).toContain("`bob`");
+      expect(result.text).not.toContain("<@");
     });
 
     it("renders distinct approval state emoji and label", () => {
@@ -258,15 +260,15 @@ describe("reviewReminder", () => {
         },
       ];
 
-      const { text } = buildReviewReminderMessage(
+      const result = buildReviewReminderMessage(
         entries,
         "owner/repo",
         FIXED_NOW,
-      )!;
-
-      expect(text).toContain(":white_check_mark: approved");
-      expect(text).toContain(":warning: changes requested");
-      expect(text).toContain(":hourglass_flowing_sand: review required");
+      );
+      assert(result);
+      expect(result.text).toContain(":white_check_mark: approved");
+      expect(result.text).toContain(":warning: changes requested");
+      expect(result.text).toContain(":hourglass_flowing_sand: review required");
     });
 
     it("truncates long label lists with +N more", () => {
@@ -282,12 +284,13 @@ describe("reviewReminder", () => {
         },
       ];
 
-      const { text } = buildReviewReminderMessage(
+      const result = buildReviewReminderMessage(
         entries,
         "owner/repo",
         FIXED_NOW,
-      )!;
-      expect(text).toContain("+2 more");
+      );
+      assert(result);
+      expect(result.text).toContain("+2 more");
     });
 
     it("emits one section block per reviewer entry plus header and divider", () => {
@@ -305,17 +308,18 @@ describe("reviewReminder", () => {
         },
       ];
 
-      const { blocks } = buildReviewReminderMessage(
+      const result = buildReviewReminderMessage(
         entries,
         "owner/repo",
         FIXED_NOW,
-      )!;
-      expect(blocks).toHaveLength(4);
-      expect(blocks[2]).toMatchObject({
+      );
+      assert(result);
+      expect(result.blocks).toHaveLength(4);
+      expect(result.blocks[2]).toMatchObject({
         type: "section",
         text: { type: "mrkdwn" },
       });
-      expect(blocks[3]).toMatchObject({
+      expect(result.blocks[3]).toMatchObject({
         type: "section",
         text: { type: "mrkdwn" },
       });
@@ -393,14 +397,16 @@ describe("reviewReminder", () => {
       expect(byName.alice.isTeam).toBe(false);
       expect(byName.alice.prs).toHaveLength(2);
 
-      const pr1 = byName.alice.prs.find((p) => p.number === 1)!;
+      const pr1 = byName.alice.prs.find((p) => p.number === 1);
+      assert(pr1);
       expect(pr1.title).toBe("PR1");
       expect(pr1.url).toBe("https://example.com/pr/1");
       expect(pr1.createdAt).toBe("2026-05-14T12:00:00Z");
       expect(pr1.approvalState).toBe("approved");
       expect(pr1.labels).toEqual(["bug", "ui"]);
 
-      const pr2 = byName.alice.prs.find((p) => p.number === 2)!;
+      const pr2 = byName.alice.prs.find((p) => p.number === 2);
+      assert(pr2);
       expect(pr2.approvalState).toBe("changes_requested");
       expect(pr2.labels).toEqual([]);
 
