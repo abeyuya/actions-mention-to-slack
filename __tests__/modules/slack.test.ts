@@ -4,6 +4,7 @@ import {
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
   CONTINUATION_SUFFIX,
+  QUOTE_ATTACHMENT_COLOR,
   SECTION_TEXT_LIMIT,
   splitMrkdwnByLimit,
 } from "../../src/modules/slack.js";
@@ -12,8 +13,6 @@ import {
   type QuoteAttachment,
   sectionTexts,
 } from "../fixture/slackBlocks.js";
-
-const QUOTE_COLOR = "#35373b";
 
 describe("modules/slack", () => {
   describe("buildSlackPostMessage", () => {
@@ -33,7 +32,7 @@ describe("modules/slack", () => {
 
       expect(result.attachments.length).toEqual(1);
       expect((result.attachments[0] as QuoteAttachment).color).toEqual(
-        QUOTE_COLOR,
+        QUOTE_ATTACHMENT_COLOR,
       );
       expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
@@ -161,7 +160,7 @@ describe("modules/slack", () => {
 
       expect(result.attachments.length).toEqual(1);
       expect((result.attachments[0] as QuoteAttachment).color).toEqual(
-        QUOTE_COLOR,
+        QUOTE_ATTACHMENT_COLOR,
       );
       expect(attachmentSectionTexts(result.attachments)).toEqual([
         ["looks good"],
@@ -202,7 +201,7 @@ describe("modules/slack", () => {
       expect(result.text.includes("internal error")).toBe(true);
       expect(sectionTexts(result.blocks).length).toEqual(1);
       expect((result.attachments[0] as QuoteAttachment).color).toEqual(
-        QUOTE_COLOR,
+        QUOTE_ATTACHMENT_COLOR,
       );
       const stackSection = attachmentSectionTexts(result.attachments)[0][0];
       expect(stackSection.startsWith("```")).toBe(true);
