@@ -21,8 +21,22 @@ import {
   buildSlackErrorMessage,
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
+  type SlackPostPayload,
   SlackRepositoryImpl,
 } from "./modules/slack.js";
+
+const postSlackPayload = (
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
+  webhookUrl: string,
+  payload: SlackPostPayload,
+  options: { iconUrl?: string; botName?: string },
+): Promise<string> =>
+  slackClient.postToSlack(webhookUrl, payload.text, {
+    iconUrl: options.iconUrl,
+    botName: options.botName,
+    blocks: payload.blocks,
+    attachments: payload.attachments,
+  });
 
 export type ActionType = "realtime-alert" | "scheduled-reminder";
 export type AllInputs = {
@@ -148,15 +162,11 @@ export const execNormalMention = async (
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  const result = await slackClient.postToSlack(
+  const result = await postSlackPayload(
+    slackClient,
     slackWebhookUrl,
-    slackPayload.text,
-    {
-      iconUrl,
-      botName,
-      blocks: slackPayload.blocks,
-      attachments: slackPayload.attachments,
-    },
+    slackPayload,
+    { iconUrl, botName },
   );
 
   debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
@@ -210,15 +220,11 @@ export const execReviewSubmittedMention = async (
   );
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  const postSlackResult = await slackClient.postToSlack(
+  const postSlackResult = await postSlackPayload(
+    slackClient,
     slackWebhookUrl,
-    slackPayload.text,
-    {
-      iconUrl,
-      botName,
-      blocks: slackPayload.blocks,
-      attachments: slackPayload.attachments,
-    },
+    slackPayload,
+    { iconUrl, botName },
   );
 
   debug(
@@ -252,10 +258,9 @@ export const execReviewReminder = async (
   }
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
-  await slackClient.postToSlack(slackWebhookUrl, payload.text, {
+  await postSlackPayload(slackClient, slackWebhookUrl, payload, {
     iconUrl,
     botName,
-    blocks: payload.blocks,
   });
 };
 
@@ -278,11 +283,9 @@ export const execPostError = async (
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   try {
-    await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
+    await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, {
       iconUrl,
       botName,
-      blocks: slackPayload.blocks,
-      attachments: slackPayload.attachments,
     });
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);

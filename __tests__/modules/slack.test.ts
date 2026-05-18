@@ -30,11 +30,11 @@ describe("modules/slack", () => {
       expect(result.text).toEqual(expectedHeadline);
       expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
 
-      const attachments = result.attachments;
-      expect(attachments).toBeDefined();
-      expect(attachments?.length).toEqual(1);
-      expect((attachments?.[0] as QuoteAttachment).color).toEqual(QUOTE_COLOR);
-      expect(attachmentSectionTexts(attachments)).toEqual([["message"]]);
+      expect(result.attachments.length).toEqual(1);
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
+        QUOTE_COLOR,
+      );
+      expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
 
     it("should keep the body verbatim (no machine-added > prefix) even when it starts with > / contains --- / ##", () => {
@@ -90,7 +90,7 @@ describe("modules/slack", () => {
         "sender_github_username",
       );
 
-      expect(result.attachments).toBeUndefined();
+      expect(result.attachments).toEqual([]);
       expect(sectionTexts(result.blocks)).toEqual([result.text]);
     });
   });
@@ -140,7 +140,7 @@ describe("modules/slack", () => {
         null,
       );
 
-      expect(result.attachments).toBeUndefined();
+      expect(result.attachments).toEqual([]);
     });
   });
 
@@ -152,7 +152,7 @@ describe("modules/slack", () => {
 
       expect(result.text.includes("internal error")).toBe(true);
       expect(sectionTexts(result.blocks).length).toEqual(1);
-      expect((result.attachments?.[0] as QuoteAttachment).color).toEqual(
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
         QUOTE_COLOR,
       );
       const stackSection = attachmentSectionTexts(result.attachments)[0][0];

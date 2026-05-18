@@ -1,7 +1,7 @@
 export type SlackPostPayload = {
   text: string;
   blocks: unknown[];
-  attachments?: unknown[];
+  attachments: unknown[];
 };
 
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
@@ -67,25 +67,25 @@ export const buildSection = (text: string) => ({
   text: { type: "mrkdwn", text },
 });
 
-const buildQuoteAttachment = (chunks: string[]): unknown | null => {
-  if (chunks.length === 0) return null;
-  return {
-    color: QUOTE_ATTACHMENT_COLOR,
-    blocks: chunks.map((chunk) => buildSection(chunk)),
-  };
+const buildQuoteAttachments = (chunks: string[]): unknown[] => {
+  if (chunks.length === 0) return [];
+  return [
+    {
+      color: QUOTE_ATTACHMENT_COLOR,
+      blocks: chunks.map((chunk) => buildSection(chunk)),
+    },
+  ];
 };
 
 const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
 ): SlackPostPayload => {
-  const blocks: unknown[] = [buildSection(headline)];
   const bodyChunks = body && body.length > 0 ? splitMrkdwnByLimit(body) : [];
-  const attachment = buildQuoteAttachment(bodyChunks);
   return {
     text: headline,
-    blocks,
-    ...(attachment ? { attachments: [attachment] } : {}),
+    blocks: [buildSection(headline)],
+    attachments: buildQuoteAttachments(bodyChunks),
   };
 };
 
@@ -153,12 +153,11 @@ export const buildSlackErrorMessage = (
   const stackChunks = splitMrkdwnByLimit(stack).map((chunk) =>
     ["```", chunk, "```"].join("\n"),
   );
-  const attachment = buildQuoteAttachment(stackChunks);
 
   return {
     text: `❗ An internal error occurred in ${jobTitle}`,
     blocks: [buildSection(headline)],
-    ...(attachment ? { attachments: [attachment] } : {}),
+    attachments: buildQuoteAttachments(stackChunks),
   };
 };
 
