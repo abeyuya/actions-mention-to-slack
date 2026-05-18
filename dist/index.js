@@ -40245,6 +40245,8 @@ const MappingConfigRepositoryImpl = {
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 const SECTION_TEXT_LIMIT = 2800;
 const CONTINUATION_SUFFIX = " (cont.)";
+// GitHub 公式 bot に近い、引用ブロックの縦線を模した中間グレー
+const QUOTE_ATTACHMENT_COLOR = "#cccccc";
 const splitMrkdwnByLimit = (text, limit = SECTION_TEXT_LIMIT) => {
     if (text.length === 0)
         return [];
@@ -40295,24 +40297,29 @@ const buildSection = (text) => ({
     type: "section",
     text: { type: "mrkdwn", text },
 });
-const buildHeaderAndBodyBlocks = (headline, body) => {
-    const blocks = [buildSection(headline)];
-    if (body && body.length > 0) {
-        blocks.push({ type: "divider" });
-        for (const chunk of splitMrkdwnByLimit(body)) {
-            blocks.push(buildSection(chunk));
-        }
-    }
-    return blocks;
+const buildQuoteAttachments = (chunks) => {
+    if (chunks.length === 0)
+        return [];
+    return [
+        {
+            color: QUOTE_ATTACHMENT_COLOR,
+            blocks: chunks.map((chunk) => buildSection(chunk)),
+        },
+    ];
+};
+const buildHeaderWithQuotedBody = (headline, body) => {
+    const bodyChunks = body ? splitMrkdwnByLimit(body) : [];
+    return {
+        text: headline,
+        blocks: [buildSection(headline)],
+        attachments: buildQuoteAttachments(bodyChunks),
+    };
 };
 const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
     const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
     const verb = slackIdsForMention.length === 1 ? "has" : "have";
     const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
-    return {
-        text: headline,
-        blocks: buildHeaderAndBodyBlocks(headline, githubBody),
-    };
+    return buildHeaderWithQuotedBody(headline, githubBody);
 };
 const buildSlackReviewSubmittedMessage = (prOwnerSlackUserId, prLink, reviewer, reviewState, reviewBody) => {
     const userMention = `<@${prOwnerSlackUserId}>`;
@@ -40326,10 +40333,7 @@ const buildSlackReviewSubmittedMessage = (prOwnerSlackUserId, prLink, reviewer, 
                 return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
         }
     })();
-    return {
-        text: headline,
-        blocks: buildHeaderAndBodyBlocks(headline, reviewBody),
-    };
+    return buildHeaderWithQuotedBody(headline, reviewBody);
 };
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
 const buildSlackErrorMessage = (error, currentJobUrl) => {
@@ -40347,13 +40351,11 @@ const buildSlackErrorMessage = (error, currentJobUrl) => {
         `To solve the problem, please <${link}|open an issue>`,
     ].join("\n");
     const stack = error.stack || error.message;
-    const blocks = [buildSection(headline), { type: "divider" }];
-    for (const chunk of splitMrkdwnByLimit(stack)) {
-        blocks.push(buildSection(["```", chunk, "```"].join("\n")));
-    }
+    const stackChunks = splitMrkdwnByLimit(stack).map((chunk) => ["```", chunk, "```"].join("\n"));
     return {
         text: `❗ An internal error occurred in ${jobTitle}`,
-        blocks,
+        blocks: [buildSection(headline)],
+        attachments: buildQuoteAttachments(stackChunks),
     };
 };
 const defaultBotName = "Github Mention To Slack";
@@ -40381,6 +40383,9 @@ const SlackRepositoryImpl = {
         }
         if ((options === null || options === void 0 ? void 0 : options.blocks) && options.blocks.length > 0) {
             slackPostParam.blocks = options.blocks;
+        }
+        if ((options === null || options === void 0 ? void 0 : options.attachments) && options.attachments.length > 0) {
+            slackPostParam.attachments = options.attachments;
         }
         const response = await fetch(webhookUrl, {
             method: "POST",
@@ -40594,7 +40599,7 @@ const buildReviewReminderMessage = (entries, repoFullName, now = new Date()) => 
     for (const section of entryBlockTexts) {
         blocks.push(buildSection(section));
     }
-    return { text, blocks };
+    return { text, blocks, attachments: [] };
 };
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -40604,6 +40609,12 @@ const buildReviewReminderMessage = (entries, repoFullName, now = new Date()) => 
 
 
 
+const postSlackPayload = (slackClient, webhookUrl, payload, options) => slackClient.postToSlack(webhookUrl, payload.text, {
+    iconUrl: options.iconUrl,
+    botName: options.botName,
+    blocks: payload.blocks,
+    attachments: payload.attachments,
+});
 const arrayDiff = (arr1, arr2) => arr1.filter((i) => arr2.indexOf(i) === -1);
 const convertToSlackUsername = (githubUsernames, mapping) => {
     core_debug(JSON.stringify({ githubUsernames }, null, 2));
@@ -40664,11 +40675,7 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
     }
     const slackPayload = buildSlackPostMessage(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    const result = await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
-        iconUrl,
-        botName,
-        blocks: slackPayload.blocks,
-    });
+    const result = await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, { iconUrl, botName });
     core_debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
 const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClient) => {
@@ -40700,7 +40707,7 @@ const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClie
     const prLink = `<${info.url}|${info.title}>`;
     const slackPayload = buildSlackReviewSubmittedMessage(prOwnerSlackUserId, prLink, reviewer, reviewState, info.body);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, { iconUrl, botName, blocks: slackPayload.blocks });
+    const postSlackResult = await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, { iconUrl, botName });
     core_debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
     return prOwnerSlackUserId;
 };
@@ -40716,10 +40723,9 @@ const execReviewReminder = async (allInputs, mapping, slackClient, octokit, owne
         return;
     }
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slackClient.postToSlack(slackWebhookUrl, payload.text, {
+    await postSlackPayload(slackClient, slackWebhookUrl, payload, {
         iconUrl,
         botName,
-        blocks: payload.blocks,
     });
 };
 const buildCurrentJobUrl = (runId) => {
@@ -40733,10 +40739,9 @@ const execPostError = async (error, allInputs, slackClient) => {
     warning([slackPayload.text, error.stack || error.message].join("\n"));
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     try {
-        await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
+        await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, {
             iconUrl,
             botName,
-            blocks: slackPayload.blocks,
         });
     }
     catch (e) {
