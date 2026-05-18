@@ -588,7 +588,9 @@ describe("src/main", () => {
       expect(call[1]).toMatch("<@pr_author_slack>");
       expect(call[1]).toMatch("received a comment from commenter_github");
       expect(call[1]).toMatch("<comment_url|pr_title>");
-      expect(sectionTexts(call[2].blocks)).toContain("looks good");
+      expect(attachmentSectionTexts(call[2].attachments)).toEqual([
+        ["looks good"],
+      ]);
     });
 
     it("should not notify for a pull_request_review_comment (delegated to execReviewSubmittedMention)", async () => {

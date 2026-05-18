@@ -306,10 +306,11 @@ export const execCommentToAuthor = async (
   );
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
-  const postSlackResult = await slackClient.postToSlack(
+  const postSlackResult = await postSlackPayload(
+    slackClient,
     slackWebhookUrl,
-    slackPayload.text,
-    { iconUrl, botName, blocks: slackPayload.blocks },
+    slackPayload,
+    { iconUrl, botName },
   );
 
   debug(
