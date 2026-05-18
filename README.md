@@ -98,6 +98,8 @@ _5h • :hourglass_flowing_sand: review required_
 - If there are no pending review requests, nothing is posted.
 - Approval state is fetched via the `pulls.listReviews` API for each PR with pending reviewers. Calls are made in chunks of 5 to stay friendly to API rate limits.
 
+`scheduled-reminder` calls the GitHub REST API, so the job needs `pull-requests: read` (for `pulls.list` / `pulls.listReviews`) and `contents: read` (to fetch the configuration YAML via `repos.getContent`). If your repository or organization defaults the workflow `GITHUB_TOKEN` to read-only or restricted scopes, omitting these will surface as `HttpError: Resource not accessible by integration`. Set them at the job level as shown below.
+
 .github/workflows/review-reminder.yml
 
 ```yml
@@ -112,6 +114,9 @@ on:
 jobs:
   review-reminder:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Run
         uses: abeyuya/actions-mention-to-slack@v2
