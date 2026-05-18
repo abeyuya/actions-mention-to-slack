@@ -33,6 +33,7 @@ export type AllInputs = {
   botName?: string;
   runId?: string;
   type?: ActionType;
+  notifyBotComment?: boolean;
 };
 
 export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
@@ -229,6 +230,79 @@ export const execReviewSubmittedMention = async (
   return prOwnerSlackUserId;
 };
 
+export const execCommentToAuthor = async (
+  payload: typeof context.payload,
+  allInputs: AllInputs,
+  mapping: MappingFile,
+  slackClient: Pick<typeof SlackRepositoryImpl, "postToSlack">,
+): Promise<string | null> => {
+  if (!isSupportedEvent(payload)) {
+    debug("finish execCommentToAuthor because event is not supported");
+    return null;
+  }
+
+  const isIssueCommentOnPr = Boolean(
+    payload.issue?.pull_request && payload.comment,
+  );
+  const isPrReviewComment = Boolean(
+    payload.pull_request && payload.comment && !payload.review,
+  );
+
+  if (!isIssueCommentOnPr && !isPrReviewComment) {
+    debug("finish execCommentToAuthor because event is not a PR comment");
+    return null;
+  }
+
+  if (!allInputs.notifyBotComment && payload.sender?.type === "Bot") {
+    debug("skip execCommentToAuthor because the sender is a bot");
+    return null;
+  }
+
+  const prAuthorGithubUsername =
+    payload.issue?.user?.login ?? payload.pull_request?.user?.login;
+
+  if (!prAuthorGithubUsername) {
+    debug("finish execCommentToAuthor because PR author is not found");
+    return null;
+  }
+
+  const commenter = payload.sender?.login;
+  if (commenter === prAuthorGithubUsername) {
+    debug("skip execCommentToAuthor because the commenter is the PR author");
+    return null;
+  }
+
+  const slackIds = convertToSlackUsername([prAuthorGithubUsername], mapping);
+  if (slackIds.length === 0) {
+    debug("finish execCommentToAuthor because slackIds.length === 0");
+    return null;
+  }
+
+  const info = pickupInfoFromGithubPayload(payload);
+  const prAuthorSlackUserId = slackIds[0];
+  const blockquotesBody = convertGithubTextToBlockquotesText(info.body || "");
+
+  const prLink = `<${info.url}|${info.title}>`;
+  const userMention = `<@${prAuthorSlackUserId}>`;
+  const headline = `${userMention} ${commenter} commented on ${prLink}`;
+  const message = [headline, blockquotesBody].join("\n");
+
+  const { slackWebhookUrl, iconUrl, botName } = allInputs;
+  const postSlackResult = await slackClient.postToSlack(
+    slackWebhookUrl,
+    message,
+    { iconUrl, botName },
+  );
+
+  debug(
+    ["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join(
+      "\n",
+    ),
+  );
+
+  return prAuthorSlackUserId;
+};
+
 export const execReviewReminder = async (
   allInputs: AllInputs,
   mapping: MappingFile,
@@ -312,6 +386,8 @@ const getAllInputs = (): AllInputs => {
     rawType === "realtime-alert" || rawType === "scheduled-reminder"
       ? rawType
       : undefined;
+  const notifyBotComment =
+    getInput("notify-bot-comment", { required: false }) === "true";
 
   return {
     repoToken,
@@ -321,6 +397,7 @@ const getAllInputs = (): AllInputs => {
     botName,
     runId,
     type,
+    notifyBotComment,
   };
 };
 
@@ -397,6 +474,24 @@ export const main = async (): Promise<void> => {
         ].join("\n"),
       );
     }
+
+    const sentToPrAuthorByComment = await execCommentToAuthor(
+      payload,
+      allInputs,
+      mapping,
+      SlackRepositoryImpl,
+    );
+
+    if (sentToPrAuthorByComment) {
+      ignoreSlackIds.push(sentToPrAuthorByComment);
+    }
+
+    debug(
+      [
+        "execCommentToAuthor()",
+        JSON.stringify({ sentToPrAuthorByComment }, null, 2),
+      ].join("\n"),
+    );
 
     await execNormalMention(
       payload,
