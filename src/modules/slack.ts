@@ -122,6 +122,20 @@ export const buildSlackReviewSubmittedMessage = (
   return buildHeaderWithQuotedBody(headline, reviewBody);
 };
 
+export const buildSlackCommentToAuthorMessage = (
+  prAuthorSlackUserId: string,
+  prLink: string,
+  commenter: string,
+  commentBody: string | null | undefined,
+): SlackPostPayload => {
+  const headline = `<@${prAuthorSlackUserId}> ${prLink} received a comment from ${commenter}.`;
+
+  return {
+    text: headline,
+    blocks: buildHeaderAndBodyBlocks(headline, commentBody),
+  };
+};
+
 const openIssueLink =
   "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
 

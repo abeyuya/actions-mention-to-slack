@@ -19,6 +19,7 @@ This action has two modes, controlled by the `type` input (aligned with GitHub's
   - Send mention to slack if you have been mentioned in an issue or pull request
   - Send notification to slack if you have been requested to review
   - Send notification to slack if your pull request has been approved
+  - Send notification to slack to the PR author when their pull request receives a comment on the Conversation tab (`issue_comment`). Review comments / inline comments (`pull_request_review_comment`) are intentionally not handled here — they are aggregated into the single `pull_request_review` (submitted) notification above to avoid an N+1 Slack post per review. Bot senders are excluded by default; opt in via `notify-bot-comment: "true"`.
 - **`scheduled-reminder`** — an alternative to GitHub's Scheduled Reminders. On a cron schedule, posts an aggregated summary of open pull requests with pending review requests. See [Scheduled reminder](#scheduled-reminder) below.
 
 ## Inputs
@@ -32,6 +33,7 @@ This action has two modes, controlled by the `type` input (aligned with GitHub's
 | icon-url           | No       | Null                         | Display icon url for this bot on Slack.                                                                                                                  |
 | run-id             | No       | Null                         | Used for the link in the error message when an error occurs.                                                                                             |
 | type               | No       | realtime-alert               | Mode of operation. `realtime-alert` (default) sends event-driven mention/review notifications. `scheduled-reminder` posts an aggregated reminder of open pull requests with pending review requests. Leaving it empty is the same as `realtime-alert`. |
+| notify-bot-comment | No       | false                        | If `"true"`, the PR-author-on-comment notification (see Feature) also fires when the comment sender is a bot (`payload.sender.type === "Bot"`). Defaults to `"false"`, which mirrors GitHub's official "Someone comments on your PR" reminder by skipping bot comments. |
 
 ## Example usage
 
