@@ -155,6 +155,7 @@ export const execNormalMention = async (
       iconUrl,
       botName,
       blocks: slackPayload.blocks,
+      attachments: slackPayload.attachments,
     },
   );
 
@@ -212,7 +213,12 @@ export const execReviewSubmittedMention = async (
   const postSlackResult = await slackClient.postToSlack(
     slackWebhookUrl,
     slackPayload.text,
-    { iconUrl, botName, blocks: slackPayload.blocks },
+    {
+      iconUrl,
+      botName,
+      blocks: slackPayload.blocks,
+      attachments: slackPayload.attachments,
+    },
   );
 
   debug(
@@ -276,6 +282,7 @@ export const execPostError = async (
       iconUrl,
       botName,
       blocks: slackPayload.blocks,
+      attachments: slackPayload.attachments,
     });
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);

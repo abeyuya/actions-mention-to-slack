@@ -1,11 +1,14 @@
 export type SlackPostPayload = {
   text: string;
   blocks: unknown[];
+  attachments?: unknown[];
 };
 
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 export const SECTION_TEXT_LIMIT = 2800;
 export const CONTINUATION_SUFFIX = " (cont.)";
+// GitHub 公式 bot に近い、引用ブロックの縦線を模した中間グレー
+const QUOTE_ATTACHMENT_COLOR = "#cccccc";
 
 export const splitMrkdwnByLimit = (
   text: string,
@@ -64,18 +67,26 @@ export const buildSection = (text: string) => ({
   text: { type: "mrkdwn", text },
 });
 
-const buildHeaderAndBodyBlocks = (
+const buildQuoteAttachment = (chunks: string[]): unknown | null => {
+  if (chunks.length === 0) return null;
+  return {
+    color: QUOTE_ATTACHMENT_COLOR,
+    blocks: chunks.map((chunk) => buildSection(chunk)),
+  };
+};
+
+const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
-): unknown[] => {
+): SlackPostPayload => {
   const blocks: unknown[] = [buildSection(headline)];
-  if (body && body.length > 0) {
-    blocks.push({ type: "divider" });
-    for (const chunk of splitMrkdwnByLimit(body)) {
-      blocks.push(buildSection(chunk));
-    }
-  }
-  return blocks;
+  const bodyChunks = body && body.length > 0 ? splitMrkdwnByLimit(body) : [];
+  const attachment = buildQuoteAttachment(bodyChunks);
+  return {
+    text: headline,
+    blocks,
+    ...(attachment ? { attachments: [attachment] } : {}),
+  };
 };
 
 export const buildSlackPostMessage = (
@@ -88,11 +99,7 @@ export const buildSlackPostMessage = (
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
   const verb = slackIdsForMention.length === 1 ? "has" : "have";
   const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
-
-  return {
-    text: headline,
-    blocks: buildHeaderAndBodyBlocks(headline, githubBody),
-  };
+  return buildHeaderWithQuotedBody(headline, githubBody);
 };
 
 export const buildSlackReviewSubmittedMessage = (
@@ -113,11 +120,7 @@ export const buildSlackReviewSubmittedMessage = (
         return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
     }
   })();
-
-  return {
-    text: headline,
-    blocks: buildHeaderAndBodyBlocks(headline, reviewBody),
-  };
+  return buildHeaderWithQuotedBody(headline, reviewBody);
 };
 
 const openIssueLink =
@@ -147,14 +150,15 @@ export const buildSlackErrorMessage = (
   ].join("\n");
 
   const stack = error.stack || error.message;
-  const blocks: unknown[] = [buildSection(headline), { type: "divider" }];
-  for (const chunk of splitMrkdwnByLimit(stack)) {
-    blocks.push(buildSection(["```", chunk, "```"].join("\n")));
-  }
+  const stackChunks = splitMrkdwnByLimit(stack).map((chunk) =>
+    ["```", chunk, "```"].join("\n"),
+  );
+  const attachment = buildQuoteAttachment(stackChunks);
 
   return {
     text: `❗ An internal error occurred in ${jobTitle}`,
-    blocks,
+    blocks: [buildSection(headline)],
+    ...(attachment ? { attachments: [attachment] } : {}),
   };
 };
 
@@ -162,6 +166,7 @@ export type SlackOption = {
   iconUrl?: string;
   botName?: string;
   blocks?: unknown[];
+  attachments?: unknown[];
 };
 
 type SlackPostParam = {
@@ -171,6 +176,7 @@ type SlackPostParam = {
   icon_url?: string;
   icon_emoji?: string;
   blocks?: unknown[];
+  attachments?: unknown[];
 };
 
 const defaultBotName = "Github Mention To Slack";
@@ -205,6 +211,10 @@ export const SlackRepositoryImpl = {
 
     if (options?.blocks && options.blocks.length > 0) {
       slackPostParam.blocks = options.blocks;
+    }
+
+    if (options?.attachments && options.attachments.length > 0) {
+      slackPostParam.attachments = options.attachments;
     }
 
     const response = await fetch(webhookUrl, {
