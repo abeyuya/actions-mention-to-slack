@@ -14,7 +14,7 @@ import {
 } from "../src/main.js";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve.js";
-import { sectionTexts } from "./fixture/slackBlocks.js";
+import { attachmentSectionTexts } from "./fixture/slackBlocks.js";
 
 vi.mock("@actions/core", async () => {
   const actual =
@@ -262,9 +262,11 @@ describe("src/main", () => {
       expect(call[1].includes("<@slack_user_1>")).toEqual(true);
       expect(call[1].includes("<review_comment_url|pr_title>")).toEqual(true);
       expect(call[1].includes("by sender_github_username")).toEqual(true);
-      expect(sectionTexts(call[2].blocks)).toContain("@github_user_1 LGTM!");
-      // body should not be quoted any more
+      // body should not be quoted with > any more, and should live in an attachment
       expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(false);
+      expect(attachmentSectionTexts(call[2].attachments)).toEqual([
+        ["@github_user_1 LGTM!"],
+      ]);
     });
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
@@ -472,7 +474,7 @@ describe("src/main", () => {
         "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>",
       );
       expect(call[1]).toMatch("abeyuya");
-      expect(sectionTexts(call[2].blocks)).toContain(body);
+      expect(attachmentSectionTexts(call[2].attachments)).toEqual([[body]]);
       expect(call[1]).not.toMatch(`> ${body}`);
     });
 

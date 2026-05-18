@@ -272,5 +272,5 @@ export const buildReviewReminderMessage = (
     blocks.push(buildSection(section));
   }
 
-  return { text, blocks };
+  return { text, blocks, attachments: [] };
 };

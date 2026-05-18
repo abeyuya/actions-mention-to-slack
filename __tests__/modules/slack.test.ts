@@ -6,11 +6,17 @@ import {
   SECTION_TEXT_LIMIT,
   splitMrkdwnByLimit,
 } from "../../src/modules/slack.js";
-import { sectionTexts } from "../fixture/slackBlocks.js";
+import {
+  attachmentSectionTexts,
+  type QuoteAttachment,
+  sectionTexts,
+} from "../fixture/slackBlocks.js";
+
+const QUOTE_COLOR = "#cccccc";
 
 describe("modules/slack", () => {
   describe("buildSlackPostMessage", () => {
-    it("should put only the headline in text and split header/body into blocks", () => {
+    it("should keep only the headline in text/blocks and put the body in a grey-colored attachment", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
         "title",
@@ -22,12 +28,13 @@ describe("modules/slack", () => {
       const expectedHeadline =
         "<@slackUser1> has been mentioned at <link|title> by sender_github_username";
       expect(result.text).toEqual(expectedHeadline);
-      const texts = sectionTexts(result.blocks);
-      expect(texts[0]).toEqual(expectedHeadline);
-      expect(texts[1]).toEqual("message");
-      expect(
-        result.blocks.some((b) => (b as { type?: string }).type === "divider"),
-      ).toBe(true);
+      expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
+
+      expect(result.attachments.length).toEqual(1);
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
+        QUOTE_COLOR,
+      );
+      expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
 
     it("should keep the body verbatim (no machine-added > prefix) even when it starts with > / contains --- / ##", () => {
@@ -40,9 +47,7 @@ describe("modules/slack", () => {
         "sender_github_username",
       );
 
-      const texts = sectionTexts(result.blocks);
-      // body section が元の body と完全一致する = 機械的なプレフィックス付与なし
-      expect(texts).toContain(body);
+      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
     });
 
     it("should use 'have' for multiple mentions and join them with spaces", () => {
@@ -59,7 +64,7 @@ describe("modules/slack", () => {
       );
     });
 
-    it("should split bodies that exceed the Slack section limit into multiple sections each within 3000 chars", () => {
+    it("should split bodies that exceed the Slack section limit into multiple attachment sections each within 3000 chars", () => {
       const body = "a".repeat(8000);
       const result = buildSlackPostMessage(
         ["slackUser1"],
@@ -69,15 +74,14 @@ describe("modules/slack", () => {
         "sender_github_username",
       );
 
-      const texts = sectionTexts(result.blocks);
-      // header + 複数の body chunk
-      expect(texts.length).toBeGreaterThan(2);
-      for (const t of texts) {
+      const chunks = attachmentSectionTexts(result.attachments)[0];
+      expect(chunks.length).toBeGreaterThanOrEqual(3);
+      for (const t of chunks) {
         expect(t.length).toBeLessThanOrEqual(3000);
       }
     });
 
-    it("should omit body section when github body is empty", () => {
+    it("should omit attachments when github body is empty", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
         "title",
@@ -86,11 +90,8 @@ describe("modules/slack", () => {
         "sender_github_username",
       );
 
-      const texts = sectionTexts(result.blocks);
-      expect(texts.length).toEqual(1);
-      expect(
-        result.blocks.some((b) => (b as { type?: string }).type === "divider"),
-      ).toBe(false);
+      expect(result.attachments).toEqual([]);
+      expect(sectionTexts(result.blocks)).toEqual([result.text]);
     });
   });
 
@@ -111,9 +112,10 @@ describe("modules/slack", () => {
 
       const expectedHeadline = `<@U_OWNER> <https://example.com/pr/1|#42 PR1> ${tail}.`;
       expect(result.text).toEqual(expectedHeadline);
-      const texts = sectionTexts(result.blocks);
-      expect(texts[0]).toEqual(expectedHeadline);
-      expect(texts[1]).toEqual("review body");
+      expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
+      expect(attachmentSectionTexts(result.attachments)).toEqual([
+        ["review body"],
+      ]);
     });
 
     it("should keep review body verbatim (no machine-added > prefix)", () => {
@@ -126,11 +128,10 @@ describe("modules/slack", () => {
         body,
       );
 
-      const texts = sectionTexts(result.blocks);
-      expect(texts).toContain(body);
+      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
     });
 
-    it("should omit body section when review body is empty or null", () => {
+    it("should omit attachments when review body is empty or null", () => {
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
         "<link|title>",
@@ -139,22 +140,22 @@ describe("modules/slack", () => {
         null,
       );
 
-      const texts = sectionTexts(result.blocks);
-      expect(texts.length).toEqual(1);
+      expect(result.attachments).toEqual([]);
     });
   });
 
   describe("buildSlackErrorMessage", () => {
-    it("should expose short text fallback and put stack trace in a code-fenced section", () => {
+    it("should expose short text fallback and put stack trace in a grey-colored attachment", () => {
       const e = new Error("dummy error");
       e.stack = "Error: dummy error\n  at line";
       const result = buildSlackErrorMessage(e);
 
       expect(result.text.includes("internal error")).toBe(true);
-      const texts = sectionTexts(result.blocks);
-      // headline section + stack section
-      expect(texts.length).toBeGreaterThanOrEqual(2);
-      const stackSection = texts[texts.length - 1];
+      expect(sectionTexts(result.blocks).length).toEqual(1);
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
+        QUOTE_COLOR,
+      );
+      const stackSection = attachmentSectionTexts(result.attachments)[0][0];
       expect(stackSection.startsWith("```")).toBe(true);
       expect(stackSection.endsWith("```")).toBe(true);
       expect(stackSection.includes("dummy error")).toBe(true);
