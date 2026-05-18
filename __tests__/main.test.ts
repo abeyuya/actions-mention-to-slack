@@ -260,8 +260,13 @@ describe("src/main", () => {
       expect(call[0]).toEqual("dummy_url");
       expect(call[1].includes("<@slack_user_1>")).toEqual(true);
       expect(call[1].includes("<review_comment_url|pr_title>")).toEqual(true);
-      expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(true);
       expect(call[1].includes("by sender_github_username")).toEqual(true);
+      const bodySectionTexts = call[2].blocks
+        .filter((b: { type: string }) => b.type === "section")
+        .map((b: { text: { text: string } }) => b.text.text);
+      expect(bodySectionTexts).toContain("@github_user_1 LGTM!");
+      // body should not be quoted any more
+      expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(false);
     });
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
@@ -469,7 +474,11 @@ describe("src/main", () => {
         "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>",
       );
       expect(call[1]).toMatch("by abeyuya");
-      expect(call[1]).toMatch(`> ${body}`);
+      const bodySectionTexts = call[2].blocks
+        .filter((b: { type: string }) => b.type === "section")
+        .map((b: { text: { text: string } }) => b.text.text);
+      expect(bodySectionTexts).toContain(body);
+      expect(call[1]).not.toMatch(`> ${body}`);
     });
 
     describe("when the reviewer is the PR author (self-review)", () => {

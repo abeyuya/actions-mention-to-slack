@@ -1,5 +1,6 @@
 import { warning } from "@actions/core";
 import type { getOctokit } from "@actions/github";
+import type { SlackPostPayload } from "./slack.js";
 
 export type ApprovalState =
   | "approved"
@@ -25,10 +26,7 @@ export type ReminderEntry = RawReminderEntry & {
   slackId?: string;
 };
 
-export type ReminderSlackPayload = {
-  text: string;
-  blocks: unknown[];
-};
+export type ReminderSlackPayload = SlackPostPayload;
 
 type ReviewLike = {
   user?: { login?: string | null } | null;
