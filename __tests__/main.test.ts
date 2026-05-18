@@ -567,33 +567,6 @@ describe("src/main", () => {
       },
     });
 
-    const buildReviewCommentPayload = (
-      overrides: {
-        action?: string;
-        authorLogin?: string;
-        senderLogin?: string;
-        senderType?: string;
-        body?: string;
-      } = {},
-    ): Partial<typeof context.payload> => ({
-      action: overrides.action ?? "created",
-      pull_request: {
-        user: { login: overrides.authorLogin ?? "pr_author_github" },
-        title: "pr_title",
-        number: 1,
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      comment: {
-        body: overrides.body ?? "consider renaming this variable",
-        html_url: "review_comment_url",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-      sender: {
-        login: overrides.senderLogin ?? "commenter_github",
-        type: overrides.senderType ?? "User",
-      },
-    });
-
     it("should notify the PR author for an issue_comment on a PR", async () => {
       const slackMock = { postToSlack: vi.fn() };
       const payload = buildIssueCommentOnPrPayload({ body: "looks good" });
@@ -611,14 +584,24 @@ describe("src/main", () => {
       const call = slackMock.postToSlack.mock.calls[0];
       expect(call[0]).toEqual("dummy_url");
       expect(call[1]).toMatch("<@pr_author_slack>");
-      expect(call[1]).toMatch("commenter_github commented on");
+      expect(call[1]).toMatch("received a comment from commenter_github");
       expect(call[1]).toMatch("<comment_url|pr_title>");
-      expect(call[1]).toMatch("> looks good");
+      expect(sectionTexts(call[2].blocks)).toContain("looks good");
     });
 
-    it("should notify the PR author for a pull_request_review_comment", async () => {
+    it("should not notify for a pull_request_review_comment (delegated to execReviewSubmittedMention)", async () => {
       const slackMock = { postToSlack: vi.fn() };
-      const payload = buildReviewCommentPayload();
+      const payload: Partial<typeof context.payload> = {
+        action: "created",
+        pull_request: {
+          user: { login: "pr_author_github" },
+          title: "pr_title",
+          number: 1,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        comment: { body: "inline", html_url: "review_comment_url" } as any,
+        sender: { login: "commenter_github", type: "User" },
+      };
 
       const result = await execCommentToAuthor(
         payload,
@@ -627,8 +610,8 @@ describe("src/main", () => {
         slackMock,
       );
 
-      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
-      expect(result).toEqual("pr_author_slack");
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
     });
 
     it("should not notify for a comment on an Issue (no pull_request field)", async () => {

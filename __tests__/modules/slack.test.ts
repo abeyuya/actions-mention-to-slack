@@ -1,4 +1,5 @@
 import {
+  buildSlackCommentToAuthorMessage,
   buildSlackErrorMessage,
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
@@ -141,6 +142,49 @@ describe("modules/slack", () => {
 
       const texts = sectionTexts(result.blocks);
       expect(texts.length).toEqual(1);
+    });
+  });
+
+  describe("buildSlackCommentToAuthorMessage", () => {
+    it("should compose headline with PR link and commenter, and put body in a section", () => {
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<https://example.com/pr/1|#42 PR1>",
+        "commenter_user",
+        "looks good",
+      );
+
+      const expectedHeadline =
+        "<@U_AUTHOR> <https://example.com/pr/1|#42 PR1> received a comment from commenter_user.";
+      expect(result.text).toEqual(expectedHeadline);
+      const texts = sectionTexts(result.blocks);
+      expect(texts[0]).toEqual(expectedHeadline);
+      expect(texts[1]).toEqual("looks good");
+    });
+
+    it("should omit body section when the comment body is empty or null", () => {
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<link|title>",
+        "commenter_user",
+        null,
+      );
+
+      const texts = sectionTexts(result.blocks);
+      expect(texts.length).toEqual(1);
+    });
+
+    it("should keep comment body verbatim (no machine-added > prefix)", () => {
+      const body = "> quoted\n\n---\n\n## heading\n\nbody";
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<link|title>",
+        "commenter_user",
+        body,
+      );
+
+      const texts = sectionTexts(result.blocks);
+      expect(texts).toContain(body);
     });
   });
 

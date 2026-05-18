@@ -18,6 +18,7 @@ import {
   type ReminderEntry,
 } from "./modules/reviewReminder.js";
 import {
+  buildSlackCommentToAuthorMessage,
   buildSlackErrorMessage,
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
@@ -236,15 +237,17 @@ export const execCommentToAuthor = async (
     return null;
   }
 
+  // pull_request_review_comment は同時に発火する pull_request_review.submitted
+  // (= execReviewSubmittedMention) 側に集約されるため、ここでは扱わない。
+  // PR 上の issue_comment (Conversation タブのコメント) のみを対象にする。
   const isIssueCommentOnPr = Boolean(
     payload.issue?.pull_request && payload.comment,
   );
-  const isPrReviewComment = Boolean(
-    payload.pull_request && payload.comment && !payload.review,
-  );
 
-  if (!isIssueCommentOnPr && !isPrReviewComment) {
-    debug("finish execCommentToAuthor because event is not a PR comment");
+  if (!isIssueCommentOnPr) {
+    debug(
+      "finish execCommentToAuthor because event is not an issue_comment on a PR",
+    );
     return null;
   }
 
@@ -260,8 +263,7 @@ export const execCommentToAuthor = async (
     return null;
   }
 
-  const prAuthorGithubUsername =
-    payload.issue?.user?.login ?? payload.pull_request?.user?.login;
+  const prAuthorGithubUsername = payload.issue?.user?.login;
 
   if (!prAuthorGithubUsername) {
     debug("finish execCommentToAuthor because PR author is not found");
@@ -282,18 +284,20 @@ export const execCommentToAuthor = async (
 
   const info = pickupInfoFromGithubPayload(payload);
   const prAuthorSlackUserId = slackIds[0];
-  const blockquotesBody = convertGithubTextToBlockquotesText(info.body || "");
-
   const prLink = `<${info.url}|${info.title}>`;
-  const userMention = `<@${prAuthorSlackUserId}>`;
-  const headline = `${userMention} ${commenter} commented on ${prLink}`;
-  const message = [headline, blockquotesBody].join("\n");
+
+  const slackPayload = buildSlackCommentToAuthorMessage(
+    prAuthorSlackUserId,
+    prLink,
+    commenter ?? "",
+    info.body,
+  );
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
   const postSlackResult = await slackClient.postToSlack(
     slackWebhookUrl,
-    message,
-    { iconUrl, botName },
+    slackPayload.text,
+    { iconUrl, botName, blocks: slackPayload.blocks },
   );
 
   debug(
