@@ -81,7 +81,7 @@ const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
 ): SlackPostPayload => {
-  const bodyChunks = body && body.length > 0 ? splitMrkdwnByLimit(body) : [];
+  const bodyChunks = body ? splitMrkdwnByLimit(body) : [];
   return {
     text: headline,
     blocks: [buildSection(headline)],
