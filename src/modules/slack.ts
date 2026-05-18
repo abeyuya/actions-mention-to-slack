@@ -1,17 +1,81 @@
-export const convertGithubTextToBlockquotesText = (githubText: string) => {
-  const t = githubText
-    .split("\n")
-    .map((line, i) => {
-      // fix slack layout collapse problem when first line starts with blockquotes.
-      if (i === 0 && line.startsWith(">")) {
-        return `>\n> ${line}`;
+export type SlackPostPayload = {
+  text: string;
+  blocks: unknown[];
+};
+
+// Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
+export const SECTION_TEXT_LIMIT = 2800;
+export const CONTINUATION_SUFFIX = " (cont.)";
+
+export const splitMrkdwnByLimit = (
+  text: string,
+  limit: number = SECTION_TEXT_LIMIT,
+): string[] => {
+  if (text.length === 0) return [];
+  if (text.length <= limit) return [text];
+
+  const chunks: string[] = [];
+  const lines = text.split("\n");
+  let current = "";
+
+  const flushCurrent = () => {
+    if (current.length > 0) {
+      chunks.push(current);
+      current = "";
+    }
+  };
+
+  const pushLongLine = (line: string) => {
+    const room = limit - CONTINUATION_SUFFIX.length;
+    let remaining = line;
+    while (remaining.length > 0) {
+      if (remaining.length <= limit) {
+        chunks.push(remaining);
+        remaining = "";
+      } else {
+        chunks.push(`${remaining.slice(0, room)}${CONTINUATION_SUFFIX}`);
+        remaining = remaining.slice(room);
       }
+    }
+  };
 
-      return `> ${line}`;
-    })
-    .join("\n");
+  for (const line of lines) {
+    if (line.length > limit) {
+      flushCurrent();
+      pushLongLine(line);
+      continue;
+    }
 
-  return t;
+    const candidate = current.length === 0 ? line : `${current}\n${line}`;
+    if (candidate.length > limit) {
+      flushCurrent();
+      current = line;
+    } else {
+      current = candidate;
+    }
+  }
+  flushCurrent();
+
+  return chunks;
+};
+
+export const buildSection = (text: string) => ({
+  type: "section",
+  text: { type: "mrkdwn", text },
+});
+
+const buildHeaderAndBodyBlocks = (
+  headline: string,
+  body: string | null | undefined,
+): unknown[] => {
+  const blocks: unknown[] = [buildSection(headline)];
+  if (body && body.length > 0) {
+    blocks.push({ type: "divider" });
+    for (const chunk of splitMrkdwnByLimit(body)) {
+      blocks.push(buildSection(chunk));
+    }
+  }
+  return blocks;
 };
 
 export const buildSlackPostMessage = (
@@ -20,17 +84,40 @@ export const buildSlackPostMessage = (
   commentLink: string,
   githubBody: string,
   senderName: string,
-): string => {
+): SlackPostPayload => {
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-  const body = convertGithubTextToBlockquotesText(githubBody);
+  const verb = slackIdsForMention.length === 1 ? "has" : "have";
+  const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
 
-  const message = [
-    mentionBlock,
-    `${slackIdsForMention.length === 1 ? "has" : "have"}`,
-    `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-  ].join(" ");
+  return {
+    text: headline,
+    blocks: buildHeaderAndBodyBlocks(headline, githubBody),
+  };
+};
 
-  return `${message}\n${body}`;
+export const buildSlackReviewSubmittedMessage = (
+  prOwnerSlackUserId: string,
+  prLink: string,
+  reviewer: string,
+  reviewState: string | undefined,
+  reviewBody: string | null | undefined,
+): SlackPostPayload => {
+  const userMention = `<@${prOwnerSlackUserId}>`;
+  const headline = (() => {
+    switch (reviewState) {
+      case "approved":
+        return `${userMention} ${prLink} has been approved by ${reviewer}.`;
+      case "changes_requested":
+        return `${userMention} ${prLink} has changes requested by ${reviewer}.`;
+      default:
+        return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
+    }
+  })();
+
+  return {
+    text: headline,
+    blocks: buildHeaderAndBodyBlocks(headline, reviewBody),
+  };
 };
 
 const openIssueLink =
@@ -39,7 +126,7 @@ const openIssueLink =
 export const buildSlackErrorMessage = (
   error: Error,
   currentJobUrl?: string,
-): string => {
+): SlackPostPayload => {
   const jobTitle = "mention-to-slack action";
   const jobLinkMessage = currentJobUrl
     ? `<${currentJobUrl}|${jobTitle}>`
@@ -53,15 +140,22 @@ export const buildSlackErrorMessage = (
     `${openIssueLink}?title=${error.message}&body=${issueBody}`,
   );
 
-  return [
+  const headline = [
     `❗ An internal error occurred in ${jobLinkMessage}`,
     "(but action didn't fail as this action is not critical).",
     `To solve the problem, please <${link}|open an issue>`,
-    "",
-    "```",
-    error.stack || error.message,
-    "```",
   ].join("\n");
+
+  const stack = error.stack || error.message;
+  const blocks: unknown[] = [buildSection(headline), { type: "divider" }];
+  for (const chunk of splitMrkdwnByLimit(stack)) {
+    blocks.push(buildSection(["```", chunk, "```"].join("\n")));
+  }
+
+  return {
+    text: `❗ An internal error occurred in ${jobTitle}`,
+    blocks,
+  };
 };
 
 export type SlackOption = {
