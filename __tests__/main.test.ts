@@ -742,6 +742,21 @@ describe("src/main", () => {
       expect(result).toBeNull();
     });
 
+    it("should not notify when an existing comment is edited (avoid re-notifying)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({ action: "edited" });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
     describe("with execNormalMention (deduplication)", () => {
       it("execNormalMention skips PR author when their slackId is in ignoreSlackIds", async () => {
         const slackMock = { postToSlack: vi.fn() };

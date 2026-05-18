@@ -253,6 +253,13 @@ export const execCommentToAuthor = async (
     return null;
   }
 
+  if (payload.action !== "created") {
+    debug(
+      "skip execCommentToAuthor because the action is not 'created' (avoid re-notifying on comment edits)",
+    );
+    return null;
+  }
+
   if (!allInputs.notifyBotComment && payload.sender?.type === "Bot") {
     debug("skip execCommentToAuthor because the sender is a bot");
     return null;
