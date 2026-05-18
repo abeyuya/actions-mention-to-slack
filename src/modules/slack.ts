@@ -106,11 +106,11 @@ export const buildSlackReviewSubmittedMessage = (
   const headline = (() => {
     switch (reviewState) {
       case "approved":
-        return `${userMention} has been approved ${prLink} by ${reviewer}.`;
+        return `${userMention} ${prLink} has been approved by ${reviewer}.`;
       case "changes_requested":
-        return `${userMention} has been requested changes on ${prLink} by ${reviewer}.`;
+        return `${userMention} ${prLink} has changes requested by ${reviewer}.`;
       default:
-        return `${userMention} has received a review comment on ${prLink} by ${reviewer}.`;
+        return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
     }
   })();
 

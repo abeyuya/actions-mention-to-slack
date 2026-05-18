@@ -2,22 +2,11 @@ import {
   buildSlackErrorMessage,
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
+  CONTINUATION_SUFFIX,
+  SECTION_TEXT_LIMIT,
+  splitMrkdwnByLimit,
 } from "../../src/modules/slack.js";
-
-type SectionBlock = {
-  type: "section";
-  text: { type: "mrkdwn"; text: string };
-};
-
-const sectionTexts = (blocks: unknown[]): string[] =>
-  blocks
-    .filter(
-      (b): b is SectionBlock =>
-        typeof b === "object" &&
-        b !== null &&
-        (b as { type?: string }).type === "section",
-    )
-    .map((b) => b.text.text);
+import { sectionTexts } from "../fixture/slackBlocks.js";
 
 describe("modules/slack", () => {
   describe("buildSlackPostMessage", () => {
@@ -107,11 +96,11 @@ describe("modules/slack", () => {
 
   describe("buildSlackReviewSubmittedMessage", () => {
     it.each([
-      ["approved", "has been approved"],
-      ["changes_requested", "has been requested changes on"],
-      ["commented", "has received a review comment on"],
-      [undefined, "has received a review comment on"],
-    ] as const)("should compose headline for review state '%s'", (state, verb) => {
+      ["approved", "has been approved by reviewer_user"],
+      ["changes_requested", "has changes requested by reviewer_user"],
+      ["commented", "received a review comment from reviewer_user"],
+      [undefined, "received a review comment from reviewer_user"],
+    ] as const)("should compose headline for review state '%s'", (state, tail) => {
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
         "<https://example.com/pr/1|#42 PR1>",
@@ -120,7 +109,7 @@ describe("modules/slack", () => {
         "review body",
       );
 
-      const expectedHeadline = `<@U_OWNER> ${verb} <https://example.com/pr/1|#42 PR1> by reviewer_user.`;
+      const expectedHeadline = `<@U_OWNER> <https://example.com/pr/1|#42 PR1> ${tail}.`;
       expect(result.text).toEqual(expectedHeadline);
       const texts = sectionTexts(result.blocks);
       expect(texts[0]).toEqual(expectedHeadline);
@@ -169,6 +158,42 @@ describe("modules/slack", () => {
       expect(stackSection.startsWith("```")).toBe(true);
       expect(stackSection.endsWith("```")).toBe(true);
       expect(stackSection.includes("dummy error")).toBe(true);
+    });
+  });
+
+  describe("splitMrkdwnByLimit", () => {
+    it("should split a single line longer than the limit and mark intermediate chunks with (cont.)", () => {
+      const longLine = "a".repeat(SECTION_TEXT_LIMIT + 100);
+      const chunks = splitMrkdwnByLimit(longLine);
+
+      expect(chunks.length).toBeGreaterThanOrEqual(2);
+      for (const c of chunks) {
+        expect(c.length).toBeLessThanOrEqual(SECTION_TEXT_LIMIT);
+      }
+      for (let i = 0; i < chunks.length - 1; i += 1) {
+        expect(chunks[i].endsWith(CONTINUATION_SUFFIX)).toBe(true);
+      }
+      expect(chunks[chunks.length - 1].endsWith(CONTINUATION_SUFFIX)).toBe(
+        false,
+      );
+
+      const restored = chunks
+        .map((c, i) =>
+          i === chunks.length - 1
+            ? c
+            : c.slice(0, c.length - CONTINUATION_SUFFIX.length),
+        )
+        .join("");
+      expect(restored).toEqual(longLine);
+    });
+
+    it("should return the input untouched when within the limit", () => {
+      const text = "short text\nwith newline";
+      expect(splitMrkdwnByLimit(text)).toEqual([text]);
+    });
+
+    it("should return an empty array for an empty input", () => {
+      expect(splitMrkdwnByLimit("")).toEqual([]);
     });
   });
 });

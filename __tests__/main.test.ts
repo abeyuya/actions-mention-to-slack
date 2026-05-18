@@ -14,6 +14,7 @@ import {
 } from "../src/main.js";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve.js";
+import { sectionTexts } from "./fixture/slackBlocks.js";
 
 vi.mock("@actions/core", async () => {
   const actual =
@@ -261,10 +262,7 @@ describe("src/main", () => {
       expect(call[1].includes("<@slack_user_1>")).toEqual(true);
       expect(call[1].includes("<review_comment_url|pr_title>")).toEqual(true);
       expect(call[1].includes("by sender_github_username")).toEqual(true);
-      const bodySectionTexts = call[2].blocks
-        .filter((b: { type: string }) => b.type === "section")
-        .map((b: { text: { text: string } }) => b.text.text);
-      expect(bodySectionTexts).toContain("@github_user_1 LGTM!");
+      expect(sectionTexts(call[2].blocks)).toContain("@github_user_1 LGTM!");
       // body should not be quoted any more
       expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(false);
     });
@@ -430,17 +428,17 @@ describe("src/main", () => {
       {
         state: "approved",
         body: "approve comment",
-        expectedPhrase: "has been approved",
+        expectedPhrase: "has been approved by",
       },
       {
         state: "changes_requested",
         body: "please fix this",
-        expectedPhrase: "has been requested changes",
+        expectedPhrase: "has changes requested by",
       },
       {
         state: "commented",
         body: "just a comment",
-        expectedPhrase: "has received a review comment",
+        expectedPhrase: "received a review comment from",
       },
     ])("should send slack mention with $state wording", async ({
       state,
@@ -473,11 +471,8 @@ describe("src/main", () => {
       expect(call[1]).toMatch(
         "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>",
       );
-      expect(call[1]).toMatch("by abeyuya");
-      const bodySectionTexts = call[2].blocks
-        .filter((b: { type: string }) => b.type === "section")
-        .map((b: { text: { text: string } }) => b.text.text);
-      expect(bodySectionTexts).toContain(body);
+      expect(call[1]).toMatch("abeyuya");
+      expect(sectionTexts(call[2].blocks)).toContain(body);
       expect(call[1]).not.toMatch(`> ${body}`);
     });
 
