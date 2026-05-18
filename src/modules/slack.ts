@@ -129,11 +129,7 @@ export const buildSlackCommentToAuthorMessage = (
   commentBody: string | null | undefined,
 ): SlackPostPayload => {
   const headline = `<@${prAuthorSlackUserId}> ${prLink} received a comment from ${commenter}.`;
-
-  return {
-    text: headline,
-    blocks: buildHeaderAndBodyBlocks(headline, commentBody),
-  };
+  return buildHeaderWithQuotedBody(headline, commentBody);
 };
 
 const openIssueLink =

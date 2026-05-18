@@ -13,7 +13,7 @@ import {
   sectionTexts,
 } from "../fixture/slackBlocks.js";
 
-const QUOTE_COLOR = "#cccccc";
+const QUOTE_COLOR = "#35373b";
 
 describe("modules/slack", () => {
   describe("buildSlackPostMessage", () => {
@@ -146,7 +146,7 @@ describe("modules/slack", () => {
   });
 
   describe("buildSlackCommentToAuthorMessage", () => {
-    it("should compose headline with PR link and commenter, and put body in a section", () => {
+    it("should keep only the headline in text/blocks and put the body in a grey-colored attachment", () => {
       const result = buildSlackCommentToAuthorMessage(
         "U_AUTHOR",
         "<https://example.com/pr/1|#42 PR1>",
@@ -157,12 +157,18 @@ describe("modules/slack", () => {
       const expectedHeadline =
         "<@U_AUTHOR> <https://example.com/pr/1|#42 PR1> received a comment from commenter_user.";
       expect(result.text).toEqual(expectedHeadline);
-      const texts = sectionTexts(result.blocks);
-      expect(texts[0]).toEqual(expectedHeadline);
-      expect(texts[1]).toEqual("looks good");
+      expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
+
+      expect(result.attachments.length).toEqual(1);
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
+        QUOTE_COLOR,
+      );
+      expect(attachmentSectionTexts(result.attachments)).toEqual([
+        ["looks good"],
+      ]);
     });
 
-    it("should omit body section when the comment body is empty or null", () => {
+    it("should omit attachments when the comment body is empty or null", () => {
       const result = buildSlackCommentToAuthorMessage(
         "U_AUTHOR",
         "<link|title>",
@@ -170,8 +176,8 @@ describe("modules/slack", () => {
         null,
       );
 
-      const texts = sectionTexts(result.blocks);
-      expect(texts.length).toEqual(1);
+      expect(result.attachments).toEqual([]);
+      expect(sectionTexts(result.blocks)).toEqual([result.text]);
     });
 
     it("should keep comment body verbatim (no machine-added > prefix)", () => {
@@ -183,8 +189,7 @@ describe("modules/slack", () => {
         body,
       );
 
-      const texts = sectionTexts(result.blocks);
-      expect(texts).toContain(body);
+      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
     });
   });
 
