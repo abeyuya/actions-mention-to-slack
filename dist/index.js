@@ -40241,13 +40241,164 @@ const MappingConfigRepositoryImpl = {
     },
 };
 
-;// CONCATENATED MODULE: ./src/modules/reviewReminder.ts
-
-const APPROVAL_API_CONCURRENCY = 5;
-const LABEL_DISPLAY_LIMIT = 5;
+;// CONCATENATED MODULE: ./src/modules/slack.ts
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 const SECTION_TEXT_LIMIT = 2800;
 const CONTINUATION_SUFFIX = " (cont.)";
+const splitMrkdwnByLimit = (text, limit = SECTION_TEXT_LIMIT) => {
+    if (text.length === 0)
+        return [];
+    if (text.length <= limit)
+        return [text];
+    const chunks = [];
+    const lines = text.split("\n");
+    let current = "";
+    const flushCurrent = () => {
+        if (current.length > 0) {
+            chunks.push(current);
+            current = "";
+        }
+    };
+    const pushLongLine = (line) => {
+        const room = limit - CONTINUATION_SUFFIX.length;
+        let remaining = line;
+        while (remaining.length > 0) {
+            if (remaining.length <= limit) {
+                chunks.push(remaining);
+                remaining = "";
+            }
+            else {
+                chunks.push(`${remaining.slice(0, room)}${CONTINUATION_SUFFIX}`);
+                remaining = remaining.slice(room);
+            }
+        }
+    };
+    for (const line of lines) {
+        if (line.length > limit) {
+            flushCurrent();
+            pushLongLine(line);
+            continue;
+        }
+        const candidate = current.length === 0 ? line : `${current}\n${line}`;
+        if (candidate.length > limit) {
+            flushCurrent();
+            current = line;
+        }
+        else {
+            current = candidate;
+        }
+    }
+    flushCurrent();
+    return chunks;
+};
+const buildSection = (text) => ({
+    type: "section",
+    text: { type: "mrkdwn", text },
+});
+const buildHeaderAndBodyBlocks = (headline, body) => {
+    const blocks = [buildSection(headline)];
+    if (body && body.length > 0) {
+        blocks.push({ type: "divider" });
+        for (const chunk of splitMrkdwnByLimit(body)) {
+            blocks.push(buildSection(chunk));
+        }
+    }
+    return blocks;
+};
+const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
+    const verb = slackIdsForMention.length === 1 ? "has" : "have";
+    const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
+    return {
+        text: headline,
+        blocks: buildHeaderAndBodyBlocks(headline, githubBody),
+    };
+};
+const buildSlackReviewSubmittedMessage = (prOwnerSlackUserId, prLink, reviewer, reviewState, reviewBody) => {
+    const userMention = `<@${prOwnerSlackUserId}>`;
+    const headline = (() => {
+        switch (reviewState) {
+            case "approved":
+                return `${userMention} ${prLink} has been approved by ${reviewer}.`;
+            case "changes_requested":
+                return `${userMention} ${prLink} has changes requested by ${reviewer}.`;
+            default:
+                return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
+        }
+    })();
+    return {
+        text: headline,
+        blocks: buildHeaderAndBodyBlocks(headline, reviewBody),
+    };
+};
+const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
+const buildSlackErrorMessage = (error, currentJobUrl) => {
+    const jobTitle = "mention-to-slack action";
+    const jobLinkMessage = currentJobUrl
+        ? `<${currentJobUrl}|${jobTitle}>`
+        : jobTitle;
+    const issueBody = error.stack
+        ? encodeURI(["```", error.stack, "```"].join("\n"))
+        : "";
+    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
+    const headline = [
+        `❗ An internal error occurred in ${jobLinkMessage}`,
+        "(but action didn't fail as this action is not critical).",
+        `To solve the problem, please <${link}|open an issue>`,
+    ].join("\n");
+    const stack = error.stack || error.message;
+    const blocks = [buildSection(headline), { type: "divider" }];
+    for (const chunk of splitMrkdwnByLimit(stack)) {
+        blocks.push(buildSection(["```", chunk, "```"].join("\n")));
+    }
+    return {
+        text: `❗ An internal error occurred in ${jobTitle}`,
+        blocks,
+    };
+};
+const defaultBotName = "Github Mention To Slack";
+const defaultIconEmoji = ":bell:";
+const SlackRepositoryImpl = {
+    postToSlack: async (webhookUrl, message, options) => {
+        const botName = (() => {
+            const n = options === null || options === void 0 ? void 0 : options.botName;
+            if (n && n !== "") {
+                return n;
+            }
+            return defaultBotName;
+        })();
+        const slackPostParam = {
+            text: message,
+            link_names: 0,
+            username: botName,
+        };
+        const u = options === null || options === void 0 ? void 0 : options.iconUrl;
+        if (u && u !== "") {
+            slackPostParam.icon_url = u;
+        }
+        else {
+            slackPostParam.icon_emoji = defaultIconEmoji;
+        }
+        if ((options === null || options === void 0 ? void 0 : options.blocks) && options.blocks.length > 0) {
+            slackPostParam.blocks = options.blocks;
+        }
+        const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(slackPostParam),
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to post to Slack: ${response.status} ${response.statusText}`);
+        }
+        return response.text();
+    },
+};
+
+;// CONCATENATED MODULE: ./src/modules/reviewReminder.ts
+
+
+const APPROVAL_API_CONCURRENCY = 5;
+const LABEL_DISPLAY_LIMIT = 5;
 const mapWithConcurrency = async (items, concurrency, fn) => {
     const results = [];
     for (let i = 0; i < items.length; i += concurrency) {
@@ -40439,102 +40590,11 @@ const buildReviewReminderMessage = (entries, repoFullName, now = new Date()) => 
         entryBlockTexts.push(...splitSectionByLimit(header, prLines));
     }
     const text = [headerText, "", entryTextSections.join("\n\n")].join("\n");
-    const blocks = [
-        {
-            type: "section",
-            text: { type: "mrkdwn", text: headerText },
-        },
-        { type: "divider" },
-    ];
+    const blocks = [buildSection(headerText), { type: "divider" }];
     for (const section of entryBlockTexts) {
-        blocks.push({
-            type: "section",
-            text: { type: "mrkdwn", text: section },
-        });
+        blocks.push(buildSection(section));
     }
     return { text, blocks };
-};
-
-;// CONCATENATED MODULE: ./src/modules/slack.ts
-const convertGithubTextToBlockquotesText = (githubText) => {
-    const t = githubText
-        .split("\n")
-        .map((line, i) => {
-        // fix slack layout collapse problem when first line starts with blockquotes.
-        if (i === 0 && line.startsWith(">")) {
-            return `>\n> ${line}`;
-        }
-        return `> ${line}`;
-    })
-        .join("\n");
-    return t;
-};
-const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
-    const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-    const body = convertGithubTextToBlockquotesText(githubBody);
-    const message = [
-        mentionBlock,
-        `${slackIdsForMention.length === 1 ? "has" : "have"}`,
-        `been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`,
-    ].join(" ");
-    return `${message}\n${body}`;
-};
-const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
-const buildSlackErrorMessage = (error, currentJobUrl) => {
-    const jobTitle = "mention-to-slack action";
-    const jobLinkMessage = currentJobUrl
-        ? `<${currentJobUrl}|${jobTitle}>`
-        : jobTitle;
-    const issueBody = error.stack
-        ? encodeURI(["```", error.stack, "```"].join("\n"))
-        : "";
-    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
-    return [
-        `❗ An internal error occurred in ${jobLinkMessage}`,
-        "(but action didn't fail as this action is not critical).",
-        `To solve the problem, please <${link}|open an issue>`,
-        "",
-        "```",
-        error.stack || error.message,
-        "```",
-    ].join("\n");
-};
-const defaultBotName = "Github Mention To Slack";
-const defaultIconEmoji = ":bell:";
-const SlackRepositoryImpl = {
-    postToSlack: async (webhookUrl, message, options) => {
-        const botName = (() => {
-            const n = options === null || options === void 0 ? void 0 : options.botName;
-            if (n && n !== "") {
-                return n;
-            }
-            return defaultBotName;
-        })();
-        const slackPostParam = {
-            text: message,
-            link_names: 0,
-            username: botName,
-        };
-        const u = options === null || options === void 0 ? void 0 : options.iconUrl;
-        if (u && u !== "") {
-            slackPostParam.icon_url = u;
-        }
-        else {
-            slackPostParam.icon_emoji = defaultIconEmoji;
-        }
-        if ((options === null || options === void 0 ? void 0 : options.blocks) && options.blocks.length > 0) {
-            slackPostParam.blocks = options.blocks;
-        }
-        const response = await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(slackPostParam),
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to post to Slack: ${response.status} ${response.statusText}`);
-        }
-        return response.text();
-    },
 };
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -40602,11 +40662,12 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
         core_debug("finish execNormalMention because slackIds.length === 0");
         return;
     }
-    const message = buildSlackPostMessage(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
+    const slackPayload = buildSlackPostMessage(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    const result = await slackClient.postToSlack(slackWebhookUrl, message, {
+    const result = await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
         iconUrl,
         botName,
+        blocks: slackPayload.blocks,
     });
     core_debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
@@ -40636,22 +40697,10 @@ const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClie
         core_debug("skip slack post because the reviewer is the PR author");
         return null;
     }
-    const blockquotesReviewBody = convertGithubTextToBlockquotesText(info.body || "");
     const prLink = `<${info.url}|${info.title}>`;
-    const userMention = `<@${prOwnerSlackUserId}>`;
-    const headline = (() => {
-        switch (reviewState) {
-            case "approved":
-                return `${userMention} has been approved ${prLink} by ${reviewer}.`;
-            case "changes_requested":
-                return `${userMention} has been requested changes on ${prLink} by ${reviewer}.`;
-            default:
-                return `${userMention} has received a review comment on ${prLink} by ${reviewer}.`;
-        }
-    })();
-    const message = [headline, blockquotesReviewBody].join("\n");
+    const slackPayload = buildSlackReviewSubmittedMessage(prOwnerSlackUserId, prLink, reviewer, reviewState, info.body);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    const postSlackResult = await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, { iconUrl, botName, blocks: slackPayload.blocks });
     core_debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
     return prOwnerSlackUserId;
 };
@@ -40680,13 +40729,14 @@ const buildCurrentJobUrl = (runId) => {
 const execPostError = async (error, allInputs, slackClient) => {
     const { runId } = allInputs;
     const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
-    const message = buildSlackErrorMessage(error, currentJobUrl);
-    warning(message);
+    const slackPayload = buildSlackErrorMessage(error, currentJobUrl);
+    warning([slackPayload.text, error.stack || error.message].join("\n"));
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     try {
-        await slackClient.postToSlack(slackWebhookUrl, message, {
+        await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
             iconUrl,
             botName,
+            blocks: slackPayload.blocks,
         });
     }
     catch (e) {

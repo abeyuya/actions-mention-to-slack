@@ -1,5 +1,11 @@
 import { warning } from "@actions/core";
 import type { getOctokit } from "@actions/github";
+import {
+  buildSection,
+  CONTINUATION_SUFFIX,
+  SECTION_TEXT_LIMIT,
+  type SlackPostPayload,
+} from "./slack.js";
 
 export type ApprovalState =
   | "approved"
@@ -25,10 +31,7 @@ export type ReminderEntry = RawReminderEntry & {
   slackId?: string;
 };
 
-export type ReminderSlackPayload = {
-  text: string;
-  blocks: unknown[];
-};
+export type ReminderSlackPayload = SlackPostPayload;
 
 type ReviewLike = {
   user?: { login?: string | null } | null;
@@ -37,9 +40,6 @@ type ReviewLike = {
 
 const APPROVAL_API_CONCURRENCY = 5;
 const LABEL_DISPLAY_LIMIT = 5;
-// Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
-const SECTION_TEXT_LIMIT = 2800;
-const CONTINUATION_SUFFIX = " (cont.)";
 
 const mapWithConcurrency = async <T, R>(
   items: T[],
@@ -267,18 +267,9 @@ export const buildReviewReminderMessage = (
 
   const text = [headerText, "", entryTextSections.join("\n\n")].join("\n");
 
-  const blocks: unknown[] = [
-    {
-      type: "section",
-      text: { type: "mrkdwn", text: headerText },
-    },
-    { type: "divider" },
-  ];
+  const blocks: unknown[] = [buildSection(headerText), { type: "divider" }];
   for (const section of entryBlockTexts) {
-    blocks.push({
-      type: "section",
-      text: { type: "mrkdwn", text: section },
-    });
+    blocks.push(buildSection(section));
   }
 
   return { text, blocks };
