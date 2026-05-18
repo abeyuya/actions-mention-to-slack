@@ -40245,8 +40245,7 @@ const MappingConfigRepositoryImpl = {
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 const SECTION_TEXT_LIMIT = 2800;
 const CONTINUATION_SUFFIX = " (cont.)";
-// GitHub 公式 bot に近い、引用ブロックの縦線を模した中間グレー
-const QUOTE_ATTACHMENT_COLOR = "#cccccc";
+const QUOTE_ATTACHMENT_COLOR = "#35373b";
 const splitMrkdwnByLimit = (text, limit = SECTION_TEXT_LIMIT) => {
     if (text.length === 0)
         return [];
