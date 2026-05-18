@@ -4,10 +4,10 @@ export type SlackPostPayload = {
 };
 
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
-const SECTION_TEXT_LIMIT = 2800;
-const CONTINUATION_SUFFIX = " (cont.)";
+export const SECTION_TEXT_LIMIT = 2800;
+export const CONTINUATION_SUFFIX = " (cont.)";
 
-const splitMrkdwnByLimit = (
+export const splitMrkdwnByLimit = (
   text: string,
   limit: number = SECTION_TEXT_LIMIT,
 ): string[] => {
@@ -26,10 +26,9 @@ const splitMrkdwnByLimit = (
   };
 
   const pushLongLine = (line: string) => {
-    // 1 行が limit を超えるケースは文字数で強制分割する
+    const room = limit - CONTINUATION_SUFFIX.length;
     let remaining = line;
     while (remaining.length > 0) {
-      const room = limit - CONTINUATION_SUFFIX.length;
       if (remaining.length <= limit) {
         chunks.push(remaining);
         remaining = "";
@@ -60,7 +59,7 @@ const splitMrkdwnByLimit = (
   return chunks;
 };
 
-const buildSection = (text: string) => ({
+export const buildSection = (text: string) => ({
   type: "section",
   text: { type: "mrkdwn", text },
 });
