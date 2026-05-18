@@ -6,6 +6,7 @@ import {
   type AllInputs,
   arrayDiff,
   convertToSlackUsername,
+  execCommentToAuthor,
   execNormalMention,
   execPostError,
   execPrReviewRequestedMention,
@@ -522,6 +523,243 @@ describe("src/main", () => {
 
         expect(slackMock.postToSlack).not.toHaveBeenCalled();
         expect(result).toBeNull();
+      });
+    });
+  });
+
+  describe("execCommentToAuthor", () => {
+    const dummyInputs: AllInputs = {
+      repoToken: "",
+      configurationPath: "",
+      slackWebhookUrl: "dummy_url",
+      iconUrl: "",
+      botName: "",
+    };
+
+    const dummyMapping = {
+      pr_author_github: "pr_author_slack",
+    };
+
+    const buildIssueCommentOnPrPayload = (
+      overrides: {
+        action?: string;
+        authorLogin?: string;
+        senderLogin?: string;
+        senderType?: string;
+        body?: string;
+      } = {},
+    ): Partial<typeof context.payload> => ({
+      action: overrides.action ?? "created",
+      issue: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pull_request: { html_url: "pr_url" } as any,
+        user: { login: overrides.authorLogin ?? "pr_author_github" },
+        title: "pr_title",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      comment: {
+        body: overrides.body ?? "great work!",
+        html_url: "comment_url",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      sender: {
+        login: overrides.senderLogin ?? "commenter_github",
+        type: overrides.senderType ?? "User",
+      },
+    });
+
+    it("should notify the PR author for an issue_comment on a PR", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({ body: "looks good" });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+      expect(result).toEqual("pr_author_slack");
+
+      const call = slackMock.postToSlack.mock.calls[0];
+      expect(call[0]).toEqual("dummy_url");
+      expect(call[1]).toMatch("<@pr_author_slack>");
+      expect(call[1]).toMatch("received a comment from commenter_github");
+      expect(call[1]).toMatch("<comment_url|pr_title>");
+      expect(attachmentSectionTexts(call[2].attachments)).toEqual([
+        ["looks good"],
+      ]);
+    });
+
+    it("should not notify for a pull_request_review_comment (delegated to execReviewSubmittedMention)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload: Partial<typeof context.payload> = {
+        action: "created",
+        pull_request: {
+          user: { login: "pr_author_github" },
+          title: "pr_title",
+          number: 1,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        comment: { body: "inline", html_url: "review_comment_url" } as any,
+        sender: { login: "commenter_github", type: "User" },
+      };
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should not notify for a comment on an Issue (no pull_request field)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload: Partial<typeof context.payload> = {
+        action: "created",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        issue: {
+          user: { login: "pr_author_github" },
+          title: "issue_title",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        comment: {
+          body: "hi",
+          html_url: "comment_url",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        sender: { login: "commenter_github", type: "User" },
+      };
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should not notify when the commenter is the PR author (self-comment)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({
+        senderLogin: "pr_author_github",
+      });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should not notify when the sender is a Bot by default", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({
+        senderLogin: "dependabot[bot]",
+        senderType: "Bot",
+      });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should notify when the sender is a Bot and notifyBotComment is true", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({
+        senderLogin: "dependabot[bot]",
+        senderType: "Bot",
+      });
+
+      const result = await execCommentToAuthor(
+        payload,
+        { ...dummyInputs, notifyBotComment: true },
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).toHaveBeenCalledTimes(1);
+      expect(result).toEqual("pr_author_slack");
+    });
+
+    it("should not notify when the PR author is not in the mapping", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({
+        authorLogin: "unmapped_github_user",
+      });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        {},
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should not notify for an unsupported action (e.g. deleted)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({ action: "deleted" });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    it("should not notify when an existing comment is edited (avoid re-notifying)", async () => {
+      const slackMock = { postToSlack: vi.fn() };
+      const payload = buildIssueCommentOnPrPayload({ action: "edited" });
+
+      const result = await execCommentToAuthor(
+        payload,
+        dummyInputs,
+        dummyMapping,
+        slackMock,
+      );
+
+      expect(slackMock.postToSlack).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+
+    describe("with execNormalMention (deduplication)", () => {
+      it("execNormalMention skips PR author when their slackId is in ignoreSlackIds", async () => {
+        const slackMock = { postToSlack: vi.fn() };
+        const payload = buildIssueCommentOnPrPayload({
+          body: "@pr_author_github please take a look",
+        });
+
+        await execNormalMention(payload, dummyInputs, dummyMapping, slackMock, [
+          "pr_author_slack",
+        ]);
+
+        expect(slackMock.postToSlack).not.toHaveBeenCalled();
       });
     });
   });

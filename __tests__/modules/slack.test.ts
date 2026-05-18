@@ -1,8 +1,10 @@
 import {
+  buildSlackCommentToAuthorMessage,
   buildSlackErrorMessage,
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
   CONTINUATION_SUFFIX,
+  QUOTE_ATTACHMENT_COLOR,
   SECTION_TEXT_LIMIT,
   splitMrkdwnByLimit,
 } from "../../src/modules/slack.js";
@@ -11,8 +13,6 @@ import {
   type QuoteAttachment,
   sectionTexts,
 } from "../fixture/slackBlocks.js";
-
-const QUOTE_COLOR = "#cccccc";
 
 describe("modules/slack", () => {
   describe("buildSlackPostMessage", () => {
@@ -32,7 +32,7 @@ describe("modules/slack", () => {
 
       expect(result.attachments.length).toEqual(1);
       expect((result.attachments[0] as QuoteAttachment).color).toEqual(
-        QUOTE_COLOR,
+        QUOTE_ATTACHMENT_COLOR,
       );
       expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
@@ -144,6 +144,54 @@ describe("modules/slack", () => {
     });
   });
 
+  describe("buildSlackCommentToAuthorMessage", () => {
+    it("should keep only the headline in text/blocks and put the body in a grey-colored attachment", () => {
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<https://example.com/pr/1|#42 PR1>",
+        "commenter_user",
+        "looks good",
+      );
+
+      const expectedHeadline =
+        "<@U_AUTHOR> <https://example.com/pr/1|#42 PR1> received a comment from commenter_user.";
+      expect(result.text).toEqual(expectedHeadline);
+      expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
+
+      expect(result.attachments.length).toEqual(1);
+      expect((result.attachments[0] as QuoteAttachment).color).toEqual(
+        QUOTE_ATTACHMENT_COLOR,
+      );
+      expect(attachmentSectionTexts(result.attachments)).toEqual([
+        ["looks good"],
+      ]);
+    });
+
+    it("should omit attachments when the comment body is empty or null", () => {
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<link|title>",
+        "commenter_user",
+        null,
+      );
+
+      expect(result.attachments).toEqual([]);
+      expect(sectionTexts(result.blocks)).toEqual([result.text]);
+    });
+
+    it("should keep comment body verbatim (no machine-added > prefix)", () => {
+      const body = "> quoted\n\n---\n\n## heading\n\nbody";
+      const result = buildSlackCommentToAuthorMessage(
+        "U_AUTHOR",
+        "<link|title>",
+        "commenter_user",
+        body,
+      );
+
+      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
+    });
+  });
+
   describe("buildSlackErrorMessage", () => {
     it("should expose short text fallback and put stack trace in a grey-colored attachment", () => {
       const e = new Error("dummy error");
@@ -153,7 +201,7 @@ describe("modules/slack", () => {
       expect(result.text.includes("internal error")).toBe(true);
       expect(sectionTexts(result.blocks).length).toEqual(1);
       expect((result.attachments[0] as QuoteAttachment).color).toEqual(
-        QUOTE_COLOR,
+        QUOTE_ATTACHMENT_COLOR,
       );
       const stackSection = attachmentSectionTexts(result.attachments)[0][0];
       expect(stackSection.startsWith("```")).toBe(true);

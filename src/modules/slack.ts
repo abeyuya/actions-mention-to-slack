@@ -7,7 +7,7 @@ export type SlackPostPayload = {
 // Slack section block text.text の上限は 3000 文字。安全余白を取って分割閾値を決める。
 export const SECTION_TEXT_LIMIT = 2800;
 export const CONTINUATION_SUFFIX = " (cont.)";
-const QUOTE_ATTACHMENT_COLOR = "#35373b";
+export const QUOTE_ATTACHMENT_COLOR = "#35373b";
 
 export const splitMrkdwnByLimit = (
   text: string,
@@ -120,6 +120,16 @@ export const buildSlackReviewSubmittedMessage = (
     }
   })();
   return buildHeaderWithQuotedBody(headline, reviewBody);
+};
+
+export const buildSlackCommentToAuthorMessage = (
+  prAuthorSlackUserId: string,
+  prLink: string,
+  commenter: string,
+  commentBody: string | null | undefined,
+): SlackPostPayload => {
+  const headline = `<@${prAuthorSlackUserId}> ${prLink} received a comment from ${commenter}.`;
+  return buildHeaderWithQuotedBody(headline, commentBody);
 };
 
 const openIssueLink =

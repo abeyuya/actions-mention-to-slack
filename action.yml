@@ -23,6 +23,10 @@ inputs:
   type:
     description: "Action mode. 'realtime-alert' (default) sends mention/review notifications driven by GitHub webhook events. 'scheduled-reminder' posts an aggregated summary of open pull requests that have pending review requests. Leaving it empty behaves the same as 'realtime-alert'."
     required: false
+  notify-bot-comment:
+    description: "If 'true', also notify the PR author when their PR receives a comment from a bot sender. Default 'false' (bot comments are skipped)."
+    required: false
+    default: "false"
 runs:
   using: "node24"
   main: "dist/index.js"
