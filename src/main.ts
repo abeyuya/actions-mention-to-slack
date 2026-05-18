@@ -20,7 +20,7 @@ import {
 import {
   buildSlackErrorMessage,
   buildSlackPostMessage,
-  convertGithubTextToBlockquotesText,
+  buildSlackReviewSubmittedMessage,
   SlackRepositoryImpl,
 } from "./modules/slack.js";
 
@@ -139,7 +139,7 @@ export const execNormalMention = async (
     return;
   }
 
-  const message = buildSlackPostMessage(
+  const slackPayload = buildSlackPostMessage(
     slackIdsWithoutIgnore,
     info.title,
     info.url,
@@ -149,10 +149,15 @@ export const execNormalMention = async (
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  const result = await slackClient.postToSlack(slackWebhookUrl, message, {
-    iconUrl,
-    botName,
-  });
+  const result = await slackClient.postToSlack(
+    slackWebhookUrl,
+    slackPayload.text,
+    {
+      iconUrl,
+      botName,
+      blocks: slackPayload.blocks,
+    },
+  );
 
   debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
 };
@@ -195,30 +200,20 @@ export const execReviewSubmittedMention = async (
     return null;
   }
 
-  const blockquotesReviewBody = convertGithubTextToBlockquotesText(
-    info.body || "",
-  );
-
   const prLink = `<${info.url}|${info.title}>`;
-  const userMention = `<@${prOwnerSlackUserId}>`;
-  const headline = (() => {
-    switch (reviewState) {
-      case "approved":
-        return `${userMention} has been approved ${prLink} by ${reviewer}.`;
-      case "changes_requested":
-        return `${userMention} has been requested changes on ${prLink} by ${reviewer}.`;
-      default:
-        return `${userMention} has received a review comment on ${prLink} by ${reviewer}.`;
-    }
-  })();
-
-  const message = [headline, blockquotesReviewBody].join("\n");
+  const slackPayload = buildSlackReviewSubmittedMessage(
+    prOwnerSlackUserId,
+    prLink,
+    reviewer,
+    reviewState,
+    info.body,
+  );
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   const postSlackResult = await slackClient.postToSlack(
     slackWebhookUrl,
-    message,
-    { iconUrl, botName },
+    slackPayload.text,
+    { iconUrl, botName, blocks: slackPayload.blocks },
   );
 
   debug(
@@ -351,16 +346,17 @@ export const execPostError = async (
 ): Promise<void> => {
   const { runId } = allInputs;
   const currentJobUrl = runId ? buildCurrentJobUrl(runId) : undefined;
-  const message = buildSlackErrorMessage(error, currentJobUrl);
+  const slackPayload = buildSlackErrorMessage(error, currentJobUrl);
 
-  warning(message);
+  warning([slackPayload.text, error.stack || error.message].join("\n"));
 
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
   try {
-    await slackClient.postToSlack(slackWebhookUrl, message, {
+    await slackClient.postToSlack(slackWebhookUrl, slackPayload.text, {
       iconUrl,
       botName,
+      blocks: slackPayload.blocks,
     });
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);
