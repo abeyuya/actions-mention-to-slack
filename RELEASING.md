@@ -48,10 +48,10 @@ gh release create "$NEW_VERSION" \
 
 ### 3. major タグ `v2` を新リリースに追従させる
 
-`uses: abeyuya/actions-mention-to-slack@v2` の参照を新リリースに合わせるため、`v2` タグを force-update する。
+`uses: abeyuya/actions-mention-to-slack@v2` の参照を新リリースに合わせるため、`v2` タグを force-update する。直前に作った `$NEW_VERSION` タグの SHA から引くことで、ステップ 2-3 の間に release-latest-tag workflow が走っても整合する。
 
 ```bash
-RELEASE_SHA=$(git ls-remote origin refs/heads/release | awk '{print $1}')
+RELEASE_SHA=$(git ls-remote --tags origin "$NEW_VERSION" | awk '{print $1}')
 gh api -X PATCH \
   "/repos/$REPO/git/refs/tags/v2" \
   -f sha="$RELEASE_SHA" -F force=true
