@@ -1,3 +1,5 @@
+import { slackifyMarkdown } from "slackify-markdown";
+
 export type SlackPostPayload = {
   text: string;
   blocks: unknown[];
@@ -76,15 +78,22 @@ const buildQuoteAttachments = (chunks: string[]): unknown[] => {
   ];
 };
 
+// slackify-markdown は末尾に改行を足してくるので trimEnd で揃える。
+// 戻り値には強調記号 (*foo*, ~foo~) の隣接対策で ZWSP (U+200B) が含まれることがあるが、
+// Slack 上で強調を確実に機能させるための仕様 (隣接文字との連結を防ぐ) なので除去しない。
+export const convertGithubMarkdownToSlackMrkdwn = (
+  body: string | null | undefined,
+): string => (body ? slackifyMarkdown(body).trimEnd() : "");
+
 const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
 ): SlackPostPayload => {
-  const bodyChunks = body ? splitMrkdwnByLimit(body) : [];
+  const converted = convertGithubMarkdownToSlackMrkdwn(body);
   return {
     text: headline,
     blocks: [buildSection(headline)],
-    attachments: buildQuoteAttachments(bodyChunks),
+    attachments: buildQuoteAttachments(splitMrkdwnByLimit(converted)),
   };
 };
 
