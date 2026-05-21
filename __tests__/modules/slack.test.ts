@@ -4,6 +4,7 @@ import {
   buildSlackPostMessage,
   buildSlackReviewSubmittedMessage,
   CONTINUATION_SUFFIX,
+  convertGithubMarkdownToSlackMrkdwn,
   QUOTE_ATTACHMENT_COLOR,
   SECTION_TEXT_LIMIT,
   splitMrkdwnByLimit,
@@ -37,17 +38,18 @@ describe("modules/slack", () => {
       expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
 
-    it("should keep the body verbatim (no machine-added > prefix) even when it starts with > / contains --- / ##", () => {
-      const body = "> quoted line\n\n---\n\n## heading\n\nbody";
+    it("should route github body through Slack mrkdwn conversion", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
         "title",
         "link",
-        body,
+        "## heading\n\nbody",
         "sender_github_username",
       );
 
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
+      expect(attachmentSectionTexts(result.attachments)).toEqual([
+        ["*heading*\n\nbody"],
+      ]);
     });
 
     it("should use 'have' for multiple mentions and join them with spaces", () => {
@@ -118,19 +120,6 @@ describe("modules/slack", () => {
       ]);
     });
 
-    it("should keep review body verbatim (no machine-added > prefix)", () => {
-      const body = "> quoted\n\n---\n\n## heading\n\nbody";
-      const result = buildSlackReviewSubmittedMessage(
-        "U_OWNER",
-        "<link|title>",
-        "reviewer_user",
-        "commented",
-        body,
-      );
-
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
-    });
-
     it("should omit attachments when review body is empty or null", () => {
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
@@ -177,18 +166,6 @@ describe("modules/slack", () => {
 
       expect(result.attachments).toEqual([]);
       expect(sectionTexts(result.blocks)).toEqual([result.text]);
-    });
-
-    it("should keep comment body verbatim (no machine-added > prefix)", () => {
-      const body = "> quoted\n\n---\n\n## heading\n\nbody";
-      const result = buildSlackCommentToAuthorMessage(
-        "U_AUTHOR",
-        "<link|title>",
-        "commenter_user",
-        body,
-      );
-
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
     });
   });
 
@@ -243,6 +220,50 @@ describe("modules/slack", () => {
 
     it("should return an empty array for an empty input", () => {
       expect(splitMrkdwnByLimit("")).toEqual([]);
+    });
+  });
+
+  describe("convertGithubMarkdownToSlackMrkdwn", () => {
+    // slackify-markdown は強調記号の隣接対策で ZWSP (U+200B) を挿入する。
+    // 期待値も実際の出力と揃え、ZWSP を保持していることを明示する。
+    const ZWSP = "​";
+
+    it("should convert bold / italic / strikethrough into Slack mrkdwn", () => {
+      expect(
+        convertGithubMarkdownToSlackMrkdwn("**bold** and _italic_ and ~~s~~"),
+      ).toEqual(
+        `${ZWSP}*bold*${ZWSP} and ${ZWSP}_italic_${ZWSP} and ${ZWSP}~s~${ZWSP}`,
+      );
+    });
+
+    it("should convert inline link into Slack link format", () => {
+      expect(
+        convertGithubMarkdownToSlackMrkdwn("see [docs](https://example.com)"),
+      ).toEqual("see <https://example.com|docs>");
+    });
+
+    it("should convert heading into bold line", () => {
+      expect(convertGithubMarkdownToSlackMrkdwn("## heading\n\nbody")).toEqual(
+        "*heading*\n\nbody",
+      );
+    });
+
+    it("should preserve blockquote prefix", () => {
+      expect(convertGithubMarkdownToSlackMrkdwn("> quoted line")).toEqual(
+        "> quoted line",
+      );
+    });
+
+    it("should leave plain text untouched (no trailing newline)", () => {
+      expect(convertGithubMarkdownToSlackMrkdwn("plain text")).toEqual(
+        "plain text",
+      );
+    });
+
+    it("should return empty string for null / undefined / empty input", () => {
+      expect(convertGithubMarkdownToSlackMrkdwn(null)).toEqual("");
+      expect(convertGithubMarkdownToSlackMrkdwn(undefined)).toEqual("");
+      expect(convertGithubMarkdownToSlackMrkdwn("")).toEqual("");
     });
   });
 });
