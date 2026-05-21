@@ -15,6 +15,7 @@ const makePr = (overrides: Record<string, unknown> = {}) => ({
   number: 1,
   title: "PR title",
   html_url: "https://example.com/pr/1",
+  user: { login: "author_user" },
   draft: false,
   created_at: "2026-05-14T12:00:00Z",
   labels: [],
@@ -27,6 +28,7 @@ const makeEntryPr = (overrides: Record<string, unknown> = {}) => ({
   number: 1,
   title: "PR title",
   url: "https://example.com/pr/1",
+  author: "author_user",
   createdAt: "2026-05-14T12:00:00Z",
   approvalState: "review_required" as const,
   labels: [],
@@ -188,8 +190,9 @@ describe("reviewReminder", () => {
 
       expect(text).toContain("owner/repo");
       expect(text).toContain("<@U_ALICE>");
-      expect(text).toContain("<https://example.com/pr/123|#123 Fix bug>");
-      expect(text).toContain("3d");
+      expect(text).toContain("<https://example.com/pr/123|[repo#123] Fix bug>");
+      expect(text).toContain("(author_user)");
+      expect(text).toContain("3d old");
       expect(text).toContain(":white_check_mark:");
       expect(text).toContain("approved");
       expect(text).toContain("`bug`");
@@ -199,7 +202,7 @@ describe("reviewReminder", () => {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: ":eyes: Pending review reminders for `owner/repo`:",
+          text: ":eyes: Reviews assigned to you on `owner/repo`",
         },
       });
       expect(blocks[1]).toEqual({ type: "divider" });
@@ -229,7 +232,9 @@ describe("reviewReminder", () => {
       );
       assert(result);
       expect(result.text).toContain("<!subteam^S_TEAM>");
-      expect(result.text).toContain("<https://example.com/pr/2|#2 Feature X>");
+      expect(result.text).toContain(
+        "<https://example.com/pr/2|[repo#2] Feature X>",
+      );
     });
 
     it("renders unmapped user with backticked github name", () => {
@@ -418,6 +423,7 @@ describe("reviewReminder", () => {
       assert(pr1);
       expect(pr1.title).toBe("PR1");
       expect(pr1.url).toBe("https://example.com/pr/1");
+      expect(pr1.author).toBe("author_user");
       expect(pr1.createdAt).toBe("2026-05-14T12:00:00Z");
       // alice / bob が pending として残るため、x の APPROVED だけでは approved にならない
       expect(pr1.approvalState).toBe("review_required");

@@ -3,6 +3,7 @@ import type { getOctokit } from "@actions/github";
 import {
   buildSection,
   CONTINUATION_SUFFIX,
+  formatIssueRef,
   SECTION_TEXT_LIMIT,
   type SlackPostPayload,
 } from "./slack.js";
@@ -16,6 +17,7 @@ export type ReminderPr = {
   number: number;
   title: string;
   url: string;
+  author: string;
   createdAt: string;
   approvalState: ApprovalState;
   labels: string[];
@@ -114,14 +116,20 @@ const APPROVAL_DISPLAY: Record<
   },
 };
 
-const buildPrLine = (pr: ReminderPr, now: Date): string => {
+const buildPrLine = (
+  pr: ReminderPr,
+  repoShortName: string,
+  now: Date,
+): string => {
   const age = formatRelativeAge(new Date(pr.createdAt), now);
   const approval = APPROVAL_DISPLAY[pr.approvalState];
   const labelText = formatLabels(pr.labels);
-  const metaParts = [age, `${approval.emoji} ${approval.label}`];
+  const refLink = `<${pr.url}|${formatIssueRef(repoShortName, pr.number, pr.title)}>`;
+  const authorSuffix = pr.author ? ` (${pr.author})` : "";
+  const metaParts = [`${age} old`, `${approval.emoji} ${approval.label}`];
   if (labelText) metaParts.push(labelText);
-  const meta = `_${metaParts.join(" • ")}_`;
-  return `• <${pr.url}|#${pr.number} ${pr.title}>\n${meta}`;
+  const meta = `_${metaParts.join(" · ")}_`;
+  return `• ${refLink}${authorSuffix}\n${meta}`;
 };
 
 const splitSectionByLimit = (header: string, prLines: string[]): string[] => {
@@ -207,6 +215,7 @@ export const fetchOpenReviewRequests = async (
       number: pr.number,
       title: pr.title,
       url: pr.html_url,
+      author: pr.user?.login ?? "",
       createdAt: pr.created_at,
       approvalState,
       labels: (pr.labels ?? []).flatMap((l: unknown) => {
@@ -253,14 +262,16 @@ export const buildReviewReminderMessage = (
 ): ReminderSlackPayload | null => {
   if (entries.length === 0) return null;
 
-  const headerText = `:eyes: Pending review reminders for \`${repoFullName}\`:`;
+  const headerText = `:eyes: Reviews assigned to you on \`${repoFullName}\``;
+  // owner/repo の短い側を `[repo#n]` のリンクテキストに使う (純正もリポジトリ短縮名)
+  const repoShortName = repoFullName.split("/").pop() || repoFullName;
 
   const entryBlockTexts: string[] = [];
   const entryTextSections: string[] = [];
 
   for (const entry of entries) {
     const header = buildEntryHeader(entry);
-    const prLines = entry.prs.map((pr) => buildPrLine(pr, now));
+    const prLines = entry.prs.map((pr) => buildPrLine(pr, repoShortName, now));
     entryTextSections.push([header, ...prLines].join("\n"));
     entryBlockTexts.push(...splitSectionByLimit(header, prLines));
   }

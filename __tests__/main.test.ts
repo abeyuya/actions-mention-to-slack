@@ -815,6 +815,7 @@ describe("src/main", () => {
           number: 42,
           title: "PR1",
           html_url: "https://example.com/pr/1",
+          user: { login: "author_user" },
           draft: false,
           created_at: "2026-05-14T12:00:00Z",
           labels: [{ name: "bug" }],
@@ -837,7 +838,8 @@ describe("src/main", () => {
       expect(call[0]).toEqual("dummy_url");
       expect(call[1]).toMatch("<@slack_user_1>");
       expect(call[1]).toMatch("`ghost`");
-      expect(call[1]).toMatch("<https://example.com/pr/1|#42 PR1>");
+      expect(call[1]).toMatch("<https://example.com/pr/1|[repo#42] PR1>");
+      expect(call[1]).toMatch("(author_user)");
       expect(call[2]).toMatchObject({
         blocks: expect.any(Array),
       });
