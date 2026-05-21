@@ -1,3 +1,5 @@
+import { slackifyMarkdown } from "slackify-markdown";
+
 export type SlackPostPayload = {
   text: string;
   blocks: unknown[];
@@ -76,11 +78,17 @@ const buildQuoteAttachments = (chunks: string[]): unknown[] => {
   ];
 };
 
+// GitHub Flavored Markdown を Slack mrkdwn に変換する。
+// 末尾に改行を足してくるので trimEnd で揃える。
+const convertGithubMarkdownToSlackMrkdwn = (body: string): string =>
+  slackifyMarkdown(body).trimEnd();
+
 const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
 ): SlackPostPayload => {
-  const bodyChunks = body ? splitMrkdwnByLimit(body) : [];
+  const converted = body ? convertGithubMarkdownToSlackMrkdwn(body) : "";
+  const bodyChunks = converted ? splitMrkdwnByLimit(converted) : [];
   return {
     text: headline,
     blocks: [buildSection(headline)],

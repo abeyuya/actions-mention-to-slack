@@ -37,7 +37,7 @@ describe("modules/slack", () => {
       expect(attachmentSectionTexts(result.attachments)).toEqual([["message"]]);
     });
 
-    it("should keep the body verbatim (no machine-added > prefix) even when it starts with > / contains --- / ##", () => {
+    it("should convert GitHub markdown body into Slack mrkdwn (heading -> bold, hr preserved, blockquote kept)", () => {
       const body = "> quoted line\n\n---\n\n## heading\n\nbody";
       const result = buildSlackPostMessage(
         ["slackUser1"],
@@ -47,7 +47,30 @@ describe("modules/slack", () => {
         "sender_github_username",
       );
 
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
+      const converted = attachmentSectionTexts(result.attachments)[0][0];
+      expect(converted).toContain("> quoted line");
+      expect(converted).toContain("*heading*");
+      expect(converted).not.toContain("## heading");
+      expect(converted).toContain("body");
+    });
+
+    it("should convert GitHub markdown syntax (bold / link / strikethrough) into Slack mrkdwn", () => {
+      const body = "**bold** and [text](https://example.com) and ~~strike~~";
+      const result = buildSlackPostMessage(
+        ["slackUser1"],
+        "title",
+        "link",
+        body,
+        "sender_github_username",
+      );
+
+      const converted = attachmentSectionTexts(result.attachments)[0][0];
+      expect(converted).toContain("*bold*");
+      expect(converted).not.toContain("**bold**");
+      expect(converted).toContain("<https://example.com|text>");
+      expect(converted).not.toContain("[text](https://example.com)");
+      expect(converted).toContain("~strike~");
+      expect(converted).not.toContain("~~strike~~");
     });
 
     it("should use 'have' for multiple mentions and join them with spaces", () => {
@@ -118,7 +141,7 @@ describe("modules/slack", () => {
       ]);
     });
 
-    it("should keep review body verbatim (no machine-added > prefix)", () => {
+    it("should convert review body markdown into Slack mrkdwn", () => {
       const body = "> quoted\n\n---\n\n## heading\n\nbody";
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
@@ -128,7 +151,10 @@ describe("modules/slack", () => {
         body,
       );
 
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
+      const converted = attachmentSectionTexts(result.attachments)[0][0];
+      expect(converted).toContain("> quoted");
+      expect(converted).toContain("*heading*");
+      expect(converted).not.toContain("## heading");
     });
 
     it("should omit attachments when review body is empty or null", () => {
@@ -179,7 +205,7 @@ describe("modules/slack", () => {
       expect(sectionTexts(result.blocks)).toEqual([result.text]);
     });
 
-    it("should keep comment body verbatim (no machine-added > prefix)", () => {
+    it("should convert comment body markdown into Slack mrkdwn", () => {
       const body = "> quoted\n\n---\n\n## heading\n\nbody";
       const result = buildSlackCommentToAuthorMessage(
         "U_AUTHOR",
@@ -188,7 +214,10 @@ describe("modules/slack", () => {
         body,
       );
 
-      expect(attachmentSectionTexts(result.attachments)).toEqual([[body]]);
+      const converted = attachmentSectionTexts(result.attachments)[0][0];
+      expect(converted).toContain("> quoted");
+      expect(converted).toContain("*heading*");
+      expect(converted).not.toContain("## heading");
     });
   });
 
