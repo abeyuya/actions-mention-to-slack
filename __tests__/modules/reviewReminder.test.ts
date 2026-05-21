@@ -158,7 +158,7 @@ describe("reviewReminder", () => {
   describe("buildReviewReminderMessage", () => {
     it("returns null when entries are empty", () => {
       expect(
-        buildReviewReminderMessage([], "owner/repo", FIXED_NOW),
+        buildReviewReminderMessage([], "owner", "repo", FIXED_NOW),
       ).toBeNull();
     });
 
@@ -182,7 +182,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result, "expected a non-null payload");
@@ -227,7 +228,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);
@@ -248,7 +250,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);
@@ -284,7 +287,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);
@@ -308,7 +312,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);
@@ -332,7 +337,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);
@@ -509,7 +515,8 @@ describe("reviewReminder", () => {
 
       const result = buildReviewReminderMessage(
         entries,
-        "owner/repo",
+        "owner",
+        "repo",
         FIXED_NOW,
       );
       assert(result);

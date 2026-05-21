@@ -64,64 +64,62 @@ export const pickupInfoFromGithubPayload = (
 ): GithubPayloadInfo => {
   const repoShortName = payload.repository?.name || "";
   const senderName = payload.sender?.login || "";
+  const make = (
+    body: string | null,
+    title: string,
+    url: string,
+    number: number,
+  ): GithubPayloadInfo => ({
+    body,
+    title,
+    url,
+    senderName,
+    repoShortName,
+    number,
+  });
 
   if (payload.issue) {
     const number = payload.issue.number || 0;
-
     if (payload.comment) {
-      return {
-        body: payload.comment.body,
-        title: payload.issue.title,
-        url: payload.comment.html_url,
-        senderName,
-        repoShortName,
+      return make(
+        payload.comment.body,
+        payload.issue.title,
+        payload.comment.html_url,
         number,
-      };
+      );
     }
-
-    return {
-      body: payload.issue.body || "",
-      title: payload.issue.title,
-      url: payload.issue.html_url || "",
-      senderName,
-      repoShortName,
+    return make(
+      payload.issue.body || "",
+      payload.issue.title,
+      payload.issue.html_url || "",
       number,
-    };
+    );
   }
 
   if (payload.pull_request) {
     const number = payload.pull_request.number || 0;
-
     if (payload.review) {
-      return {
-        body: payload.review.body,
-        title: payload.pull_request?.title || "",
-        url: payload.review.html_url,
-        senderName,
-        repoShortName,
+      return make(
+        payload.review.body,
+        payload.pull_request.title || "",
+        payload.review.html_url,
         number,
-      };
+      );
     }
-
     if (payload.comment) {
-      return {
-        body: payload.comment.body,
-        title: payload.pull_request.title,
-        url: payload.comment.html_url,
-        senderName,
-        repoShortName,
+      return make(
+        payload.comment.body,
+        payload.pull_request.title,
+        payload.comment.html_url,
         number,
-      };
+      );
     }
-
-    return {
-      body: payload.pull_request.body || "",
-      title: payload.pull_request.title,
-      url: payload.pull_request.html_url || "",
-      senderName,
-      repoShortName,
+    return make(
+      payload.pull_request.body || "",
+      payload.pull_request.title,
+      payload.pull_request.html_url || "",
       number,
-    };
+    );
   }
 
   throw new Error(

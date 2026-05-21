@@ -3,7 +3,7 @@ import type { getOctokit } from "@actions/github";
 import {
   buildSection,
   CONTINUATION_SUFFIX,
-  formatIssueRef,
+  formatIssueRefLink,
   SECTION_TEXT_LIMIT,
   type SlackPostPayload,
 } from "./slack.js";
@@ -124,7 +124,12 @@ const buildPrLine = (
   const age = formatRelativeAge(new Date(pr.createdAt), now);
   const approval = APPROVAL_DISPLAY[pr.approvalState];
   const labelText = formatLabels(pr.labels);
-  const refLink = `<${pr.url}|${formatIssueRef(repoShortName, pr.number, pr.title)}>`;
+  const refLink = formatIssueRefLink(
+    pr.url,
+    repoShortName,
+    pr.number,
+    pr.title,
+  );
   const authorSuffix = pr.author ? ` (${pr.author})` : "";
   const metaParts = [`${age} old`, `${approval.emoji} ${approval.label}`];
   if (labelText) metaParts.push(labelText);
@@ -257,21 +262,20 @@ const buildEntryHeader = (entry: ReminderEntry): string => {
 
 export const buildReviewReminderMessage = (
   entries: ReminderEntry[],
-  repoFullName: string,
+  owner: string,
+  repo: string,
   now: Date = new Date(),
 ): ReminderSlackPayload | null => {
   if (entries.length === 0) return null;
 
-  const headerText = `:eyes: Reviews assigned to you on \`${repoFullName}\``;
-  // owner/repo の短い側を `[repo#n]` のリンクテキストに使う (純正もリポジトリ短縮名)
-  const repoShortName = repoFullName.split("/").pop() || repoFullName;
+  const headerText = `:eyes: Reviews assigned to you on \`${owner}/${repo}\``;
 
   const entryBlockTexts: string[] = [];
   const entryTextSections: string[] = [];
 
   for (const entry of entries) {
     const header = buildEntryHeader(entry);
-    const prLines = entry.prs.map((pr) => buildPrLine(pr, repoShortName, now));
+    const prLines = entry.prs.map((pr) => buildPrLine(pr, repo, now));
     entryTextSections.push([header, ...prLines].join("\n"));
     entryBlockTexts.push(...splitSectionByLimit(header, prLines));
   }

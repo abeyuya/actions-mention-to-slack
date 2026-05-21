@@ -110,20 +110,15 @@ export const execPrReviewRequestedMention = async (
     return;
   }
 
-  const title = payload.pull_request?.title || "";
-  const url = payload.pull_request?.html_url || "";
-  const repoShortName = payload.repository?.name || "";
-  const prNumber = payload.pull_request?.number || 0;
-  const requestUsername = payload.sender?.login || "";
-
+  const info = pickupInfoFromGithubPayload(payload);
   const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
   const slackPayload = buildSlackReviewRequestedMessage(
     slackMention,
-    url,
-    repoShortName,
-    prNumber,
-    title,
-    requestUsername,
+    info.url,
+    info.repoShortName,
+    info.number,
+    info.title,
+    info.senderName,
   );
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
@@ -355,7 +350,7 @@ export const execReviewReminder = async (
     slackId: mapping[r.githubName],
   }));
 
-  const payload = buildReviewReminderMessage(entries, `${owner}/${repo}`);
+  const payload = buildReviewReminderMessage(entries, owner, repo);
   if (!payload) {
     debug("finish execReviewReminder because no pending reviews");
     return;
