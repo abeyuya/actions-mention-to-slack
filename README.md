@@ -71,14 +71,27 @@ jobs:
 
 `type` is optional and defaults to `realtime-alert`, so existing workflows without this field keep working unchanged.
 
+Wording is aligned with the official GitHub Slack integration (`@github` bot). The leading `<@slack_id>` makes Slack actually notify the target user — that's the value-add of this action over the official integration.
+
+```
+<@U_USER>     sender_user   mentioned you in <url|[repo#71233] API docs ...>
+<@U_REVIEWER> requester     requested your review on <url|[repo#156133] Fix bug>
+<@U_OWNER>    reviewer_user approved <url|[repo#154822] Refactor>
+<@U_OWNER>    reviewer_user requested changes on <url|[repo#42] Update yml>
+<@U_OWNER>    reviewer_user commented on <url|[repo#42] Update yml>
+<@U_AUTHOR>   commenter     commented on <url|[repo#154973] Fix flaky test>
+```
+
+For mention / review-submitted / PR-comment notifications, the original GitHub body is appended below the headline as a grey-colored Slack attachment (markdown is converted to Slack mrkdwn).
+
 ### Scheduled reminder
 
 When invoked with `type: scheduled-reminder`, this action queries the open pull requests in the repository and posts a single aggregated Slack message listing each pending reviewer and the pull requests waiting on them. Users that appear in the mapping YAML are mentioned with `<@slack_id>` (or `<!subteam^id>` for teams); users not in the mapping are listed by their GitHub username.
 
 Each pull-request entry includes:
 
-- PR number and title (linked)
-- Time since the PR was opened (e.g. `3d`, `5h`)
+- PR number and title in `[<repo>#<n>] <title>` form (linked), plus PR author in parentheses — aligned with the official GitHub Slack integration
+- Time since the PR was opened (e.g. `3d old`, `5h old`)
 - Current approval state: `:white_check_mark: approved`, `:warning: changes requested`, or `:hourglass_flowing_sand: review required`
 - Labels attached to the PR (up to 5; the rest are summarized as `, +N more`)
 
@@ -87,13 +100,13 @@ The notification is delivered as a Slack Block Kit message with a plain-text fal
 Example rendering (text fallback):
 
 ```
-:eyes: Pending review reminders for `owner/repo`:
+:eyes: Reviews assigned to you on `owner/repo`
 
 <@U_ALICE>
-• <https://github.com/owner/repo/pull/123|#123 Fix login bug>
-_3d • :warning: changes requested • `bug`, `priority-high`_
-• <https://github.com/owner/repo/pull/130|#130 Refactor auth>
-_5h • :hourglass_flowing_sand: review required_
+• <https://github.com/owner/repo/pull/123|[repo#123] Fix login bug> (author_user)
+_3d old · :warning: changes requested · `bug`, `priority-high`_
+• <https://github.com/owner/repo/pull/130|[repo#130] Refactor auth> (another_user)
+_5h old · :hourglass_flowing_sand: review required_
 ```
 
 - Draft pull requests are excluded.
