@@ -36466,46 +36466,33 @@ const needToSendReviewSubmittedMention = (payload) => {
     return Boolean(payload.review);
 };
 const pickupInfoFromGithubPayload = (payload) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b;
+    const repoShortName = ((_a = payload.repository) === null || _a === void 0 ? void 0 : _a.name) || "";
+    const senderName = ((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.login) || "";
+    const make = (body, title, url, number) => ({
+        body,
+        title,
+        url,
+        senderName,
+        repoShortName,
+        number,
+    });
     if (payload.issue) {
+        const number = payload.issue.number || 0;
         if (payload.comment) {
-            return {
-                body: payload.comment.body,
-                title: payload.issue.title,
-                url: payload.comment.html_url,
-                senderName: ((_a = payload.sender) === null || _a === void 0 ? void 0 : _a.login) || "",
-            };
+            return make(payload.comment.body, payload.issue.title, payload.comment.html_url, number);
         }
-        return {
-            body: payload.issue.body || "",
-            title: payload.issue.title,
-            url: payload.issue.html_url || "",
-            senderName: ((_b = payload.sender) === null || _b === void 0 ? void 0 : _b.login) || "",
-        };
+        return make(payload.issue.body || "", payload.issue.title, payload.issue.html_url || "", number);
     }
     if (payload.pull_request) {
+        const number = payload.pull_request.number || 0;
         if (payload.review) {
-            return {
-                body: payload.review.body,
-                title: ((_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title) || "",
-                url: payload.review.html_url,
-                senderName: ((_d = payload.sender) === null || _d === void 0 ? void 0 : _d.login) || "",
-            };
+            return make(payload.review.body, payload.pull_request.title || "", payload.review.html_url, number);
         }
         if (payload.comment) {
-            return {
-                body: payload.comment.body,
-                title: payload.pull_request.title,
-                url: payload.comment.html_url,
-                senderName: ((_e = payload.sender) === null || _e === void 0 ? void 0 : _e.login) || "",
-            };
+            return make(payload.comment.body, payload.pull_request.title, payload.comment.html_url, number);
         }
-        return {
-            body: payload.pull_request.body || "",
-            title: payload.pull_request.title,
-            url: payload.pull_request.html_url || "",
-            senderName: ((_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login) || "",
-        };
+        return make(payload.pull_request.body || "", payload.pull_request.title, payload.pull_request.html_url || "", number);
     }
     throw new Error(`pickupInfoFromGithubPayload called with unsupported payload. Guard with isSupportedEvent() before calling. payload=${JSON.stringify(payload)}`);
 };
@@ -64237,6 +64224,9 @@ const buildQuoteAttachments = (chunks) => {
 // 戻り値には強調記号 (*foo*, ~foo~) の隣接対策で ZWSP (U+200B) が含まれることがあるが、
 // Slack 上で強調を確実に機能させるための仕様 (隣接文字との連結を防ぐ) なので除去しない。
 const convertGithubMarkdownToSlackMrkdwn = (body) => (body ? slackifyMarkdown(body).trimEnd() : "");
+// 純正 GitHub Slack 連携の表記に揃える: `[<repo>#<number>] <title>`
+const formatIssueRef = (repoShortName, number, title) => `[${repoShortName}#${number}] ${title}`;
+const formatIssueRefLink = (url, repoShortName, number, title) => `<${url}|${formatIssueRef(repoShortName, number, title)}>`;
 const buildHeaderWithQuotedBody = (headline, body) => {
     const converted = convertGithubMarkdownToSlackMrkdwn(body);
     return {
@@ -64245,28 +64235,39 @@ const buildHeaderWithQuotedBody = (headline, body) => {
         attachments: buildQuoteAttachments(splitMrkdwnByLimit(converted)),
     };
 };
-const buildSlackPostMessage = (slackIdsForMention, issueTitle, commentLink, githubBody, senderName) => {
+const buildSlackPostMessage = (slackIdsForMention, repoShortName, issueNumber, issueTitle, commentLink, githubBody, senderName) => {
     const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-    const verb = slackIdsForMention.length === 1 ? "has" : "have";
-    const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
+    const refLink = formatIssueRefLink(commentLink, repoShortName, issueNumber, issueTitle);
+    const headline = `${mentionBlock} ${senderName} mentioned you in ${refLink}`;
     return buildHeaderWithQuotedBody(headline, githubBody);
 };
-const buildSlackReviewSubmittedMessage = (prOwnerSlackUserId, prLink, reviewer, reviewState, reviewBody) => {
+const buildSlackReviewRequestedMessage = (reviewerSlackMention, url, repoShortName, prNumber, prTitle, requester) => {
+    const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
+    const headline = `${reviewerSlackMention} ${requester} requested your review on ${refLink}`;
+    return {
+        text: headline,
+        blocks: [buildSection(headline)],
+        attachments: [],
+    };
+};
+const buildSlackReviewSubmittedMessage = (prOwnerSlackUserId, url, repoShortName, prNumber, prTitle, reviewer, reviewState, reviewBody) => {
     const userMention = `<@${prOwnerSlackUserId}>`;
+    const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
     const headline = (() => {
         switch (reviewState) {
             case "approved":
-                return `${userMention} ${prLink} has been approved by ${reviewer}.`;
+                return `${userMention} ${reviewer} approved ${refLink}`;
             case "changes_requested":
-                return `${userMention} ${prLink} has changes requested by ${reviewer}.`;
+                return `${userMention} ${reviewer} requested changes on ${refLink}`;
             default:
-                return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
+                return `${userMention} ${reviewer} commented on ${refLink}`;
         }
     })();
     return buildHeaderWithQuotedBody(headline, reviewBody);
 };
-const buildSlackCommentToAuthorMessage = (prAuthorSlackUserId, prLink, commenter, commentBody) => {
-    const headline = `<@${prAuthorSlackUserId}> ${prLink} received a comment from ${commenter}.`;
+const buildSlackCommentToAuthorMessage = (prAuthorSlackUserId, url, repoShortName, prNumber, prTitle, commenter, commentBody) => {
+    const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
+    const headline = `<@${prAuthorSlackUserId}> ${commenter} commented on ${refLink}`;
     return buildHeaderWithQuotedBody(headline, commentBody);
 };
 const openIssueLink = "https://github.com/abeyuya/actions-mention-to-slack/issues/new";
@@ -64406,15 +64407,17 @@ const APPROVAL_DISPLAY = {
         label: "review required",
     },
 };
-const buildPrLine = (pr, now) => {
+const buildPrLine = (pr, repoShortName, now) => {
     const age = formatRelativeAge(new Date(pr.createdAt), now);
     const approval = APPROVAL_DISPLAY[pr.approvalState];
     const labelText = formatLabels(pr.labels);
-    const metaParts = [age, `${approval.emoji} ${approval.label}`];
+    const refLink = formatIssueRefLink(pr.url, repoShortName, pr.number, pr.title);
+    const authorSuffix = pr.author ? ` (${pr.author})` : "";
+    const metaParts = [`${age} old`, `${approval.emoji} ${approval.label}`];
     if (labelText)
         metaParts.push(labelText);
-    const meta = `_${metaParts.join(" • ")}_`;
-    return `• <${pr.url}|#${pr.number} ${pr.title}>\n${meta}`;
+    const meta = `_${metaParts.join(" · ")}_`;
+    return `• ${refLink}${authorSuffix}\n${meta}`;
 };
 const splitSectionByLimit = (header, prLines) => {
     const sections = [];
@@ -64435,7 +64438,7 @@ const splitSectionByLimit = (header, prLines) => {
     return sections;
 };
 const fetchOpenReviewRequests = async (octokit, owner, repo) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const prs = await octokit.paginate(octokit.rest.pulls.list, {
         owner,
         repo,
@@ -64485,9 +64488,10 @@ const fetchOpenReviewRequests = async (octokit, owner, repo) => {
             number: pr.number,
             title: pr.title,
             url: pr.html_url,
+            author: (_b = (_a = pr.user) === null || _a === void 0 ? void 0 : _a.login) !== null && _b !== void 0 ? _b : "",
             createdAt: pr.created_at,
             approvalState,
-            labels: ((_a = pr.labels) !== null && _a !== void 0 ? _a : []).flatMap((l) => {
+            labels: ((_c = pr.labels) !== null && _c !== void 0 ? _c : []).flatMap((l) => {
                 if (typeof l === "string")
                     return [l];
                 if (l && typeof l === "object" && "name" in l) {
@@ -64498,10 +64502,10 @@ const fetchOpenReviewRequests = async (octokit, owner, repo) => {
                 return [];
             }),
         };
-        for (const reviewer of (_b = pr.requested_reviewers) !== null && _b !== void 0 ? _b : []) {
+        for (const reviewer of (_d = pr.requested_reviewers) !== null && _d !== void 0 ? _d : []) {
             addPr(userEntries, reviewer === null || reviewer === void 0 ? void 0 : reviewer.login, item);
         }
-        for (const team of (_c = pr.requested_teams) !== null && _c !== void 0 ? _c : []) {
+        for (const team of (_e = pr.requested_teams) !== null && _e !== void 0 ? _e : []) {
             addPr(teamEntries, team === null || team === void 0 ? void 0 : team.name, item);
         }
     }
@@ -64516,15 +64520,15 @@ const buildEntryHeader = (entry) => {
     }
     return `\`${entry.githubName}\``;
 };
-const buildReviewReminderMessage = (entries, repoFullName, now = new Date()) => {
+const buildReviewReminderMessage = (entries, owner, repo, now = new Date()) => {
     if (entries.length === 0)
         return null;
-    const headerText = `:eyes: Pending review reminders for \`${repoFullName}\`:`;
+    const headerText = `:eyes: Reviews assigned to you on \`${owner}/${repo}\``;
     const entryBlockTexts = [];
     const entryTextSections = [];
     for (const entry of entries) {
         const header = buildEntryHeader(entry);
-        const prLines = entry.prs.map((pr) => buildPrLine(pr, now));
+        const prLines = entry.prs.map((pr) => buildPrLine(pr, repo, now));
         entryTextSections.push([header, ...prLines].join("\n"));
         entryBlockTexts.push(...splitSectionByLimit(header, prLines));
     }
@@ -64565,7 +64569,7 @@ const getSlackMention = (requestedSlackUserId, requestedSlackUserGroupId) => {
     return `<!subteam^${requestedSlackUserGroupId}>`;
 };
 const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackClient) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b;
     const requestedGithubUsername = (_a = payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login;
     const requestedGithubTeam = (_b = payload.requested_team) === null || _b === void 0 ? void 0 : _b.name;
     if (!requestedGithubUsername && !requestedGithubTeam) {
@@ -64577,14 +64581,14 @@ const execPrReviewRequestedMention = async (payload, allInputs, mapping, slackCl
         core_debug("finish execPrReviewRequestedMention because slackUserIds and slackUserGroupIds length === 0");
         return;
     }
-    const title = (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.title;
-    const url = (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.html_url;
-    const repoName = (_e = payload.repository) === null || _e === void 0 ? void 0 : _e.full_name;
-    const requestUsername = (_f = payload.sender) === null || _f === void 0 ? void 0 : _f.login;
+    const info = pickupInfoFromGithubPayload(payload);
     const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
-    const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername} on ${repoName}.`;
+    const slackPayload = buildSlackReviewRequestedMessage(slackMention, info.url, info.repoShortName, info.number, info.title, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
-    await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+    await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, {
+        iconUrl,
+        botName,
+    });
 };
 const execNormalMention = async (payload, allInputs, mapping, slackClient, ignoreSlackIds) => {
     if (!isSupportedEvent(payload)) {
@@ -64607,7 +64611,7 @@ const execNormalMention = async (payload, allInputs, mapping, slackClient, ignor
         core_debug("finish execNormalMention because slackIds.length === 0");
         return;
     }
-    const slackPayload = buildSlackPostMessage(slackIdsWithoutIgnore, info.title, info.url, info.body, info.senderName);
+    const slackPayload = buildSlackPostMessage(slackIdsWithoutIgnore, info.repoShortName, info.number, info.title, info.url, info.body, info.senderName);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const result = await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, { iconUrl, botName });
     core_debug(["postToSlack result", JSON.stringify({ result }, null, 2)].join("\n"));
@@ -64638,8 +64642,7 @@ const execReviewSubmittedMention = async (payload, allInputs, mapping, slackClie
         core_debug("skip slack post because the reviewer is the PR author");
         return null;
     }
-    const prLink = `<${info.url}|${info.title}>`;
-    const slackPayload = buildSlackReviewSubmittedMessage(prOwnerSlackUserId, prLink, reviewer, reviewState, info.body);
+    const slackPayload = buildSlackReviewSubmittedMessage(prOwnerSlackUserId, info.url, info.repoShortName, info.number, info.title, reviewer, reviewState, info.body);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const postSlackResult = await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, { iconUrl, botName });
     core_debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
@@ -64684,8 +64687,7 @@ const execCommentToAuthor = async (payload, allInputs, mapping, slackClient) => 
     }
     const info = pickupInfoFromGithubPayload(payload);
     const prAuthorSlackUserId = slackIds[0];
-    const prLink = `<${info.url}|${info.title}>`;
-    const slackPayload = buildSlackCommentToAuthorMessage(prAuthorSlackUserId, prLink, commenter !== null && commenter !== void 0 ? commenter : "", info.body);
+    const slackPayload = buildSlackCommentToAuthorMessage(prAuthorSlackUserId, info.url, info.repoShortName, info.number, info.title, commenter !== null && commenter !== void 0 ? commenter : "", info.body);
     const { slackWebhookUrl, iconUrl, botName } = allInputs;
     const postSlackResult = await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, { iconUrl, botName });
     core_debug(["postToSlack result", JSON.stringify({ postSlackResult }, null, 2)].join("\n"));
@@ -64697,7 +64699,7 @@ const execReviewReminder = async (allInputs, mapping, slackClient, octokit, owne
         ...r,
         slackId: mapping[r.githubName],
     }));
-    const payload = buildReviewReminderMessage(entries, `${owner}/${repo}`);
+    const payload = buildReviewReminderMessage(entries, owner, repo);
     if (!payload) {
         core_debug("finish execReviewReminder because no pending reviews");
         return;

@@ -126,10 +126,10 @@ describe("src/main", () => {
 
       const call = slackMock.postToSlack.mock.calls[0];
       expect(call[0]).toEqual("dummy_url");
-      expect(call[1].includes("<@slack_user_1>")).toEqual(true);
-      expect(call[1].includes("<pr_url|pr_title>")).toEqual(true);
-      expect(call[1].includes("by sender_github_username")).toEqual(true);
-      expect(call[1].includes("on abeyuya/github-actions-test")).toEqual(true);
+      expect(call[1]).toMatch("<@slack_user_1>");
+      expect(call[1]).toMatch(
+        "sender_github_username requested your review on <pr_url|[github-actions-test#1] pr_title>",
+      );
     });
 
     it("should not call postToSlack if requested_user is not listed in mapping", async () => {
@@ -207,10 +207,10 @@ describe("src/main", () => {
 
       const call = slackMock.postToSlack.mock.calls[0];
       expect(call[0]).toEqual("dummy_url");
-      expect(call[1].includes("<!subteam^slack_usergroup_1>")).toEqual(true);
-      expect(call[1].includes("<pr_url|pr_title>")).toEqual(true);
-      expect(call[1].includes("by sender_github_username")).toEqual(true);
-      expect(call[1].includes("on abeyuya/github-actions-test")).toEqual(true);
+      expect(call[1]).toMatch("<!subteam^slack_usergroup_1>");
+      expect(call[1]).toMatch(
+        "sender_github_username requested your review on <pr_url|[github-actions-test#1] pr_title>",
+      );
     });
   });
 
@@ -242,6 +242,11 @@ describe("src/main", () => {
           title: "pr_title",
           number: 1,
         },
+        repository: {
+          full_name: "abeyuya/github-actions-test",
+          name: "github-actions-test",
+          owner: { login: "abeyuya" },
+        },
         sender: {
           login: "sender_github_username",
           type: "sender_type",
@@ -260,11 +265,12 @@ describe("src/main", () => {
 
       const call = slackMock.postToSlack.mock.calls[0];
       expect(call[0]).toEqual("dummy_url");
-      expect(call[1].includes("<@slack_user_1>")).toEqual(true);
-      expect(call[1].includes("<review_comment_url|pr_title>")).toEqual(true);
-      expect(call[1].includes("by sender_github_username")).toEqual(true);
+      expect(call[1]).toMatch("<@slack_user_1>");
+      expect(call[1]).toMatch(
+        "sender_github_username mentioned you in <review_comment_url|[github-actions-test#1] pr_title>",
+      );
       // body should not be quoted with > any more, and should live in an attachment
-      expect(call[1].includes("> @github_user_1 LGTM!")).toEqual(false);
+      expect(call[1]).not.toMatch("> @github_user_1 LGTM!");
       expect(attachmentSectionTexts(call[2].attachments)).toEqual([
         ["@github_user_1 LGTM!"],
       ]);
@@ -284,6 +290,11 @@ describe("src/main", () => {
         pull_request: {
           title: "pr_title",
           number: 1,
+        },
+        repository: {
+          full_name: "abeyuya/github-actions-test",
+          name: "github-actions-test",
+          owner: { login: "abeyuya" },
         },
         sender: {
           login: "sender_github_username",
@@ -431,17 +442,17 @@ describe("src/main", () => {
       {
         state: "approved",
         body: "approve comment",
-        expectedPhrase: "has been approved by",
+        expectedPhrase: "abeyuya approved",
       },
       {
         state: "changes_requested",
         body: "please fix this",
-        expectedPhrase: "has changes requested by",
+        expectedPhrase: "abeyuya requested changes on",
       },
       {
         state: "commented",
         body: "just a comment",
-        expectedPhrase: "received a review comment from",
+        expectedPhrase: "abeyuya commented on",
       },
     ])("should send slack mention with $state wording", async ({
       state,
@@ -472,9 +483,8 @@ describe("src/main", () => {
       expect(call[1]).toMatch("<@pr_owner_slack_user>");
       expect(call[1]).toMatch(expectedPhrase);
       expect(call[1]).toMatch(
-        "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|Update mention-to-slack.yml>",
+        "<https://github.com/abeyuya/github-actions-test/pull/11#pullrequestreview-787479727|[github-actions-test#11] Update mention-to-slack.yml>",
       );
-      expect(call[1]).toMatch("abeyuya");
       expect(attachmentSectionTexts(call[2].attachments)).toEqual([[body]]);
       expect(call[1]).not.toMatch(`> ${body}`);
     });
@@ -555,6 +565,7 @@ describe("src/main", () => {
         pull_request: { html_url: "pr_url" } as any,
         user: { login: overrides.authorLogin ?? "pr_author_github" },
         title: "pr_title",
+        number: 7,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -563,6 +574,11 @@ describe("src/main", () => {
         html_url: "comment_url",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
+      repository: {
+        full_name: "owner/repo-name",
+        name: "repo-name",
+        owner: { login: "owner" },
+      },
       sender: {
         login: overrides.senderLogin ?? "commenter_github",
         type: overrides.senderType ?? "User",
@@ -586,8 +602,8 @@ describe("src/main", () => {
       const call = slackMock.postToSlack.mock.calls[0];
       expect(call[0]).toEqual("dummy_url");
       expect(call[1]).toMatch("<@pr_author_slack>");
-      expect(call[1]).toMatch("received a comment from commenter_github");
-      expect(call[1]).toMatch("<comment_url|pr_title>");
+      expect(call[1]).toMatch("commenter_github commented on");
+      expect(call[1]).toMatch("<comment_url|[repo-name#7] pr_title>");
       expect(attachmentSectionTexts(call[2].attachments)).toEqual([
         ["looks good"],
       ]);
@@ -799,6 +815,7 @@ describe("src/main", () => {
           number: 42,
           title: "PR1",
           html_url: "https://example.com/pr/1",
+          user: { login: "author_user" },
           draft: false,
           created_at: "2026-05-14T12:00:00Z",
           labels: [{ name: "bug" }],
@@ -821,7 +838,8 @@ describe("src/main", () => {
       expect(call[0]).toEqual("dummy_url");
       expect(call[1]).toMatch("<@slack_user_1>");
       expect(call[1]).toMatch("`ghost`");
-      expect(call[1]).toMatch("<https://example.com/pr/1|#42 PR1>");
+      expect(call[1]).toMatch("<https://example.com/pr/1|[repo#42] PR1>");
+      expect(call[1]).toMatch("(author_user)");
       expect(call[2]).toMatchObject({
         blocks: expect.any(Array),
       });
