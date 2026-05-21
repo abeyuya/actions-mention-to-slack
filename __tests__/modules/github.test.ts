@@ -52,7 +52,12 @@ describe("modules/github", () => {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
-            number: 1,
+            number: 7,
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -70,6 +75,8 @@ describe("modules/github", () => {
           title: "issue title",
           url: "issue url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -82,6 +89,8 @@ describe("modules/github", () => {
           title: "issue title",
           url: "issue url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -110,13 +119,18 @@ describe("modules/github", () => {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
-            number: 1,
+            number: 7,
           },
           comment: {
             id: 1,
             body: "comment body",
             title: "comment title",
             html_url: "comment url",
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -134,6 +148,8 @@ describe("modules/github", () => {
           title: "issue title",
           url: "comment url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -144,13 +160,18 @@ describe("modules/github", () => {
             body: "issue body",
             title: "issue title",
             html_url: "issue url",
-            number: 1,
+            number: 7,
           },
           comment: {
             id: 1,
             body: "> comment body \nhello",
             title: "comment title",
             html_url: "comment url",
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -164,6 +185,8 @@ describe("modules/github", () => {
           title: "issue title",
           url: "comment url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -176,6 +199,8 @@ describe("modules/github", () => {
           title: "issue title",
           url: "comment url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -202,7 +227,12 @@ describe("modules/github", () => {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
-            number: 1,
+            number: 7,
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -220,6 +250,8 @@ describe("modules/github", () => {
           title: "pr title",
           url: "pr url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -232,6 +264,8 @@ describe("modules/github", () => {
           title: "pr title",
           url: "pr url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -269,13 +303,18 @@ describe("modules/github", () => {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
-            number: 1,
+            number: 7,
           },
           comment: {
             id: 1,
             body: "comment body",
             title: "comment title",
             html_url: "comment url",
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -293,6 +332,8 @@ describe("modules/github", () => {
           title: "pr title",
           url: "comment url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -305,6 +346,8 @@ describe("modules/github", () => {
           title: "pr title",
           url: "comment url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -329,12 +372,17 @@ describe("modules/github", () => {
             body: "pr body",
             title: "pr title",
             html_url: "pr url",
-            number: 1,
+            number: 7,
           },
           review: {
             body: "review body",
             title: "review title",
             html_url: "review url",
+          },
+          repository: {
+            full_name: "owner/repo-name",
+            name: "repo-name",
+            owner: { login: "owner" },
           },
           sender: {
             login: "sender_github_username",
@@ -352,6 +400,8 @@ describe("modules/github", () => {
           title: "pr title",
           url: "review url",
           senderName: "sender_github_username",
+          repoShortName: "repo-name",
+          number: 7,
         });
       });
 
@@ -371,6 +421,8 @@ describe("modules/github", () => {
         const result = pickupInfoFromGithubPayload(realPayload);
         expect(result.title).toEqual("test");
         expect(result.senderName).toEqual("abeyuya");
+        expect(result.repoShortName).toEqual("github-actions-test");
+        expect(result.number).toEqual(7);
       });
     });
 
@@ -380,6 +432,8 @@ describe("modules/github", () => {
         expect(result.title).toEqual("Update mention-to-slack.yml");
         expect(result.senderName).toEqual("abeyuya");
         expect(result.body).toEqual("approve comment");
+        expect(result.repoShortName).toEqual("github-actions-test");
+        expect(result.number).toEqual(11);
       });
     });
   });
