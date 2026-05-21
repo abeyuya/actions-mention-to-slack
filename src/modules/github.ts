@@ -50,21 +50,32 @@ export const needToSendReviewSubmittedMention = (
   return Boolean(payload.review);
 };
 
-export const pickupInfoFromGithubPayload = (
-  payload: Partial<typeof context.payload>,
-): {
+export type GithubPayloadInfo = {
   body: string | null;
   title: string;
   url: string;
   senderName: string;
-} => {
+  repoShortName: string;
+  number: number;
+};
+
+export const pickupInfoFromGithubPayload = (
+  payload: Partial<typeof context.payload>,
+): GithubPayloadInfo => {
+  const repoShortName = payload.repository?.name || "";
+  const senderName = payload.sender?.login || "";
+
   if (payload.issue) {
+    const number = payload.issue.number || 0;
+
     if (payload.comment) {
       return {
         body: payload.comment.body,
         title: payload.issue.title,
         url: payload.comment.html_url,
-        senderName: payload.sender?.login || "",
+        senderName,
+        repoShortName,
+        number,
       };
     }
 
@@ -72,17 +83,23 @@ export const pickupInfoFromGithubPayload = (
       body: payload.issue.body || "",
       title: payload.issue.title,
       url: payload.issue.html_url || "",
-      senderName: payload.sender?.login || "",
+      senderName,
+      repoShortName,
+      number,
     };
   }
 
   if (payload.pull_request) {
+    const number = payload.pull_request.number || 0;
+
     if (payload.review) {
       return {
         body: payload.review.body,
         title: payload.pull_request?.title || "",
         url: payload.review.html_url,
-        senderName: payload.sender?.login || "",
+        senderName,
+        repoShortName,
+        number,
       };
     }
 
@@ -91,7 +108,9 @@ export const pickupInfoFromGithubPayload = (
         body: payload.comment.body,
         title: payload.pull_request.title,
         url: payload.comment.html_url,
-        senderName: payload.sender?.login || "",
+        senderName,
+        repoShortName,
+        number,
       };
     }
 
@@ -99,7 +118,9 @@ export const pickupInfoFromGithubPayload = (
       body: payload.pull_request.body || "",
       title: payload.pull_request.title,
       url: payload.pull_request.html_url || "",
-      senderName: payload.sender?.login || "",
+      senderName,
+      repoShortName,
+      number,
     };
   }
 
