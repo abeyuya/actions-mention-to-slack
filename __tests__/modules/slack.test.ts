@@ -2,9 +2,12 @@ import {
   buildSlackCommentToAuthorMessage,
   buildSlackErrorMessage,
   buildSlackPostMessage,
+  buildSlackReviewRequestedMessage,
   buildSlackReviewSubmittedMessage,
   CONTINUATION_SUFFIX,
   convertGithubMarkdownToSlackMrkdwn,
+  formatIssueRef,
+  formatIssueRefLink,
   QUOTE_ATTACHMENT_COLOR,
   SECTION_TEXT_LIMIT,
   splitMrkdwnByLimit,
@@ -16,18 +19,36 @@ import {
 } from "../fixture/slackBlocks.js";
 
 describe("modules/slack", () => {
+  describe("formatIssueRef", () => {
+    it("renders `[repo#number] title` in the official GitHub Slack style", () => {
+      expect(formatIssueRef("monorepo", 71233, "API docs")).toEqual(
+        "[monorepo#71233] API docs",
+      );
+    });
+  });
+
+  describe("formatIssueRefLink", () => {
+    it("wraps the issue ref in a Slack mrkdwn link", () => {
+      expect(
+        formatIssueRefLink("https://example.com/pr/42", "repo", 42, "Fix bug"),
+      ).toEqual("<https://example.com/pr/42|[repo#42] Fix bug>");
+    });
+  });
+
   describe("buildSlackPostMessage", () => {
     it("should keep only the headline in text/blocks and put the body in a grey-colored attachment", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
+        "repo",
+        42,
         "title",
-        "link",
+        "https://example.com/c",
         "message",
         "sender_github_username",
       );
 
       const expectedHeadline =
-        "<@slackUser1> has been mentioned at <link|title> by sender_github_username";
+        "<@slackUser1> sender_github_username mentioned you in <https://example.com/c|[repo#42] title>";
       expect(result.text).toEqual(expectedHeadline);
       expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
 
@@ -41,8 +62,10 @@ describe("modules/slack", () => {
     it("should route github body through Slack mrkdwn conversion", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
+        "repo",
+        42,
         "title",
-        "link",
+        "https://example.com/c",
         "## heading\n\nbody",
         "sender_github_username",
       );
@@ -52,17 +75,19 @@ describe("modules/slack", () => {
       ]);
     });
 
-    it("should use 'have' for multiple mentions and join them with spaces", () => {
+    it("should join multiple mentions with spaces and keep the verb invariant", () => {
       const result = buildSlackPostMessage(
         ["slackUser1", "slackUser2"],
+        "repo",
+        42,
         "title",
-        "link",
+        "https://example.com/c",
         "body",
         "sender_github_username",
       );
 
       expect(result.text).toEqual(
-        "<@slackUser1> <@slackUser2> have been mentioned at <link|title> by sender_github_username",
+        "<@slackUser1> <@slackUser2> sender_github_username mentioned you in <https://example.com/c|[repo#42] title>",
       );
     });
 
@@ -70,8 +95,10 @@ describe("modules/slack", () => {
       const body = "a".repeat(8000);
       const result = buildSlackPostMessage(
         ["slackUser1"],
+        "repo",
+        42,
         "title",
-        "link",
+        "https://example.com/c",
         body,
         "sender_github_username",
       );
@@ -86,8 +113,10 @@ describe("modules/slack", () => {
     it("should omit attachments when github body is empty", () => {
       const result = buildSlackPostMessage(
         ["slackUser1"],
+        "repo",
+        42,
         "title",
-        "link",
+        "https://example.com/c",
         "",
         "sender_github_username",
       );
@@ -97,22 +126,44 @@ describe("modules/slack", () => {
     });
   });
 
+  describe("buildSlackReviewRequestedMessage", () => {
+    it("composes the headline in official GitHub Slack style without quoting PR body", () => {
+      const result = buildSlackReviewRequestedMessage(
+        "<@U_REVIEWER>",
+        "https://example.com/pr/42",
+        "repo",
+        42,
+        "Fix bug",
+        "requester_user",
+      );
+
+      const expectedHeadline =
+        "<@U_REVIEWER> requester_user requested your review on <https://example.com/pr/42|[repo#42] Fix bug>";
+      expect(result.text).toEqual(expectedHeadline);
+      expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
+      expect(result.attachments).toEqual([]);
+    });
+  });
+
   describe("buildSlackReviewSubmittedMessage", () => {
     it.each([
-      ["approved", "has been approved by reviewer_user"],
-      ["changes_requested", "has changes requested by reviewer_user"],
-      ["commented", "received a review comment from reviewer_user"],
-      [undefined, "received a review comment from reviewer_user"],
-    ] as const)("should compose headline for review state '%s'", (state, tail) => {
+      ["approved", "reviewer_user approved"],
+      ["changes_requested", "reviewer_user requested changes on"],
+      ["commented", "reviewer_user commented on"],
+      [undefined, "reviewer_user commented on"],
+    ] as const)("should compose headline for review state '%s'", (state, verb) => {
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
-        "<https://example.com/pr/1|#42 PR1>",
+        "https://example.com/pr/42",
+        "repo",
+        42,
+        "PR1",
         "reviewer_user",
         state,
         "review body",
       );
 
-      const expectedHeadline = `<@U_OWNER> <https://example.com/pr/1|#42 PR1> ${tail}.`;
+      const expectedHeadline = `<@U_OWNER> ${verb} <https://example.com/pr/42|[repo#42] PR1>`;
       expect(result.text).toEqual(expectedHeadline);
       expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
       expect(attachmentSectionTexts(result.attachments)).toEqual([
@@ -123,7 +174,10 @@ describe("modules/slack", () => {
     it("should omit attachments when review body is empty or null", () => {
       const result = buildSlackReviewSubmittedMessage(
         "U_OWNER",
-        "<link|title>",
+        "https://example.com/pr/42",
+        "repo",
+        42,
+        "PR1",
         "reviewer_user",
         "approved",
         null,
@@ -137,13 +191,16 @@ describe("modules/slack", () => {
     it("should keep only the headline in text/blocks and put the body in a grey-colored attachment", () => {
       const result = buildSlackCommentToAuthorMessage(
         "U_AUTHOR",
-        "<https://example.com/pr/1|#42 PR1>",
+        "https://example.com/pr/42",
+        "repo",
+        42,
+        "PR1",
         "commenter_user",
         "looks good",
       );
 
       const expectedHeadline =
-        "<@U_AUTHOR> <https://example.com/pr/1|#42 PR1> received a comment from commenter_user.";
+        "<@U_AUTHOR> commenter_user commented on <https://example.com/pr/42|[repo#42] PR1>";
       expect(result.text).toEqual(expectedHeadline);
       expect(sectionTexts(result.blocks)).toEqual([expectedHeadline]);
 
@@ -159,7 +216,10 @@ describe("modules/slack", () => {
     it("should omit attachments when the comment body is empty or null", () => {
       const result = buildSlackCommentToAuthorMessage(
         "U_AUTHOR",
-        "<link|title>",
+        "https://example.com/pr/42",
+        "repo",
+        42,
+        "PR1",
         "commenter_user",
         null,
       );

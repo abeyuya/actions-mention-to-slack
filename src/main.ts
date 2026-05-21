@@ -21,6 +21,7 @@ import {
   buildSlackCommentToAuthorMessage,
   buildSlackErrorMessage,
   buildSlackPostMessage,
+  buildSlackReviewRequestedMessage,
   buildSlackReviewSubmittedMessage,
   type SlackPostPayload,
   SlackRepositoryImpl,
@@ -109,16 +110,27 @@ export const execPrReviewRequestedMention = async (
     return;
   }
 
-  const title = payload.pull_request?.title;
-  const url = payload.pull_request?.html_url;
-  const repoName = payload.repository?.full_name;
-  const requestUsername = payload.sender?.login;
+  const title = payload.pull_request?.title || "";
+  const url = payload.pull_request?.html_url || "";
+  const repoShortName = payload.repository?.name || "";
+  const prNumber = payload.pull_request?.number || 0;
+  const requestUsername = payload.sender?.login || "";
 
   const slackMention = getSlackMention(slackUserIds[0], slackUserGroupIds[0]);
-  const message = `${slackMention} has been requested to review <${url}|${title}> by ${requestUsername} on ${repoName}.`;
+  const slackPayload = buildSlackReviewRequestedMessage(
+    slackMention,
+    url,
+    repoShortName,
+    prNumber,
+    title,
+    requestUsername,
+  );
   const { slackWebhookUrl, iconUrl, botName } = allInputs;
 
-  await slackClient.postToSlack(slackWebhookUrl, message, { iconUrl, botName });
+  await postSlackPayload(slackClient, slackWebhookUrl, slackPayload, {
+    iconUrl,
+    botName,
+  });
 };
 
 export const execNormalMention = async (
@@ -156,6 +168,8 @@ export const execNormalMention = async (
 
   const slackPayload = buildSlackPostMessage(
     slackIdsWithoutIgnore,
+    info.repoShortName,
+    info.number,
     info.title,
     info.url,
     info.body,
@@ -212,10 +226,12 @@ export const execReviewSubmittedMention = async (
     return null;
   }
 
-  const prLink = `<${info.url}|${info.title}>`;
   const slackPayload = buildSlackReviewSubmittedMessage(
     prOwnerSlackUserId,
-    prLink,
+    info.url,
+    info.repoShortName,
+    info.number,
+    info.title,
     reviewer,
     reviewState,
     info.body,
@@ -296,11 +312,13 @@ export const execCommentToAuthor = async (
 
   const info = pickupInfoFromGithubPayload(payload);
   const prAuthorSlackUserId = slackIds[0];
-  const prLink = `<${info.url}|${info.title}>`;
 
   const slackPayload = buildSlackCommentToAuthorMessage(
     prAuthorSlackUserId,
-    prLink,
+    info.url,
+    info.repoShortName,
+    info.number,
+    info.title,
     commenter ?? "",
     info.body,
   );

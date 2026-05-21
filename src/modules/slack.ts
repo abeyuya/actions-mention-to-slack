@@ -85,6 +85,20 @@ export const convertGithubMarkdownToSlackMrkdwn = (
   body: string | null | undefined,
 ): string => (body ? slackifyMarkdown(body).trimEnd() : "");
 
+// 純正 GitHub Slack 連携の表記に揃える: `[<repo>#<number>] <title>`
+export const formatIssueRef = (
+  repoShortName: string,
+  number: number,
+  title: string,
+): string => `[${repoShortName}#${number}] ${title}`;
+
+export const formatIssueRefLink = (
+  url: string,
+  repoShortName: string,
+  number: number,
+  title: string,
+): string => `<${url}|${formatIssueRef(repoShortName, number, title)}>`;
+
 const buildHeaderWithQuotedBody = (
   headline: string,
   body: string | null | undefined,
@@ -99,33 +113,61 @@ const buildHeaderWithQuotedBody = (
 
 export const buildSlackPostMessage = (
   slackIdsForMention: string[],
+  repoShortName: string,
+  issueNumber: number,
   issueTitle: string,
   commentLink: string,
   githubBody: string,
   senderName: string,
 ): SlackPostPayload => {
   const mentionBlock = slackIdsForMention.map((id) => `<@${id}>`).join(" ");
-  const verb = slackIdsForMention.length === 1 ? "has" : "have";
-  const headline = `${mentionBlock} ${verb} been mentioned at <${commentLink}|${issueTitle}> by ${senderName}`;
+  const refLink = formatIssueRefLink(
+    commentLink,
+    repoShortName,
+    issueNumber,
+    issueTitle,
+  );
+  const headline = `${mentionBlock} ${senderName} mentioned you in ${refLink}`;
   return buildHeaderWithQuotedBody(headline, githubBody);
+};
+
+export const buildSlackReviewRequestedMessage = (
+  reviewerSlackMention: string,
+  url: string,
+  repoShortName: string,
+  prNumber: number,
+  prTitle: string,
+  requester: string,
+): SlackPostPayload => {
+  const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
+  const headline = `${reviewerSlackMention} ${requester} requested your review on ${refLink}`;
+  return {
+    text: headline,
+    blocks: [buildSection(headline)],
+    attachments: [],
+  };
 };
 
 export const buildSlackReviewSubmittedMessage = (
   prOwnerSlackUserId: string,
-  prLink: string,
+  url: string,
+  repoShortName: string,
+  prNumber: number,
+  prTitle: string,
   reviewer: string,
   reviewState: string | undefined,
   reviewBody: string | null | undefined,
 ): SlackPostPayload => {
   const userMention = `<@${prOwnerSlackUserId}>`;
+  const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
   const headline = (() => {
     switch (reviewState) {
       case "approved":
-        return `${userMention} ${prLink} has been approved by ${reviewer}.`;
+        return `${userMention} ${reviewer} approved ${refLink}`;
       case "changes_requested":
-        return `${userMention} ${prLink} has changes requested by ${reviewer}.`;
+        return `${userMention} ${reviewer} requested changes on ${refLink}`;
       default:
-        return `${userMention} ${prLink} received a review comment from ${reviewer}.`;
+        return `${userMention} ${reviewer} commented on ${refLink}`;
     }
   })();
   return buildHeaderWithQuotedBody(headline, reviewBody);
@@ -133,11 +175,15 @@ export const buildSlackReviewSubmittedMessage = (
 
 export const buildSlackCommentToAuthorMessage = (
   prAuthorSlackUserId: string,
-  prLink: string,
+  url: string,
+  repoShortName: string,
+  prNumber: number,
+  prTitle: string,
   commenter: string,
   commentBody: string | null | undefined,
 ): SlackPostPayload => {
-  const headline = `<@${prAuthorSlackUserId}> ${prLink} received a comment from ${commenter}.`;
+  const refLink = formatIssueRefLink(url, repoShortName, prNumber, prTitle);
+  const headline = `<@${prAuthorSlackUserId}> ${commenter} commented on ${refLink}`;
   return buildHeaderWithQuotedBody(headline, commentBody);
 };
 
