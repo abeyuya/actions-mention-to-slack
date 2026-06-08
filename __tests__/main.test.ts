@@ -12,6 +12,7 @@ import {
   execPrReviewRequestedMention,
   execReviewReminder,
   execReviewSubmittedMention,
+  parseIgnoredTerms,
 } from "../src/main.js";
 
 import { prApprovePayload } from "./fixture/real-payload-20211024-pr-approve.js";
@@ -46,6 +47,26 @@ describe("src/main", () => {
       const a = [1, 2, 3, 4];
       const b = [1, 2, 3];
       expect(arrayDiff(a, b)).toEqual([4]);
+    });
+  });
+
+  describe("parseIgnoredTerms", () => {
+    it("splits on commas and trims surrounding whitespace", () => {
+      expect(parseIgnoredTerms("wip, release ,  hold")).toEqual([
+        "wip",
+        "release",
+        "hold",
+      ]);
+    });
+
+    it("drops empty entries from extra commas", () => {
+      expect(parseIgnoredTerms("wip,,, ,release")).toEqual(["wip", "release"]);
+    });
+
+    it("returns an empty array for undefined or empty input", () => {
+      expect(parseIgnoredTerms(undefined)).toEqual([]);
+      expect(parseIgnoredTerms("")).toEqual([]);
+      expect(parseIgnoredTerms("   ")).toEqual([]);
     });
   });
 
