@@ -64437,7 +64437,7 @@ const splitSectionByLimit = (header, prLines) => {
     sections.push(current);
     return sections;
 };
-const fetchOpenReviewRequests = async (octokit, owner, repo) => {
+const fetchOpenReviewRequests = async (octokit, owner, repo, ignoredTerms = []) => {
     var _a, _b, _c, _d, _e;
     const prs = await octokit.paginate(octokit.rest.pulls.list, {
         owner,
@@ -64445,10 +64445,18 @@ const fetchOpenReviewRequests = async (octokit, owner, repo) => {
         state: "open",
         per_page: 100,
     });
+    // GitHub 純正 Scheduled Reminders の "Ignored terms" 相当。
+    // PR タイトルにいずれかの term を部分一致 (case-insensitive) で含むものを除外する。
+    const loweredTerms = ignoredTerms.map((t) => t.toLowerCase());
     const pendingPrs = prs.filter((pr) => {
         var _a, _b;
         if (pr.draft)
             return false;
+        if (loweredTerms.length > 0) {
+            const loweredTitle = pr.title.toLowerCase();
+            if (loweredTerms.some((t) => loweredTitle.includes(t)))
+                return false;
+        }
         const reviewerCount = ((_a = pr.requested_reviewers) !== null && _a !== void 0 ? _a : []).length;
         const teamCount = ((_b = pr.requested_teams) !== null && _b !== void 0 ? _b : []).length;
         return reviewerCount > 0 || teamCount > 0;
@@ -64554,6 +64562,11 @@ const postSlackPayload = (slackClient, webhookUrl, payload, options) => slackCli
     attachments: payload.attachments,
 });
 const arrayDiff = (arr1, arr2) => arr1.filter((i) => arr2.indexOf(i) === -1);
+// カンマ区切りの ignored-terms 入力を trim / 空要素除去してパースする
+const parseIgnoredTerms = (raw) => (raw !== null && raw !== void 0 ? raw : "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 const convertToSlackUsername = (githubUsernames, mapping) => {
     core_debug(JSON.stringify({ githubUsernames }, null, 2));
     const slackIds = githubUsernames
@@ -64694,7 +64707,7 @@ const execCommentToAuthor = async (payload, allInputs, mapping, slackClient) => 
     return prAuthorSlackUserId;
 };
 const execReviewReminder = async (allInputs, mapping, slackClient, octokit, owner, repo) => {
-    const raw = await fetchOpenReviewRequests(octokit, owner, repo);
+    const raw = await fetchOpenReviewRequests(octokit, owner, repo, allInputs.ignoredTerms);
     const entries = raw.map((r) => ({
         ...r,
         slackId: mapping[r.githubName],
@@ -64753,6 +64766,7 @@ const getAllInputs = () => {
         ? rawType
         : undefined;
     const notifyBotComment = getInput("notify-bot-comment", { required: false }) === "true";
+    const ignoredTerms = parseIgnoredTerms(getInput("ignored-terms", { required: false }));
     return {
         repoToken,
         configurationPath,
@@ -64762,6 +64776,7 @@ const getAllInputs = () => {
         runId,
         type,
         notifyBotComment,
+        ignoredTerms,
     };
 };
 const main = async () => {

@@ -50,10 +50,18 @@ export type AllInputs = {
   runId?: string;
   type?: ActionType;
   notifyBotComment?: boolean;
+  ignoredTerms?: string[];
 };
 
 export const arrayDiff = <T>(arr1: T[], arr2: T[]) =>
   arr1.filter((i) => arr2.indexOf(i) === -1);
+
+// カンマ区切りの ignored-terms 入力を trim / 空要素除去してパースする
+export const parseIgnoredTerms = (raw: string | undefined): string[] =>
+  (raw ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 
 export const convertToSlackUsername = (
   githubUsernames: string[],
@@ -343,7 +351,12 @@ export const execReviewReminder = async (
   owner: string,
   repo: string,
 ): Promise<void> => {
-  const raw = await fetchOpenReviewRequests(octokit, owner, repo);
+  const raw = await fetchOpenReviewRequests(
+    octokit,
+    owner,
+    repo,
+    allInputs.ignoredTerms,
+  );
 
   const entries: ReminderEntry[] = raw.map((r) => ({
     ...r,
@@ -419,6 +432,9 @@ const getAllInputs = (): AllInputs => {
       : undefined;
   const notifyBotComment =
     getInput("notify-bot-comment", { required: false }) === "true";
+  const ignoredTerms = parseIgnoredTerms(
+    getInput("ignored-terms", { required: false }),
+  );
 
   return {
     repoToken,
@@ -429,6 +445,7 @@ const getAllInputs = (): AllInputs => {
     runId,
     type,
     notifyBotComment,
+    ignoredTerms,
   };
 };
 

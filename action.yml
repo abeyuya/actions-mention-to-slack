@@ -27,6 +27,9 @@ inputs:
     description: "If 'true', also notify the PR author when their PR receives a comment from a bot sender. Default 'false' (bot comments are skipped)."
     required: false
     default: "false"
+  ignored-terms:
+    description: "Comma-separated keywords. In 'scheduled-reminder' mode, pull requests whose title contains any of these terms (case-insensitive substring match) are excluded from the reminder."
+    required: false
 runs:
   using: "node24"
   main: "dist/index.js"

@@ -492,6 +492,65 @@ describe("reviewReminder", () => {
       assert(pr2);
       expect(pr2.approvalState).toBe("changes_requested");
     });
+
+    it("excludes PRs whose title contains an ignored term (partial, case-insensitive, OR)", async () => {
+      const { client, listReviews } = buildOctokit([
+        makePr({
+          number: 1,
+          title: "[WIP] add feature",
+          requested_reviewers: [{ login: "alice" }],
+        }),
+        makePr({
+          number: 2,
+          title: "Release v1.2.3",
+          requested_reviewers: [{ login: "bob" }],
+        }),
+        makePr({
+          number: 3,
+          title: "Normal change",
+          requested_reviewers: [{ login: "carol" }],
+        }),
+      ]);
+
+      // "wip" は大文字小文字を無視した部分一致、複数 term は OR で評価される
+      const result = await fetchOpenReviewRequests(client, "owner", "repo", [
+        "wip",
+        "release",
+      ]);
+
+      const names = result.map((r) => r.githubName);
+      expect(names).toEqual(["carol"]);
+      // 除外された PR では listReviews を呼ばない (carol の PR のみ)
+      expect(listReviews).toHaveBeenCalledTimes(1);
+    });
+
+    it("matches ignored terms exactly as well (full title)", async () => {
+      const { client } = buildOctokit([
+        makePr({
+          number: 1,
+          title: "skip",
+          requested_reviewers: [{ login: "alice" }],
+        }),
+      ]);
+
+      const result = await fetchOpenReviewRequests(client, "owner", "repo", [
+        "skip",
+      ]);
+      expect(result).toEqual([]);
+    });
+
+    it("keeps all PRs when ignored terms are not provided", async () => {
+      const { client } = buildOctokit([
+        makePr({
+          number: 1,
+          title: "[WIP] add feature",
+          requested_reviewers: [{ login: "alice" }],
+        }),
+      ]);
+
+      const result = await fetchOpenReviewRequests(client, "owner", "repo");
+      expect(result.map((r) => r.githubName)).toEqual(["alice"]);
+    });
   });
 
   describe("buildReviewReminderMessage section splitting", () => {

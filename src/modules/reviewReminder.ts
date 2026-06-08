@@ -159,6 +159,7 @@ export const fetchOpenReviewRequests = async (
   octokit: ReturnType<typeof getOctokit>,
   owner: string,
   repo: string,
+  ignoredTerms: string[] = [],
 ): Promise<RawReminderEntry[]> => {
   const prs = await octokit.paginate(octokit.rest.pulls.list, {
     owner,
@@ -167,8 +168,16 @@ export const fetchOpenReviewRequests = async (
     per_page: 100,
   });
 
+  // GitHub 純正 Scheduled Reminders の "Ignored terms" 相当。
+  // PR タイトルにいずれかの term を部分一致 (case-insensitive) で含むものを除外する。
+  const loweredTerms = ignoredTerms.map((t) => t.toLowerCase());
+
   const pendingPrs = prs.filter((pr) => {
     if (pr.draft) return false;
+    if (loweredTerms.length > 0) {
+      const loweredTitle = pr.title.toLowerCase();
+      if (loweredTerms.some((t) => loweredTitle.includes(t))) return false;
+    }
     const reviewerCount = (pr.requested_reviewers ?? []).length;
     const teamCount = (pr.requested_teams ?? []).length;
     return reviewerCount > 0 || teamCount > 0;
