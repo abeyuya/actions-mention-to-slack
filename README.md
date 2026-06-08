@@ -34,6 +34,7 @@ This action has two modes, controlled by the `type` input (aligned with GitHub's
 | run-id             | No       | Null                         | Used for the link in the error message when an error occurs.                                                                                             |
 | type               | No       | realtime-alert               | Mode of operation. `realtime-alert` (default) sends event-driven mention/review notifications. `scheduled-reminder` posts an aggregated reminder of open pull requests with pending review requests. Leaving it empty is the same as `realtime-alert`. |
 | notify-bot-comment | No       | false                        | If `"true"`, the PR-author-on-comment notification (see Feature) also fires when the comment sender is a bot (`payload.sender.type === "Bot"`). Defaults to `"false"`, which mirrors GitHub's official "Someone comments on your PR" reminder by skipping bot comments. |
+| ignored-terms      | No       | Null                         | Comma-separated keywords used only in `scheduled-reminder` mode. Pull requests whose title contains any of these terms (case-insensitive substring match) are excluded from the reminder, mirroring GitHub Scheduled Reminders' "Ignored terms". |
 
 ## Example usage
 
@@ -110,6 +111,7 @@ _5h old · :hourglass_flowing_sand: review required_
 ```
 
 - Draft pull requests are excluded.
+- Pull requests whose title matches any keyword in `ignored-terms` (case-insensitive substring match) are excluded, mirroring GitHub Scheduled Reminders' "Ignored terms".
 - If there are no pending review requests, nothing is posted.
 - Approval state is fetched via the `pulls.listReviews` API for each PR with pending reviewers. Calls are made in chunks of 5 to stay friendly to API rate limits.
 
@@ -141,6 +143,8 @@ jobs:
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
           configuration-path: .github/mention-to-slack.yml
           bot-name: "Review Reminder"
+          # Optional: skip PRs whose title contains any of these keywords
+          ignored-terms: "WIP, DO NOT MERGE, release"
 ```
 
 ### Mapping configuration
