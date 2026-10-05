@@ -4,6 +4,14 @@ import { load } from "js-yaml";
 const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
 export const isUrl = (text: string) => pattern.test(text);
 
+const NOT_FOUND_RETRY_DELAYS_MS = [1000, 2000, 3000];
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const isNotFoundError = (e: unknown) =>
+  typeof e === "object" && e !== null && "status" in e && e.status === 404;
+
 export type MappingFile = {
   [githugUsername: string]: string | undefined;
 };
@@ -42,13 +50,36 @@ export const MappingConfigRepositoryImpl = {
     repo: string,
     configurationPath: string,
     sha: string,
+    retryDelaysMs: readonly number[] = NOT_FOUND_RETRY_DELAYS_MS,
   ) => {
     const githubClient = getOctokit(repoToken);
-    const response = await githubClient.rest.repos.getContent({
-      owner,
-      repo,
-      path: configurationPath,
-      ref: sha,
+    const getContent = async () => {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await githubClient.rest.repos.getContent({
+            owner,
+            repo,
+            path: configurationPath,
+            ref: sha,
+          });
+        } catch (e) {
+          // Right after the PR head moves, the freshly recreated
+          // refs/pull/N/merge commit may not be readable yet and the API
+          // briefly returns 404. Retry a few times before giving up.
+          const delay = retryDelaysMs[attempt];
+          if (!isNotFoundError(e) || delay === undefined) {
+            throw e;
+          }
+          await sleep(delay);
+        }
+      }
+    };
+
+    const response = await getContent().catch((e: unknown) => {
+      const reason = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        `Failed to fetch configuration file "${configurationPath}" from ${owner}/${repo} at ref ${sha}: ${reason}`,
+      );
     });
 
     if (!("content" in response.data)) {

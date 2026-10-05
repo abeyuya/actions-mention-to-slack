@@ -1,9 +1,27 @@
+import { getOctokit } from "@actions/github";
 import { vi } from "vitest";
 
 import {
   isUrl,
   MappingConfigRepositoryImpl,
 } from "../../src/modules/mappingConfig.js";
+
+vi.mock("@actions/github", () => ({
+  getOctokit: vi.fn(),
+}));
+
+const mockGetContent = (getContent: ReturnType<typeof vi.fn>) => {
+  vi.mocked(getOctokit).mockReturnValue({
+    rest: { repos: { getContent } },
+  } as unknown as ReturnType<typeof getOctokit>);
+};
+
+const httpError = (status: number, message: string) =>
+  Object.assign(new Error(message), { status });
+
+const contentResponse = (yaml: string) => ({
+  data: { content: Buffer.from(yaml).toString("base64") },
+});
 
 describe("mappingConfig", () => {
   describe("isUrl", () => {
@@ -44,7 +62,70 @@ describe("mappingConfig", () => {
     });
 
     describe("loadFromGithubPath", () => {
-      it.todo("real test (requires GITHUB_TOKEN)");
+      const load = (retryDelaysMs?: number[]) =>
+        MappingConfigRepositoryImpl.loadFromGithubPath(
+          "token",
+          "owner",
+          "repo",
+          ".github/mention-to-slack.yml",
+          "abc123",
+          retryDelaysMs,
+        );
+
+      it("should return yaml", async () => {
+        const getContent = vi
+          .fn()
+          .mockResolvedValueOnce(contentResponse('github_user_id: "XXXXXXX"'));
+        mockGetContent(getContent);
+
+        const result = await load([]);
+
+        expect(getContent).toHaveBeenCalledWith({
+          owner: "owner",
+          repo: "repo",
+          path: ".github/mention-to-slack.yml",
+          ref: "abc123",
+        });
+        expect(result).toEqual({ github_user_id: "XXXXXXX" });
+      });
+
+      it("should retry on 404 and return yaml once it becomes available", async () => {
+        const getContent = vi
+          .fn()
+          .mockRejectedValueOnce(httpError(404, "Not Found"))
+          .mockRejectedValueOnce(httpError(404, "Not Found"))
+          .mockResolvedValueOnce(contentResponse('github_user_id: "XXXXXXX"'));
+        mockGetContent(getContent);
+
+        const result = await load([0, 0, 0]);
+
+        expect(getContent).toHaveBeenCalledTimes(3);
+        expect(result).toEqual({ github_user_id: "XXXXXXX" });
+      });
+
+      it("should throw with path and ref after exhausting retries on 404", async () => {
+        const getContent = vi
+          .fn()
+          .mockRejectedValue(httpError(404, "Not Found"));
+        mockGetContent(getContent);
+
+        await expect(load([0, 0])).rejects.toThrow(
+          'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Not Found',
+        );
+        expect(getContent).toHaveBeenCalledTimes(3);
+      });
+
+      it("should not retry on non-404 errors", async () => {
+        const getContent = vi
+          .fn()
+          .mockRejectedValue(httpError(403, "Forbidden"));
+        mockGetContent(getContent);
+
+        await expect(load([0, 0])).rejects.toThrow(
+          'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Forbidden',
+        );
+        expect(getContent).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
