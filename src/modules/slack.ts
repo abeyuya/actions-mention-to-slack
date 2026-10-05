@@ -199,13 +199,9 @@ export const buildSlackErrorMessage = (
     ? `<${currentJobUrl}|${jobTitle}>`
     : jobTitle;
 
-  const issueBody = error.stack
-    ? encodeURI(["```", error.stack, "```"].join("\n"))
-    : "";
+  const issueBody = error.stack ? ["```", error.stack, "```"].join("\n") : "";
 
-  const link = encodeURI(
-    `${openIssueLink}?title=${error.message}&body=${issueBody}`,
-  );
+  const link = `${openIssueLink}?title=${encodeURIComponent(error.message)}&body=${encodeURIComponent(issueBody)}`;
 
   const headline = [
     `❗ An internal error occurred in ${jobLinkMessage}`,

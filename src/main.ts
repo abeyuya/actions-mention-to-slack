@@ -472,6 +472,9 @@ export const main = async (): Promise<void> => {
         context.repo.repo,
         configurationPath,
         context.sha,
+        // context.sha is the short-lived test merge commit only for
+        // pull_request* events; elsewhere a 404 is not transient.
+        /^refs\/pull\/\d+\/merge$/.test(context.ref),
       );
     })();
 
