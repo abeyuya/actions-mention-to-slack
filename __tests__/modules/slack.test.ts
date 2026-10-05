@@ -245,6 +245,21 @@ describe("modules/slack", () => {
       expect(stackSection.endsWith("```")).toBe(true);
       expect(stackSection.includes("dummy error")).toBe(true);
     });
+
+    it("should encode the issue link so that # and & do not truncate it", () => {
+      const e = new Error("Not Found - https://example.com/a#b&c");
+      e.stack = "Error: Not Found\n  at line";
+      const result = buildSlackErrorMessage(e);
+
+      const headline = sectionTexts(result.blocks)[0];
+      const url = headline.match(
+        /<(https:\/\/github\.com[^|>]+)\|open an issue>/,
+      )?.[1];
+      expect(url).toBeDefined();
+      const params = new URL(url as string).searchParams;
+      expect(params.get("title")).toEqual(e.message);
+      expect(params.get("body")).toEqual(["```", e.stack, "```"].join("\n"));
+    });
   });
 
   describe("splitMrkdwnByLimit", () => {

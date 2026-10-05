@@ -40360,6 +40360,20 @@ var jsYaml = {
 
 const pattern = /https?:\/\/[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+/g;
 const isUrl = (text) => pattern.test(text);
+const NOT_FOUND_RETRY_DELAYS_MS = [1000, 2000, 3000];
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const getStatus = (e) => typeof e === "object" &&
+    e !== null &&
+    "status" in e &&
+    typeof e.status === "number"
+    ? e.status
+    : undefined;
+const isNotFoundError = (e) => getStatus(e) === 404;
+const wrapError = (context, e) => {
+    const status = getStatus(e);
+    const reason = e instanceof Error ? e.message : String(e);
+    return Object.assign(new Error(`${context}: ${status === undefined ? "" : `[${status}] `}${reason}`), { cause: e });
+};
 const MappingConfigRepositoryImpl = {
     downloadFromUrl: async (url) => {
         const response = await fetch(url);
@@ -40379,18 +40393,44 @@ const MappingConfigRepositoryImpl = {
         const data = await MappingConfigRepositoryImpl.downloadFromUrl(url);
         return MappingConfigRepositoryImpl.loadYaml(data);
     },
-    loadFromGithubPath: async (repoToken, owner, repo, configurationPath, sha) => {
+    loadFromGithubPath: async (repoToken, owner, repo, configurationPath, sha, retryOnNotFound) => {
         const githubClient = getOctokit(repoToken);
-        const response = await githubClient.rest.repos.getContent({
-            owner,
-            repo,
-            path: configurationPath,
-            ref: sha,
-        });
-        if (!("content" in response.data)) {
-            throw new Error(["Unexpected response", JSON.stringify({ response }, null, 2)].join("\n"));
+        const fetchContent = async () => {
+            for (let attempt = 0;; attempt++) {
+                try {
+                    return await githubClient.rest.repos.getContent({
+                        owner,
+                        repo,
+                        path: configurationPath,
+                        ref: sha,
+                    });
+                }
+                catch (e) {
+                    // Right after the PR head moves, the freshly recreated
+                    // refs/pull/N/merge commit may not be readable yet and the API
+                    // briefly returns 404. Retry a few times before giving up.
+                    const delay = NOT_FOUND_RETRY_DELAYS_MS[attempt];
+                    if (!retryOnNotFound || !isNotFoundError(e) || delay === undefined) {
+                        throw e;
+                    }
+                    await sleep(delay);
+                }
+            }
+        };
+        let content;
+        try {
+            const response = await fetchContent();
+            if (!("content" in response.data)) {
+                throw new Error("Unexpected response: the path is not a file");
+            }
+            content = response.data.content;
         }
-        const data = Buffer.from(response.data.content, "base64").toString();
+        catch (e) {
+            // owner/repo is intentionally left out: this message is used as the
+            // title of the prefilled issue on this action's public repository.
+            throw wrapError(`Failed to load configuration file "${configurationPath}" at ref ${sha}`, e);
+        }
+        const data = Buffer.from(content, "base64").toString();
         return MappingConfigRepositoryImpl.loadYaml(data);
     },
 };
@@ -64276,10 +64316,8 @@ const buildSlackErrorMessage = (error, currentJobUrl) => {
     const jobLinkMessage = currentJobUrl
         ? `<${currentJobUrl}|${jobTitle}>`
         : jobTitle;
-    const issueBody = error.stack
-        ? encodeURI(["```", error.stack, "```"].join("\n"))
-        : "";
-    const link = encodeURI(`${openIssueLink}?title=${error.message}&body=${issueBody}`);
+    const issueBody = error.stack ? ["```", error.stack, "```"].join("\n") : "";
+    const link = `${openIssueLink}?title=${encodeURIComponent(error.message)}&body=${encodeURIComponent(issueBody)}`;
     const headline = [
         `❗ An internal error occurred in ${jobLinkMessage}`,
         "(but action didn't fail as this action is not critical).",
@@ -64791,7 +64829,10 @@ const main = async () => {
             if (isUrl(configurationPath)) {
                 return MappingConfigRepositoryImpl.loadFromUrl(configurationPath);
             }
-            return MappingConfigRepositoryImpl.loadFromGithubPath(repoToken, github_context.repo.owner, github_context.repo.repo, configurationPath, github_context.sha);
+            return MappingConfigRepositoryImpl.loadFromGithubPath(repoToken, github_context.repo.owner, github_context.repo.repo, configurationPath, github_context.sha, 
+            // context.sha is the short-lived test merge commit only for
+            // pull_request* events; elsewhere a 404 is not transient.
+            /^refs\/pull\/\d+\/merge$/.test(github_context.ref));
         })();
         core_debug(JSON.stringify({ mapping }, null, 2));
         if (allInputs.type === "scheduled-reminder") {
