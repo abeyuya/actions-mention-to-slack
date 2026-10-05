@@ -10,23 +10,24 @@ const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const getStatus = (e: unknown) =>
-  typeof e === "object" && e !== null && "status" in e ? e.status : undefined;
+  typeof e === "object" &&
+  e !== null &&
+  "status" in e &&
+  typeof e.status === "number"
+    ? e.status
+    : undefined;
 
 const isNotFoundError = (e: unknown) => getStatus(e) === 404;
 
 const wrapError = (context: string, e: unknown) => {
   const status = getStatus(e);
   const reason = e instanceof Error ? e.message : String(e);
-  const error = Object.assign(
+  return Object.assign(
     new Error(
       `${context}: ${status === undefined ? "" : `[${status}] `}${reason}`,
     ),
     { cause: e },
   );
-  if (e instanceof Error && e.stack) {
-    error.stack = `${error.stack}\nCaused by: ${e.stack}`;
-  }
-  return error;
 };
 
 export type MappingFile = {
@@ -71,22 +72,15 @@ export const MappingConfigRepositoryImpl = {
   ) => {
     const githubClient = getOctokit(repoToken);
 
-    try {
+    const fetchContent = async () => {
       for (let attempt = 0; ; attempt++) {
         try {
-          const response = await githubClient.rest.repos.getContent({
+          return await githubClient.rest.repos.getContent({
             owner,
             repo,
             path: configurationPath,
             ref: sha,
           });
-
-          if (!("content" in response.data)) {
-            throw new Error("Unexpected response: the path is not a file");
-          }
-
-          const data = Buffer.from(response.data.content, "base64").toString();
-          return MappingConfigRepositoryImpl.loadYaml(data);
         } catch (e) {
           // Right after the PR head moves, the freshly recreated
           // refs/pull/N/merge commit may not be readable yet and the API
@@ -98,6 +92,15 @@ export const MappingConfigRepositoryImpl = {
           await sleep(delay);
         }
       }
+    };
+
+    let content: string;
+    try {
+      const response = await fetchContent();
+      if (!("content" in response.data)) {
+        throw new Error("Unexpected response: the path is not a file");
+      }
+      content = response.data.content;
     } catch (e) {
       // owner/repo is intentionally left out: this message is used as the
       // title of the prefilled issue on this action's public repository.
@@ -106,5 +109,8 @@ export const MappingConfigRepositoryImpl = {
         e,
       );
     }
+
+    const data = Buffer.from(content, "base64").toString();
+    return MappingConfigRepositoryImpl.loadYaml(data);
   },
 };
