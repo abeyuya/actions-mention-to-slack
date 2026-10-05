@@ -62,13 +62,14 @@ describe("mappingConfig", () => {
     });
 
     describe("loadFromGithubPath", () => {
-      const load = () =>
+      const load = (retryOnNotFound = true) =>
         MappingConfigRepositoryImpl.loadFromGithubPath(
           "token",
           "owner",
           "repo",
           ".github/mention-to-slack.yml",
           "abc123",
+          retryOnNotFound,
         );
 
       beforeEach(() => {
@@ -122,9 +123,11 @@ describe("mappingConfig", () => {
           .mockRejectedValue(httpError(404, "Not Found"));
         mockGetContent(getContent);
 
-        const assertion = expect(load()).rejects.toThrow(
-          'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Not Found',
-        );
+        const assertion = expect(load()).rejects.toMatchObject({
+          message:
+            'Failed to load configuration file ".github/mention-to-slack.yml" at ref abc123: [404] Not Found',
+          cause: expect.objectContaining({ status: 404 }),
+        });
         await vi.advanceTimersByTimeAsync(1000 + 2000 + 3000);
         await assertion;
         expect(getContent).toHaveBeenCalledTimes(4);
@@ -137,7 +140,29 @@ describe("mappingConfig", () => {
         mockGetContent(getContent);
 
         await expect(load()).rejects.toThrow(
-          'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Forbidden',
+          'Failed to load configuration file ".github/mention-to-slack.yml" at ref abc123: [403] Forbidden',
+        );
+        expect(getContent).toHaveBeenCalledTimes(1);
+      });
+
+      it("should not retry on 404 when retryOnNotFound is false", async () => {
+        const getContent = vi
+          .fn()
+          .mockRejectedValue(httpError(404, "Not Found"));
+        mockGetContent(getContent);
+
+        await expect(load(false)).rejects.toThrow(
+          'Failed to load configuration file ".github/mention-to-slack.yml" at ref abc123: [404] Not Found',
+        );
+        expect(getContent).toHaveBeenCalledTimes(1);
+      });
+
+      it("should include the path when the path is not a file", async () => {
+        const getContent = vi.fn().mockResolvedValue({ data: [] });
+        mockGetContent(getContent);
+
+        await expect(load()).rejects.toThrow(
+          'Failed to load configuration file ".github/mention-to-slack.yml" at ref abc123: Unexpected response: the path is not a file',
         );
         expect(getContent).toHaveBeenCalledTimes(1);
       });
