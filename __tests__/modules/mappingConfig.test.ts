@@ -62,15 +62,23 @@ describe("mappingConfig", () => {
     });
 
     describe("loadFromGithubPath", () => {
-      const load = (retryDelaysMs?: number[]) =>
+      const load = () =>
         MappingConfigRepositoryImpl.loadFromGithubPath(
           "token",
           "owner",
           "repo",
           ".github/mention-to-slack.yml",
           "abc123",
-          retryDelaysMs,
         );
+
+      beforeEach(() => {
+        vi.mocked(getOctokit).mockReset();
+        vi.useFakeTimers();
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
 
       it("should return yaml", async () => {
         const getContent = vi
@@ -78,7 +86,7 @@ describe("mappingConfig", () => {
           .mockResolvedValueOnce(contentResponse('github_user_id: "XXXXXXX"'));
         mockGetContent(getContent);
 
-        const result = await load([]);
+        const result = await load();
 
         expect(getContent).toHaveBeenCalledWith({
           owner: "owner",
@@ -97,10 +105,15 @@ describe("mappingConfig", () => {
           .mockResolvedValueOnce(contentResponse('github_user_id: "XXXXXXX"'));
         mockGetContent(getContent);
 
-        const result = await load([0, 0, 0]);
+        const promise = load();
+        await vi.advanceTimersByTimeAsync(999);
+        expect(getContent).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(getContent).toHaveBeenCalledTimes(2);
+        await vi.advanceTimersByTimeAsync(2000);
 
         expect(getContent).toHaveBeenCalledTimes(3);
-        expect(result).toEqual({ github_user_id: "XXXXXXX" });
+        expect(await promise).toEqual({ github_user_id: "XXXXXXX" });
       });
 
       it("should throw with path and ref after exhausting retries on 404", async () => {
@@ -109,10 +122,12 @@ describe("mappingConfig", () => {
           .mockRejectedValue(httpError(404, "Not Found"));
         mockGetContent(getContent);
 
-        await expect(load([0, 0])).rejects.toThrow(
+        const assertion = expect(load()).rejects.toThrow(
           'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Not Found',
         );
-        expect(getContent).toHaveBeenCalledTimes(3);
+        await vi.advanceTimersByTimeAsync(1000 + 2000 + 3000);
+        await assertion;
+        expect(getContent).toHaveBeenCalledTimes(4);
       });
 
       it("should not retry on non-404 errors", async () => {
@@ -121,7 +136,7 @@ describe("mappingConfig", () => {
           .mockRejectedValue(httpError(403, "Forbidden"));
         mockGetContent(getContent);
 
-        await expect(load([0, 0])).rejects.toThrow(
+        await expect(load()).rejects.toThrow(
           'Failed to fetch configuration file ".github/mention-to-slack.yml" from owner/repo at ref abc123: Forbidden',
         );
         expect(getContent).toHaveBeenCalledTimes(1);

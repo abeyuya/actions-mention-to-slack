@@ -50,7 +50,6 @@ export const MappingConfigRepositoryImpl = {
     repo: string,
     configurationPath: string,
     sha: string,
-    retryDelaysMs: readonly number[] = NOT_FOUND_RETRY_DELAYS_MS,
   ) => {
     const githubClient = getOctokit(repoToken);
     const getContent = async () => {
@@ -66,7 +65,7 @@ export const MappingConfigRepositoryImpl = {
           // Right after the PR head moves, the freshly recreated
           // refs/pull/N/merge commit may not be readable yet and the API
           // briefly returns 404. Retry a few times before giving up.
-          const delay = retryDelaysMs[attempt];
+          const delay = NOT_FOUND_RETRY_DELAYS_MS[attempt];
           if (!isNotFoundError(e) || delay === undefined) {
             throw e;
           }
@@ -77,8 +76,11 @@ export const MappingConfigRepositoryImpl = {
 
     const response = await getContent().catch((e: unknown) => {
       const reason = e instanceof Error ? e.message : String(e);
-      throw new Error(
-        `Failed to fetch configuration file "${configurationPath}" from ${owner}/${repo} at ref ${sha}: ${reason}`,
+      throw Object.assign(
+        new Error(
+          `Failed to fetch configuration file "${configurationPath}" from ${owner}/${repo} at ref ${sha}: ${reason}`,
+        ),
+        { cause: e },
       );
     });
 
